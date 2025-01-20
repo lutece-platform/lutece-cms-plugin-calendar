@@ -58,7 +58,7 @@ import java.util.Locale;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.htmlparser.Parser;
 import org.htmlparser.lexer.Lexer;
 import org.htmlparser.util.NodeIterator;

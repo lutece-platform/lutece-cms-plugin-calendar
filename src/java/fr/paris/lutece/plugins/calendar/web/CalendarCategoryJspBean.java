@@ -132,7 +132,7 @@ public class CalendarCategoryJspBean extends AdminFeaturesPageJspBean
         if ( !RBACService.isAuthorized( CalendarResourceIdService.RESOURCE_TYPE, RBAC.WILDCARD_RESOURCES_ID,
                 CalendarResourceIdService.PERMISSION_MANAGE, getUser( ) ) )
         {
-            throw new AccessDeniedException( );
+            throw new AccessDeniedException( CalendarResourceIdService.MSG_UNAUTHORIZED );
         }
         setPageTitleProperty( null );
 
@@ -158,7 +158,7 @@ public class CalendarCategoryJspBean extends AdminFeaturesPageJspBean
         if ( !RBACService.isAuthorized( CalendarResourceIdService.RESOURCE_TYPE, RBAC.WILDCARD_RESOURCES_ID,
                 CalendarResourceIdService.PERMISSION_MANAGE, getUser( ) ) )
         {
-            throw new AccessDeniedException( );
+            throw new AccessDeniedException( CalendarResourceIdService.MSG_UNAUTHORIZED );
         }
         setPageTitleProperty( PROPERTY_PAGE_TITLE_CREATE_CATEGORY );
 
@@ -190,7 +190,7 @@ public class CalendarCategoryJspBean extends AdminFeaturesPageJspBean
         if ( !RBACService.isAuthorized( CalendarResourceIdService.RESOURCE_TYPE, RBAC.WILDCARD_RESOURCES_ID,
                 CalendarResourceIdService.PERMISSION_MANAGE, getUser( ) ) )
         {
-            throw new AccessDeniedException( );
+            throw new AccessDeniedException( CalendarResourceIdService.MSG_UNAUTHORIZED );
         }
         Category category = new Category( );
         String strCategoryName = request.getParameter( PARAMETER_CATEGORY_NAME );
@@ -239,7 +239,7 @@ public class CalendarCategoryJspBean extends AdminFeaturesPageJspBean
         if ( !RBACService.isAuthorized( CalendarResourceIdService.RESOURCE_TYPE, RBAC.WILDCARD_RESOURCES_ID,
                 CalendarResourceIdService.PERMISSION_MANAGE, getUser( ) ) )
         {
-            throw new AccessDeniedException( );
+            throw new AccessDeniedException( CalendarResourceIdService.MSG_UNAUTHORIZED );
         }
         setPageTitleProperty( PROPERTY_PAGE_TITLE_MODIFY_CATEGORY );
 
@@ -274,7 +274,7 @@ public class CalendarCategoryJspBean extends AdminFeaturesPageJspBean
         if ( !RBACService.isAuthorized( CalendarResourceIdService.RESOURCE_TYPE, RBAC.WILDCARD_RESOURCES_ID,
                 CalendarResourceIdService.PERMISSION_MANAGE, getUser( ) ) )
         {
-            throw new AccessDeniedException( );
+            throw new AccessDeniedException( CalendarResourceIdService.MSG_UNAUTHORIZED );
         }
         Category category = null;
         String strCategoryName = request.getParameter( PARAMETER_CATEGORY_NAME );
@@ -339,7 +339,7 @@ public class CalendarCategoryJspBean extends AdminFeaturesPageJspBean
         if ( !RBACService.isAuthorized( CalendarResourceIdService.RESOURCE_TYPE, RBAC.WILDCARD_RESOURCES_ID,
                 CalendarResourceIdService.PERMISSION_MANAGE, getUser( ) ) )
         {
-            throw new AccessDeniedException( );
+            throw new AccessDeniedException( CalendarResourceIdService.MSG_UNAUTHORIZED );
         }
         int nIdCategory = checkCategoryId( request );
 
@@ -375,7 +375,7 @@ public class CalendarCategoryJspBean extends AdminFeaturesPageJspBean
         if ( !RBACService.isAuthorized( CalendarResourceIdService.RESOURCE_TYPE, RBAC.WILDCARD_RESOURCES_ID,
                 CalendarResourceIdService.PERMISSION_MANAGE, getUser( ) ) )
         {
-            throw new AccessDeniedException( );
+            throw new AccessDeniedException( CalendarResourceIdService.MSG_UNAUTHORIZED );
         }
         int nIdCategory = checkCategoryId( request );
 

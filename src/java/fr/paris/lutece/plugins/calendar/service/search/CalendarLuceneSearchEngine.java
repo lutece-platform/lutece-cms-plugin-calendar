@@ -46,7 +46,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.document.DateTools;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
@@ -224,7 +224,7 @@ public class CalendarLuceneSearchEngine implements CalendarSearchEngine
                     IndexationService.getAnalyser( ) );
 
             // Get results documents
-            TopDocs hits = null;
+            TopDocs topDocs = null;
 
             int nLimit = Integer.parseInt( AppPropertiesService.getProperty( PROPERTY_RESULTS_LIMIT ) );
 
@@ -235,11 +235,10 @@ public class CalendarLuceneSearchEngine implements CalendarSearchEngine
                 queryMulti = bQueryBuilder.build( );
             }
 
-            hits = searcher.search( queryMulti, nLimit );
+            topDocs = searcher.search( queryMulti, nLimit );
 
-            for ( int i = 0; hits.totalHits > i; i++ )
+            for ( ScoreDoc hit : topDocs.scoreDocs )
             {
-                ScoreDoc hit = hits.scoreDocs[i];
                 Document document = searcher.doc( hit.doc );
                 CalendarSearchItem si = new CalendarSearchItem( document );
                 listResults.add( si );
@@ -253,7 +252,7 @@ public class CalendarLuceneSearchEngine implements CalendarSearchEngine
                     IndexationService.getAnalyser( ) );
 
             // Get results documents
-            TopDocs hitsTitle = null;
+            topDocs = null;
 
             if ( filterRole != null ) {
                 BooleanQuery.Builder bQueryBuilderTitle = new BooleanQuery.Builder( );
@@ -262,11 +261,10 @@ public class CalendarLuceneSearchEngine implements CalendarSearchEngine
                 queryMultiTitle = bQueryBuilderTitle.build( );
             }
 
-            hitsTitle = searcher.search( queryMultiTitle, nLimit );
+            topDocs = searcher.search( queryMultiTitle, nLimit );
 
-            for ( int i = 0; hitsTitle.totalHits > i; i++ )
+            for ( ScoreDoc hit : topDocs.scoreDocs )
             {
-                ScoreDoc hit = hitsTitle.scoreDocs[i];
                 Document document = searcher.doc( hit.doc );
                 CalendarSearchItem si = new CalendarSearchItem( document );
                 listResults.add( si );

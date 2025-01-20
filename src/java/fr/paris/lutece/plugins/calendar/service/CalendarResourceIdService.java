@@ -49,6 +49,7 @@ public class CalendarResourceIdService extends ResourceIdService
 {
     public static final String PERMISSION_MANAGE = "MANAGE";
     public static final String RESOURCE_TYPE = "CALENDAR";
+    public static final String MSG_UNAUTHORIZED = "Unauthorized";
     private static final String PROPERTY_LABEL_RESOURCE_TYPE = "calendar.calendarService.ressourceType";
     private static final String PROPERTY_LABEL_MANAGE = "calendar.calendarService.permission.manageAdvancedParameters";
 

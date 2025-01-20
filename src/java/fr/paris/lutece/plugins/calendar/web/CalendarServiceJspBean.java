@@ -39,7 +39,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 
 import fr.paris.lutece.plugins.calendar.business.Agenda;
 import fr.paris.lutece.plugins.calendar.business.CalendarHome;
@@ -253,11 +253,12 @@ public class CalendarServiceJspBean extends InsertServiceJspBean implements Inse
         model.put( MARK_URL, url.getUrl(  ) );
         model.put( MARK_TARGET, strTarget );
         model.put( MARK_ALT, strAlt );
-        model.put( MARK_NAME, ( strName.length(  ) == 0 ) ? event.getTitle(  ) : strName );
+        model.put( MARK_NAME, ( strName.isEmpty( ) ) ? event.getTitle( ) : strName );
 
         HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_LINK, null, model );
 
-        return insertUrl( request, _input, StringEscapeUtils.escapeJavaScript( template.getHtml(  ) ) );
+        return insertUrl( request, _input, StringEscapeUtils.escapeEcmaScript( template.getHtml( ) ) );
+
     }
 
     /**
