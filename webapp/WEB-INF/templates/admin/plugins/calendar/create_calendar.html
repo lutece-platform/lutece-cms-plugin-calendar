@@ -1,11 +1,10 @@
-<div class="row">
-	<div class="col-xs-12 col-sm-12 col-md-12">
-		<div class="box box-primary">
-			<div class="box-header">
-				<h3 class="box-title">#i18n{calendar.create_calendar.pageTitle}</h3>
-            </div>
-            <div class="box-body">
-				<form class="form-horizontal" method="post" name="create_calendar" action="jsp/admin/plugins/calendar/DoCreateCalendar.jsp">		
+<@pageContainer>
+    <@pageColumn>
+        <@pageHeader title='#i18n{calendar.create_calendar.pageTitle}' toolsClass='d-flex'>
+        </@pageHeader>
+        <@box>
+            <@boxBody>
+				<form class="form-horizontal" method="post" name="create_calendar" action="jsp/admin/plugins/calendar/DoCreateCalendar.jsp">
                 <div class="form-group">
                     <label class="control-label col-xs-12 col-sm-3 col-md-3" for="calendar_name">#i18n{calendar.create_calendar.name} *</label>
                     <div class="col-xs-12 col-sm-8 col-md-6">
@@ -76,10 +75,10 @@
 					</div>
                 </div>
 				</form>
-			</div>
-		</div>
-    </div>
-</div>
+            </@boxBody>
+        </@box>
+    </@pageColumn>
+</@pageContainer>
 
 <script>
 $(document).ready( function(){
