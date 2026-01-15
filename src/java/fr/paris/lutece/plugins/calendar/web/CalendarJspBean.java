@@ -103,7 +103,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
 import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 
 /**
@@ -261,7 +261,7 @@ public class CalendarJspBean extends PluginAdminPageJspBean
         if ( !RBACService.isAuthorized( CalendarResourceIdService.RESOURCE_TYPE, RBAC.WILDCARD_RESOURCES_ID,
                 CalendarResourceIdService.PERMISSION_MANAGE, getUser( ) ) )
         {
-            throw new AccessDeniedException( );
+            throw new AccessDeniedException( CalendarResourceIdService.MSG_UNAUTHORIZED );
         }
         Map<String, Object> model = new HashMap<String, Object>( );
         model.put( Constants.MARK_CALENDAR_PARAMETERS, _calendarService.getCalendarParameters( getPlugin( ) ) );
@@ -2223,7 +2223,7 @@ public class CalendarJspBean extends PluginAdminPageJspBean
         if ( !RBACService.isAuthorized( CalendarResourceIdService.RESOURCE_TYPE, RBAC.WILDCARD_RESOURCES_ID,
                 CalendarResourceIdService.PERMISSION_MANAGE, getUser( ) ) )
         {
-            throw new AccessDeniedException( );
+            throw new AccessDeniedException( CalendarResourceIdService.MSG_UNAUTHORIZED );
         }
 
         ReferenceList listParams = CalendarParameterHome.findParametersList( getPlugin( ) );
