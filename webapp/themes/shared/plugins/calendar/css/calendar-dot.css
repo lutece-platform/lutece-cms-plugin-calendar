@@ -1,0 +1,75 @@
+/* Colour dot of a calendar: <span class="calendar-dot" style="--calendar-dot-color:#206bc4" aria-hidden="true"></span>.
+   The classes calendar-dot-<name> and calendar-event-<name> are kept for the templates overridden by a site. */
+.calendar-dot {
+    display: inline-block;
+    flex-shrink: 0;
+    width: .75rem;
+    height: .75rem;
+    border: 1px solid rgba(0, 0, 0, .15);
+    border-radius: 50%;
+    background-color: var(--calendar-dot-color, #868e96);
+    vertical-align: middle;
+}
+.calendar-dot-blue,
+.calendar-event-blue { --calendar-dot-color: #206bc4; }
+.calendar-dot-green,
+.calendar-event-green { --calendar-dot-color: #2fb344; }
+.calendar-dot-orange,
+.calendar-event-orange { --calendar-dot-color: #f76707; }
+.calendar-dot-purple,
+.calendar-event-purple { --calendar-dot-color: #ae3ec9; }
+.calendar-dot-red,
+.calendar-event-red { --calendar-dot-color: #d63939; }
+@media (forced-colors: active) {
+    .calendar-dot { forced-color-adjust: none; border-color: CanvasText; }
+}
+
+/* Events of the EventCalendar views: the colour of their calendar, set by the style --calendar-dot-color of the event */
+.ec .calendar-event {
+    background-color: color-mix(in srgb, var(--calendar-dot-color, #868e96) 18%, Canvas);
+    color: CanvasText;
+    border-left: 4px solid var(--calendar-dot-color, #868e96);
+}
+.ec .calendar-event .ec-event-dot {
+    background-color: var(--calendar-dot-color, #868e96);
+}
+.ec-list .calendar-event {
+    background-color: transparent;
+    border-left: 0;
+}
+.ec .calendar-event-link {
+    color: inherit;
+    text-decoration: none;
+}
+.ec .calendar-event-link:hover,
+.ec .calendar-event-link:focus-visible {
+    text-decoration: underline;
+}
+.ec .calendar-event-time {
+    font-weight: 600;
+}
+/* A proposal from the site, waiting for confirmation (back office only: the public views never show it) */
+.ec .calendar-status-proposed {
+    border-left-style: dashed;
+    opacity: .8;
+}
+.ec .calendar-status-cancelled .calendar-event-title {
+    text-decoration: line-through;
+}
+.ec .calendar-status-tentative {
+    outline: 1px dashed currentColor;
+    outline-offset: -2px;
+}
+.ec-list .ec-event-dot {
+    display: none;
+}
+@media (max-width: 767.98px) {
+    .ec .ec-toolbar .ec-title {
+        font-size: 1.125rem;
+    }
+}
+/* Avatar of a calendar in the back office (dashboard): its colour, light background */
+.calendar-avatar {
+    background-color: color-mix(in srgb, var(--calendar-dot-color, #868e96) 16%, transparent);
+    color: var(--calendar-dot-color, #868e96);
+}

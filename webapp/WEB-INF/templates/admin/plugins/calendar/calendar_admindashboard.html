@@ -1,16 +1,10 @@
-<div class="row">
-	<div class="col-xs-12 col-sm-12 col-md-12">
-		<div class="box box-solid box-primary">
-			<div class="box-header">
-				<h3 class="box-title">#i18n{calendar.adminDashboard.pageTitle}</h3>
-				<div class="box-tools">
-					<button class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
-					<button class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
-				</div>
-			</div>
-			<div class="box-body">
-				<#include "advanced_parameters.html" />
-			</div>
-		</div>
-	</div>
-</div>
+<#include "/admin/plugins/calendar/advanced_parameters_form.html" />
+<#-- Panel of the calendar advanced parameters in the technical menu: the form of the parameters, saved back to this
+     panel, and links to the other settings screens (categories, demonstration data) -->
+<@adminDashboardPanel title='#i18n{calendar.adminDashboard.pageTitle}' icon='calendar' parentId='technical_settings' childId='calendarAdminDashboard'>
+	<@calendarParametersForm fromTechnicalMenu=true />
+	<@div class='btn-list'>
+		<@aButton href='jsp/admin/plugins/calendar/ManageCalendarCategory.jsp' buttonIcon='category' color='light' title='#i18n{calendar.adminFeature.category_management.description}' />
+		<@aButton href='jsp/admin/plugins/calendar/ManageCalendars.jsp?view=manageDemo' buttonIcon='database-import' color='light' title='#i18n{calendar.manage_demo.tab}' />
+	</@div>
+</@adminDashboardPanel>

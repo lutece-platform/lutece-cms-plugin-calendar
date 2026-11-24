@@ -1,0 +1,206 @@
+{
+  "calendar": { "name": "Agenda de démonstration", "color": "#206bc4", "prefix": "DEMO" },
+  "categories": [
+    { "key": "music", "name": "Musique", "description": "Concerts, bals et scènes ouvertes" },
+    { "key": "art", "name": "Expositions", "description": "Expositions, visites et patrimoine" },
+    { "key": "sport", "name": "Sport", "description": "Courses, balades et initiations" },
+    { "key": "nature", "name": "Nature", "description": "Jardins, marchés et environnement" },
+    { "key": "workshop", "name": "Ateliers", "description": "Ateliers pour petits et grands" },
+    { "key": "talk", "name": "Rencontres", "description": "Conférences, lectures et débats" }
+  ],
+  "page": {
+    "name": "Démonstration du calendrier",
+    "description": "Les modèles de la rubrique calendrier, chacun dans une rubrique de démonstration",
+    "templateFile": "skin/site/page_template2.html",
+    "days": 120
+  },
+  "portlets": [
+    { "template": "calendar_portlet_slider.html", "name": "À la une (diaporama)", "column": 1 },
+    { "template": "calendar_portlet_carousel.html", "name": "Prochains rendez-vous (carrousel)", "column": 1 },
+    { "template": "calendar_portlet_grid.html", "name": "Sorties (grille)", "column": 1 },
+    { "template": "calendar_portlet_timeline.html", "name": "Au fil des jours (frise)", "column": 1 },
+    { "template": "calendar_portlet_list.html", "name": "Programme (liste)", "column": 1 },
+    { "template": "calendar_portlet_table.html", "name": "Programme (tableau)", "column": 1 },
+    { "template": "calendar_portlet_countdown.html", "name": "Prochain événement (compte à rebours)", "column": 2 },
+    { "template": "calendar_portlet_compact.html", "name": "À venir (compact)", "column": 2 },
+    { "template": "calendar_portlet_widget.html", "name": "Ce mois-ci (mini-calendrier)", "column": 2 },
+    { "template": "calendar_portlet_compact_bordered.html", "name": "À venir (compact encadré)", "column": 2 }
+  ],
+  "events": [
+    {
+      "title": "Concert de jazz au kiosque", "offset": 0, "timeStart": "18:30", "timeEnd": "20:30",
+      "location": "Kiosque du jardin du Luxembourg", "address": "Jardin du Luxembourg", "zip": "75006", "town": "Paris",
+      "categories": [ "music" ], "image": "concert", "tags": "jazz plein-air gratuit", "top": 1,
+      "description": "Un quartet de jazz manouche joue sous le kiosque à musique. Apportez votre chaise pliante, le concert dure deux heures avec un entracte.",
+      "details": { "priceType": "free", "attendance": "offline", "organizer": "Association Jazz au jardin", "organizerEmail": "contact@example.org", "accessibility": "Kiosque accessible en fauteuil roulant par l'allée principale.", "lat": 48.8462, "lon": 2.3372 }
+    },
+    {
+      "title": "Exposition « Paris en couleurs »", "offset": -3, "days": 21, "timeStart": "10:00", "timeEnd": "18:00",
+      "location": "Galerie municipale", "address": "12 rue de Rivoli", "zip": "75004", "town": "Paris",
+      "categories": [ "art" ], "image": "exhibition", "tags": "peinture exposition", "top": 1,
+      "description": "Une trentaine d'artistes peignent la ville à leur manière : façades, ponts, marchés et ciels d'hiver. Visites commentées le samedi à 15h.",
+      "details": { "priceType": "paid", "price": "5 € (gratuit pour les moins de 18 ans)", "attendance": "offline", "organizer": "Galerie municipale", "organizerUrl": "https://www.example.org/galerie", "accessibility": "Ascenseur et boucle magnétique à l'accueil.", "lat": 48.8556, "lon": 2.3571 }
+    },
+    {
+      "title": "Course solidaire des quais", "offset": 2, "timeStart": "09:00", "timeEnd": "12:00",
+      "location": "Quai de la Tournelle", "address": "Quai de la Tournelle", "zip": "75005", "town": "Paris",
+      "categories": [ "sport" ], "image": "run", "tags": "course solidarité", "top": 1,
+      "description": "Une course de 10 km le long de la Seine au profit d'une association de quartier. Départs échelonnés, marche nordique possible.",
+      "details": { "priceType": "paid", "price": "10 €", "attendance": "offline", "organizer": "Club des coureurs de la Seine", "registrationUrl": "https://www.example.org/inscription-course", "lat": 48.8505, "lon": 2.3554 }
+    },
+    {
+      "title": "Balade à vélo dans le Marais", "offset": 1, "repeat": "weekly", "count": 8, "timeStart": "10:00", "timeEnd": "12:00",
+      "location": "Place des Vosges", "address": "Place des Vosges", "zip": "75004", "town": "Paris",
+      "categories": [ "sport", "art" ], "image": "bike", "tags": "vélo patrimoine",
+      "description": "Chaque semaine, un guide vous emmène à vélo à la découverte des hôtels particuliers du Marais. Vélos prêtés sur demande.",
+      "details": { "priceType": "free", "attendance": "offline", "organizer": "Maison du vélo", "registrationUrl": "https://www.example.org/inscription-velo", "lat": 48.8556, "lon": 2.3655 }
+    },
+    {
+      "title": "Club de lecture", "offset": 4, "repeat": "monthly", "count": 4, "timeStart": "19:00", "timeEnd": "20:30",
+      "location": "Bibliothèque du quartier", "address": "8 rue des Écoles", "zip": "75005", "town": "Paris",
+      "categories": [ "talk" ], "image": "reading", "tags": "lecture livres",
+      "description": "Une fois par mois, les lecteurs partagent leurs coups de cœur autour d'un thé. Ce mois-ci : les romans d'aventure.",
+      "details": { "priceType": "free", "attendance": "mixed", "onlineUrl": "https://www.example.org/visio-club-lecture", "organizer": "Bibliothèque du quartier", "lat": 48.8494, "lon": 2.3479 }
+    },
+    {
+      "title": "Cinéma en plein air : comédies musicales", "offset": 6, "days": 3, "timeStart": "21:30", "timeEnd": "23:30",
+      "location": "Prairie du parc de la Villette", "address": "211 avenue Jean-Jaurès", "zip": "75019", "town": "Paris",
+      "categories": [ "music" ], "image": "cinema", "tags": "cinéma plein-air", "top": 1,
+      "description": "Trois soirs, trois films sur grand écran. Transats disponibles à l'entrée, pique-nique bienvenu.",
+      "details": { "priceType": "free", "attendance": "offline", "organizer": "Parc de la Villette", "accessibility": "Espace réservé aux personnes à mobilité réduite près de l'écran.", "lat": 48.8938, "lon": 2.3908 }
+    },
+    {
+      "title": "Atelier jardinage au potager partagé", "offset": 3, "repeat": "weekly", "count": 6, "timeStart": "14:00", "timeEnd": "16:00",
+      "location": "Jardin partagé des Amandiers", "address": "rue des Amandiers", "zip": "75020", "town": "Paris",
+      "categories": [ "nature", "workshop" ], "image": "garden", "tags": "jardin potager famille",
+      "description": "Semis, compost et récolte : un atelier pour apprendre à jardiner en ville. Gants et outils fournis.",
+      "details": { "priceType": "free", "attendance": "offline", "organizer": "Collectif des Amandiers", "registrationUrl": "https://www.example.org/inscription-jardin", "lat": 48.8662, "lon": 2.3887 }
+    },
+    {
+      "title": "Journées du patrimoine du quartier", "offset": 9, "days": 2, "timeStart": "10:00", "timeEnd": "18:00",
+      "location": "Mairie d'arrondissement", "address": "place Baudoyer", "zip": "75004", "town": "Paris",
+      "categories": [ "art" ], "image": "heritage", "tags": "patrimoine visite",
+      "description": "La mairie ouvre ses salons et son beffroi. Visites toutes les heures, exposition d'archives et de photographies anciennes.",
+      "details": { "priceType": "free", "attendance": "offline", "organizer": "Mairie d'arrondissement", "accessibility": "Salons accessibles, beffroi non accessible en fauteuil.", "lat": 48.8558, "lon": 2.3556 }
+    },
+    {
+      "title": "Tournoi de football des écoles", "offset": 5, "timeStart": "13:30", "timeEnd": "17:30",
+      "location": "Stade Charléty", "address": "99 boulevard Kellermann", "zip": "75013", "town": "Paris",
+      "categories": [ "sport" ], "image": "football", "tags": "football jeunes",
+      "description": "Seize équipes d'écoles élémentaires s'affrontent dans la bonne humeur. Buvette tenue par les parents d'élèves.",
+      "details": { "priceType": "free", "attendance": "offline", "organizer": "Office du sport", "lat": 48.8189, "lon": 2.3469 }
+    },
+    {
+      "title": "Conférence : la ville de demain", "offset": 7, "timeStart": "18:00", "timeEnd": "19:30",
+      "location": "Auditorium de l'Hôtel de Ville", "address": "5 rue de Lobau", "zip": "75004", "town": "Paris",
+      "categories": [ "talk" ], "image": "talk", "tags": "urbanisme débat",
+      "description": "Urbanistes et habitants débattent des places, des rues et des îlots de fraîcheur. Questions du public en fin de séance.",
+      "details": { "priceType": "free", "attendance": "mixed", "onlineUrl": "https://www.example.org/direct-conference", "organizer": "Pavillon de l'urbanisme", "registrationUrl": "https://www.example.org/inscription-conference", "lat": 48.8565, "lon": 2.3530 }
+    },
+    {
+      "title": "Cours de cuisine de saison", "offset": 8, "repeat": "weekly", "count": 4, "timeStart": "18:30", "timeEnd": "21:00",
+      "location": "Maison des associations", "address": "38 boulevard Henri-IV", "zip": "75004", "town": "Paris",
+      "categories": [ "workshop" ], "image": "cooking", "tags": "cuisine atelier",
+      "description": "Un chef vous apprend à cuisiner les légumes du moment. Dégustation à la fin du cours, places limitées à douze.",
+      "details": { "priceType": "paid", "price": "15 €", "attendance": "offline", "organizer": "Les toques du quartier", "registrationUrl": "https://www.example.org/inscription-cuisine", "lat": 48.8516, "lon": 2.3626 }
+    },
+    {
+      "title": "Théâtre d'improvisation", "offset": 10, "timeStart": "20:00", "timeEnd": "22:00",
+      "location": "Salle des fêtes", "address": "16 rue Clavel", "zip": "75019", "town": "Paris",
+      "categories": [ "music" ], "image": "theater", "tags": "théâtre humour", "status": "tentative",
+      "description": "Deux équipes de comédiens improvisent sur les thèmes proposés par le public. La date reste à confirmer selon la salle.",
+      "details": { "priceType": "paid", "price": "8 €", "attendance": "offline", "organizer": "Compagnie de l'instant", "lat": 48.8763, "lon": 2.3853 }
+    },
+    {
+      "title": "Marché des producteurs", "offset": -1, "repeat": "weekly", "count": 12, "timeStart": "08:00", "timeEnd": "13:00",
+      "location": "Place du marché", "address": "place d'Aligre", "zip": "75012", "town": "Paris",
+      "categories": [ "nature" ], "image": "market", "tags": "marché circuit-court",
+      "description": "Fruits, légumes, fromages et pain des producteurs d'Île-de-France, chaque semaine sur la place.",
+      "details": { "priceType": "free", "attendance": "offline", "organizer": "Association des producteurs", "lat": 48.8489, "lon": 2.3784 }
+    },
+    {
+      "title": "Concours photo « Ma rue »", "offset": 12, "days": 14, "timeStart": "", "timeEnd": "",
+      "location": "En ligne", "address": "", "zip": "", "town": "",
+      "categories": [ "art", "workshop" ], "image": "photo", "tags": "photo concours",
+      "description": "Envoyez votre plus belle photo de votre rue. Les vingt meilleures seront exposées dans le hall de la mairie.",
+      "details": { "priceType": "free", "attendance": "online", "onlineUrl": "https://www.example.org/concours-photo", "organizer": "Service de la communication" }
+    },
+    {
+      "title": "Bal populaire", "offset": 14, "timeStart": "20:00", "timeEnd": "23:59",
+      "location": "Place de la République", "address": "Place de la République", "zip": "75011", "town": "Paris",
+      "categories": [ "music" ], "image": "party", "tags": "bal fête", "top": 1,
+      "description": "Orchestre, guinguette et piste de danse sous les guirlandes : le grand bal de l'automne sur la place.",
+      "details": { "priceType": "free", "attendance": "offline", "organizer": "Comité des fêtes", "accessibility": "Toilettes accessibles et espace calme près de la fontaine.", "lat": 48.8674, "lon": 2.3636 }
+    },
+    {
+      "title": "Initiation aux premiers secours", "offset": 11, "timeStart": "09:30", "timeEnd": "12:30",
+      "location": "Caserne de pompiers", "address": "rue du Vieux-Colombier", "zip": "75006", "town": "Paris",
+      "categories": [ "workshop" ], "tags": "secourisme formation",
+      "description": "Trois heures pour apprendre les gestes qui sauvent : alerter, masser, défibriller. Attestation remise à la fin.",
+      "details": { "priceType": "free", "attendance": "offline", "organizer": "Brigade des sapeurs-pompiers", "registrationUrl": "https://www.example.org/inscription-secours", "lat": 48.8516, "lon": 2.3301 }
+    },
+    {
+      "title": "Permanence numérique", "offset": 2, "repeat": "weekly", "count": 10, "timeStart": "14:00", "timeEnd": "17:00",
+      "location": "Espace public numérique", "address": "22 rue Saint-Martin", "zip": "75004", "town": "Paris",
+      "categories": [ "workshop" ], "tags": "numérique aide",
+      "description": "Des médiateurs vous aident à faire vos démarches en ligne, à créer une adresse électronique ou à utiliser votre téléphone.",
+      "details": { "priceType": "free", "attendance": "offline", "organizer": "Espace public numérique", "organizerPhone": "01 00 00 00 00", "lat": 48.8590, "lon": 2.3510 }
+    },
+    {
+      "title": "Rencontre avec une autrice jeunesse", "offset": 13, "timeStart": "15:00", "timeEnd": "16:30",
+      "location": "Médiathèque", "address": "4 rue Mouffetard", "zip": "75005", "town": "Paris",
+      "categories": [ "talk" ], "tags": "lecture jeunesse",
+      "description": "Lecture d'extraits, questions des enfants et séance de dédicaces. À partir de 7 ans.",
+      "details": { "priceType": "free", "attendance": "offline", "organizer": "Médiathèque Mouffetard", "lat": 48.8440, "lon": 2.3497 }
+    },
+    {
+      "title": "Yoga au parc", "offset": 0, "repeat": "daily", "count": 5, "timeStart": "07:30", "timeEnd": "08:30",
+      "location": "Parc Montsouris", "address": "2 rue Gazan", "zip": "75014", "town": "Paris",
+      "categories": [ "sport", "nature" ], "tags": "yoga bien-être",
+      "description": "Une semaine de séances matinales de yoga en plein air, tous niveaux. Pensez à votre tapis.",
+      "details": { "priceType": "free", "attendance": "offline", "organizer": "Association Souffle", "lat": 48.8221, "lon": 2.3380 }
+    },
+    {
+      "title": "Brocante des enfants", "offset": 16, "timeStart": "09:00", "timeEnd": "17:00",
+      "location": "Square du Temple", "address": "64 rue de Bretagne", "zip": "75003", "town": "Paris",
+      "categories": [ "nature" ], "tags": "brocante enfants", "status": "postponed",
+      "description": "Les enfants vendent jouets, livres et vêtements devenus trop petits. Reportée à une date ultérieure en raison des travaux du square.",
+      "details": { "priceType": "free", "attendance": "offline", "organizer": "Conseil de quartier", "lat": 48.8644, "lon": 2.3608 }
+    },
+    {
+      "title": "Concert du conservatoire", "offset": 18, "timeStart": "19:00", "timeEnd": "21:00",
+      "location": "Conservatoire municipal", "address": "7 rue Duranton", "zip": "75015", "town": "Paris",
+      "categories": [ "music" ], "tags": "classique élèves", "status": "movedOnline",
+      "description": "Les élèves de troisième cycle jouent Schubert et Debussy. Le concert est retransmis en direct, la salle étant fermée.",
+      "details": { "priceType": "free", "attendance": "online", "onlineUrl": "https://www.example.org/direct-conservatoire", "organizer": "Conservatoire municipal" }
+    },
+    {
+      "title": "Nettoyage des berges", "offset": 20, "timeStart": "10:00", "timeEnd": "12:00",
+      "location": "Bassin de la Villette", "address": "quai de la Loire", "zip": "75019", "town": "Paris",
+      "categories": [ "nature" ], "tags": "environnement bénévolat", "status": "cancelled",
+      "description": "Opération de ramassage des déchets le long du bassin. Annulée : la prochaine aura lieu au printemps.",
+      "details": { "priceType": "free", "attendance": "offline", "organizer": "Collectif Berges propres", "lat": 48.8857, "lon": 2.3727 }
+    },
+    {
+      "title": "Visite guidée des passages couverts", "offset": 22, "timeStart": "14:30", "timeEnd": "16:30",
+      "location": "Galerie Vivienne", "address": "4 rue des Petits-Champs", "zip": "75002", "town": "Paris",
+      "categories": [ "art" ], "tags": "visite patrimoine",
+      "description": "Deux heures de flânerie dans les passages couverts du XIXe siècle, de la galerie Vivienne au passage des Panoramas.",
+      "details": { "priceType": "paid", "price": "12 €", "attendance": "offline", "organizer": "Office de tourisme", "registrationUrl": "https://www.example.org/inscription-passages", "lat": 48.8665, "lon": 2.3398 }
+    },
+    {
+      "title": "Forum des associations", "offset": 25, "days": 2, "timeStart": "10:00", "timeEnd": "18:00",
+      "location": "Gymnase municipal", "address": "rue de la Roquette", "zip": "75011", "town": "Paris",
+      "categories": [ "talk", "sport" ], "tags": "associations rentrée", "top": 1,
+      "description": "Plus de cent associations sportives, culturelles et solidaires présentent leurs activités. Démonstrations toute la journée.",
+      "details": { "priceType": "free", "attendance": "offline", "organizer": "Maison des associations", "accessibility": "Gymnase de plain-pied, interprète en langue des signes l'après-midi.", "lat": 48.8566, "lon": 2.3770 }
+    },
+    {
+      "title": "Atelier d'écriture", "offset": 30, "repeat": "monthly", "count": 3, "timeStart": "18:00", "timeEnd": "20:00",
+      "location": "Café associatif", "address": "rue Oberkampf", "zip": "75011", "town": "Paris",
+      "categories": [ "workshop", "talk" ], "tags": "écriture atelier",
+      "description": "Une consigne, vingt minutes d'écriture, une lecture à voix haute : l'atelier mensuel ouvert à tous.",
+      "details": { "priceType": "paid", "price": "3 € (participation libre)", "attendance": "offline", "organizer": "Café des mots", "lat": 48.8650, "lon": 2.3770 }
+    }
+  ]
+}

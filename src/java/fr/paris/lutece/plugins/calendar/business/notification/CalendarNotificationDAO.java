@@ -33,6 +33,7 @@
  */
 package fr.paris.lutece.plugins.calendar.business.notification;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import fr.paris.lutece.portal.service.plugin.Plugin;
 import fr.paris.lutece.util.sql.DAOUtil;
 
@@ -45,6 +46,7 @@ import java.util.List;
  * class TaskCommentConfig
  * 
  */
+@ApplicationScoped
 public class CalendarNotificationDAO implements ICalendarNotificationDAO
 {
     private static final String SQL_QUERY_FIND_BY_PRIMARY_KEY = " SELECT key_email, email, id_agenda,date_expiry "
@@ -62,17 +64,18 @@ public class CalendarNotificationDAO implements ICalendarNotificationDAO
     @Override
     public synchronized void insert( CalendarNotification calendarNotification, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT, plugin );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT, plugin ) )
+        {
 
-        int nPos = 0;
+            int nPos = 0;
 
-        daoUtil.setString( ++nPos, calendarNotification.getKey( ) );
-        daoUtil.setString( ++nPos, calendarNotification.getEmail( ) );
-        daoUtil.setInt( ++nPos, calendarNotification.getIdAgenda( ) );
-        daoUtil.setTimestamp( ++nPos, calendarNotification.getDateExpiry( ) );
+            daoUtil.setString( ++nPos, calendarNotification.getKey( ) );
+            daoUtil.setString( ++nPos, calendarNotification.getEmail( ) );
+            daoUtil.setInt( ++nPos, calendarNotification.getIdAgenda( ) );
+            daoUtil.setTimestamp( ++nPos, calendarNotification.getDateExpiry( ) );
 
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
+            daoUtil.executeUpdate( );
+        }
     }
 
     /**
@@ -81,18 +84,19 @@ public class CalendarNotificationDAO implements ICalendarNotificationDAO
     @Override
     public void store( CalendarNotification calendarNotification, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE, plugin );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE, plugin ) )
+        {
 
-        int nPos = 0;
+            int nPos = 0;
 
-        daoUtil.setString( ++nPos, calendarNotification.getKey( ) );
-        daoUtil.setString( ++nPos, calendarNotification.getEmail( ) );
-        daoUtil.setInt( ++nPos, calendarNotification.getIdAgenda( ) );
-        daoUtil.setTimestamp( ++nPos, calendarNotification.getDateExpiry( ) );
+            daoUtil.setString( ++nPos, calendarNotification.getKey( ) );
+            daoUtil.setString( ++nPos, calendarNotification.getEmail( ) );
+            daoUtil.setInt( ++nPos, calendarNotification.getIdAgenda( ) );
+            daoUtil.setTimestamp( ++nPos, calendarNotification.getDateExpiry( ) );
 
-        daoUtil.setString( ++nPos, calendarNotification.getKey( ) );
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
+            daoUtil.setString( ++nPos, calendarNotification.getKey( ) );
+            daoUtil.executeUpdate( );
+        }
     }
 
     /**
@@ -102,23 +106,24 @@ public class CalendarNotificationDAO implements ICalendarNotificationDAO
     public CalendarNotification load( String strKey, Plugin plugin )
     {
         CalendarNotification calendarNotification = null;
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_FIND_BY_PRIMARY_KEY, plugin );
-
-        daoUtil.setString( 1, strKey );
-        daoUtil.executeQuery( );
-
-        int nPos = 0;
-
-        if ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_FIND_BY_PRIMARY_KEY, plugin ) )
         {
-            calendarNotification = new CalendarNotification( );
-            calendarNotification.setKey( daoUtil.getString( ++nPos ) );
-            calendarNotification.setEmail( daoUtil.getString( ++nPos ) );
-            calendarNotification.setIdAgenda( daoUtil.getInt( ++nPos ) );
-            calendarNotification.setDateExpiry( daoUtil.getTimestamp( ++nPos ) );
-        }
 
-        daoUtil.free( );
+            daoUtil.setString( 1, strKey );
+            daoUtil.executeQuery( );
+
+            int nPos = 0;
+
+            if ( daoUtil.next( ) )
+            {
+                calendarNotification = new CalendarNotification( );
+                calendarNotification.setKey( daoUtil.getString( ++nPos ) );
+                calendarNotification.setEmail( daoUtil.getString( ++nPos ) );
+                calendarNotification.setIdAgenda( daoUtil.getInt( ++nPos ) );
+                calendarNotification.setDateExpiry( daoUtil.getTimestamp( ++nPos ) );
+            }
+
+        }
 
         return calendarNotification;
     }
@@ -129,11 +134,12 @@ public class CalendarNotificationDAO implements ICalendarNotificationDAO
     @Override
     public void delete( String strKey, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE, plugin );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE, plugin ) )
+        {
 
-        daoUtil.setString( 1, strKey );
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
+            daoUtil.setString( 1, strKey );
+            daoUtil.executeUpdate( );
+        }
     }
 
     /**
@@ -144,22 +150,23 @@ public class CalendarNotificationDAO implements ICalendarNotificationDAO
     {
         int nPos = 0;
         List<CalendarNotification> listNotificationExpiry = new ArrayList<CalendarNotification>( );
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_EXPIRY, plugin );
-        daoUtil.executeQuery( );
-
-        while ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_EXPIRY, plugin ) )
         {
-            nPos = 0;
+            daoUtil.executeQuery( );
 
-            CalendarNotification calendarNotification = new CalendarNotification( );
-            calendarNotification.setKey( daoUtil.getString( ++nPos ) );
-            calendarNotification.setEmail( daoUtil.getString( ++nPos ) );
-            calendarNotification.setIdAgenda( daoUtil.getInt( ++nPos ) );
-            calendarNotification.setDateExpiry( daoUtil.getTimestamp( ++nPos ) );
-            listNotificationExpiry.add( calendarNotification );
+            while ( daoUtil.next( ) )
+            {
+                nPos = 0;
+
+                CalendarNotification calendarNotification = new CalendarNotification( );
+                calendarNotification.setKey( daoUtil.getString( ++nPos ) );
+                calendarNotification.setEmail( daoUtil.getString( ++nPos ) );
+                calendarNotification.setIdAgenda( daoUtil.getInt( ++nPos ) );
+                calendarNotification.setDateExpiry( daoUtil.getTimestamp( ++nPos ) );
+                listNotificationExpiry.add( calendarNotification );
+            }
+
         }
-
-        daoUtil.free( );
 
         return listNotificationExpiry;
     }

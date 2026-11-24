@@ -33,8 +33,8 @@
  */
 package fr.paris.lutece.plugins.calendar.business.parameter;
 
+import jakarta.enterprise.inject.spi.CDI;
 import fr.paris.lutece.portal.service.plugin.Plugin;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
 import fr.paris.lutece.util.ReferenceItem;
 import fr.paris.lutece.util.ReferenceList;
 
@@ -49,7 +49,7 @@ import java.util.Map;
 public final class CalendarParameterHome
 {
     // Static variable pointed at the DAO instance
-    private static ICalendarParameterDAO _dao = SpringContextService.getBean( "calendar.calendarParameterDAO" );
+    private static ICalendarParameterDAO _dao = CDI.current( ).select( ICalendarParameterDAO.class ).get( );
 
     /**
      * Default constructor

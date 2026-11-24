@@ -1,0 +1,45 @@
+/* Bootstrap 5 theme for Agendo.
+ * Usage: load after agendo.css and create the calendar with { theme: 'bootstrap' }.
+ * Values come from Bootstrap's --bs-* variables when bootstrap.css is on the page
+ * (so data-bs-theme="dark" carries over), with Bootstrap's light defaults as fallbacks.
+ */
+.agendo.ago-theme-bootstrap {
+  --ago-font-family: var(--bs-body-font-family, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+  --ago-bg: var(--bs-body-bg, #fff);
+  --ago-surface: var(--bs-tertiary-bg, #f8f9fa);
+  --ago-border: var(--bs-border-color, #dee2e6);
+  --ago-border-subtle: color-mix(in srgb, var(--ago-border) 50%, var(--ago-bg));
+  --ago-border-strong: color-mix(in srgb, var(--ago-text) 35%, var(--ago-bg));
+  --ago-text: var(--bs-body-color, #212529);
+  --ago-text-muted: var(--bs-secondary-color, rgb(33 37 41 / 0.75));
+  --ago-primary: var(--bs-primary, #0d6efd);
+  --ago-primary-hover: color-mix(in srgb, var(--ago-primary), black 15%);
+  --ago-primary-light: var(--bs-primary-bg-subtle, #cfe2ff);
+  --ago-on-primary: #fff;
+  --ago-non-business-hour: var(--ago-surface);
+  --ago-current-time: var(--bs-danger, #dc3545);
+  --ago-danger: var(--bs-danger, #dc3545);
+  --ago-danger-hover: color-mix(in srgb, var(--ago-danger), black 15%);
+  --ago-event-bg: var(--ago-primary);
+  --ago-event-border-radius: var(--bs-border-radius, 0.375rem);
+  --ago-today-bg: var(--bs-warning-bg-subtle, #fff3cd);
+
+  --ago-radius: var(--bs-border-radius-lg, 0.5rem);
+  --ago-btn-radius: var(--bs-border-radius, 0.375rem);
+  --ago-btn-padding: 0.25rem 0.75rem;
+  --ago-btn-font-weight: 400;
+  --ago-btn-bg: transparent;
+  --ago-btn-hover-bg: var(--bs-secondary-bg, #e9ecef);
+  --ago-btn-shadow: none;
+  --ago-menu-shadow: var(--bs-box-shadow, 0 0.5rem 1rem rgb(0 0 0 / 0.15));
+  --ago-dialog-radius: var(--bs-border-radius-lg, 0.5rem);
+  --ago-dialog-shadow: var(--bs-box-shadow-lg, 0 1rem 3rem rgb(0 0 0 / 0.175));
+  --ago-focus-ring: var(--bs-focus-ring-color, rgb(13 110 253 / 0.25));
+  --ago-title-font-size: 1.25rem;
+}
+
+/* Bootstrap headings are not uppercase; the title uses its heading weight */
+.ago-theme-bootstrap .ago-title { font-weight: 500; }
+.ago-theme-bootstrap .ago-day-name,
+.ago-theme-bootstrap .ago-month-head,
+.ago-theme-bootstrap .ago-tl-corner { text-transform: none; font-size: 0.8rem; }

@@ -1,0 +1,1 @@
+<%@ page errorPage="../../ErrorPage.jsp" trimDirectiveWhitespaces="true" %>${ calendarJspBean.processController( pageContext.request, pageContext.response ) }

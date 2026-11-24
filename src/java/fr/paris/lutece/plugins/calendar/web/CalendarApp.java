@@ -33,25 +33,37 @@
  */
 package fr.paris.lutece.plugins.calendar.web;
 
+import fr.paris.lutece.plugins.calendar.service.EventProposals;
 import fr.paris.lutece.plugins.calendar.business.Agenda;
 import fr.paris.lutece.plugins.calendar.business.CalendarSubscriber;
 import fr.paris.lutece.plugins.calendar.business.Event;
 import fr.paris.lutece.plugins.calendar.business.MultiAgenda;
+import fr.paris.lutece.plugins.calendar.service.EventDisplayData;
+import fr.paris.lutece.plugins.calendar.service.MapPreview;
+import fr.paris.lutece.plugins.calendar.service.EventStructuredDataService;
+import fr.paris.lutece.plugins.calendar.business.details.EventDetailsHome;
+import fr.paris.lutece.plugins.calendar.business.details.EventDetails;
+import fr.paris.lutece.plugins.calendar.service.CalendarIcalFeedService;
+import fr.paris.lutece.plugins.calendar.service.CalendarEventFeedService;
+import fr.paris.lutece.plugins.calendar.service.CalendarButtonService;
+import fr.paris.lutece.plugins.calendar.business.button.CalendarButtonHome;
+import fr.paris.lutece.plugins.calendar.business.button.CalendarButtonConfig;
+import fr.paris.lutece.plugins.calendar.business.category.CategoryHome;
 import fr.paris.lutece.plugins.calendar.business.OccurrenceEvent;
+import fr.paris.lutece.plugins.calendar.business.CalendarHome;
 import fr.paris.lutece.plugins.calendar.business.SimpleEvent;
 import fr.paris.lutece.plugins.calendar.business.category.Category;
-import fr.paris.lutece.plugins.calendar.business.stylesheet.CalendarStyleSheetHome;
 import fr.paris.lutece.plugins.calendar.service.AgendaResource;
 import fr.paris.lutece.plugins.calendar.service.AgendaSubscriberService;
-import fr.paris.lutece.plugins.calendar.service.CalendarPlugin;
+import fr.paris.lutece.plugins.calendar.service.CalendarLibraryService;
 import fr.paris.lutece.plugins.calendar.service.CalendarService;
 import fr.paris.lutece.plugins.calendar.service.CategoryService;
 import fr.paris.lutece.plugins.calendar.service.EventImageResourceService;
 import fr.paris.lutece.plugins.calendar.service.EventListService;
 import fr.paris.lutece.plugins.calendar.service.Utils;
 import fr.paris.lutece.plugins.calendar.service.search.CalendarSearchService;
-import fr.paris.lutece.portal.business.stylesheet.StyleSheet;
-import fr.paris.lutece.portal.service.captcha.CaptchaSecurityService;
+import fr.paris.lutece.portal.service.captcha.ICaptchaService;
+import fr.paris.lutece.portal.service.datastore.DatastoreService;
 import fr.paris.lutece.portal.service.i18n.I18nService;
 import fr.paris.lutece.portal.service.mail.MailService;
 import fr.paris.lutece.portal.service.message.SiteMessage;
@@ -62,12 +74,14 @@ import fr.paris.lutece.portal.service.plugin.Plugin;
 import fr.paris.lutece.portal.service.plugin.PluginService;
 import fr.paris.lutece.portal.service.security.LuteceUser;
 import fr.paris.lutece.portal.service.security.SecurityService;
+import fr.paris.lutece.portal.service.security.SecurityTokenService;
 import fr.paris.lutece.portal.service.security.UserNotSignedException;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
+import fr.paris.lutece.portal.service.template.HtmlMarkup;
 import fr.paris.lutece.portal.service.template.AppTemplateService;
 import fr.paris.lutece.portal.service.util.AppLogService;
 import fr.paris.lutece.portal.service.util.AppPathService;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
+import fr.paris.lutece.portal.service.util.BeanUtils;
 import fr.paris.lutece.portal.web.constants.Messages;
 import fr.paris.lutece.portal.web.xpages.XPage;
 import fr.paris.lutece.portal.web.xpages.XPageApplication;
@@ -78,7 +92,10 @@ import fr.paris.lutece.util.html.Paginator;
 import fr.paris.lutece.util.string.StringUtil;
 import fr.paris.lutece.util.url.UrlItem;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
@@ -86,28 +103,89 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 
 
 /**
- * This class is the main class of the XPage application of the plugin calendar.
+ * This class is the main class of the XPage application of the plugin calendar. It is request scoped: it holds no state
+ * between requests (the page of the search results comes from the request), so no session restores it with its
+ * injected services missing.
  * 
  */
+@RequestScoped
+@Named( "calendar.xpage.calendar" )
 public class CalendarApp implements XPageApplication
 {
     public static final String PROPERTY_INVALID_MAIL_TITLE_MESSAGE = "calendar.siteMessage.invalid_mail.title";
     public static final String PROPERTY_INVALID_MAIL_ERROR_MESSAGE = "calendar.siteMessage.invalid_mail.message";
 
     /** serial id */
+    private static final String MESSAGE_INVALID_TOKEN = "calendar.message.invalidToken";
     private static final long serialVersionUID = 3326962245456630378L;
 
     //Templates
     private static final String TEMPLATE_CALENDAR = "skin/plugins/calendar/calendar.html";
+    private static final String MARK_CALENDAR_VIEW = "calendar_view";
+    private static final String MARK_LOCALE = "locale";
+    private static final String MARK_CATEGORY_LIST = "category_list";
+    private static final String MARK_ICAL_LIST = "ical_list";
+    private static final String MARK_EXPORT_LIST = "export_list";
+    private static final String MARK_CALENDAR_BUTTON = "calendarButton";
+    private static final String MARK_CALENDAR_LINKS = "calendarLinks";
+    private static final String MARK_CALENDAR_EVENT = "calendarEvent";
+    private static final String MARK_EVENT_DETAILS = "event_details";
+    private static final String MARK_EVENT_STATUS = "event_status";
+    private static final String MARK_EVENT_JSON_LD = "event_json_ld";
+    private static final String MARK_EVENT_HAS_IMAGE = "event_has_image";
+    private static final String MARK_SEARCH_RESULTS = "search_results";
+    private static final String MARK_SEARCH_FILTERED = "search_filtered";
+    private static final String MARK_TAG = "search_tag";
+    private static final String MARK_SUBSCRIPTION_AGENDA = "subscription_agenda";
+    private static final String MARK_URL_WITHOUT_TAG = "url_without_tag";
+    private static final String PARAMETER_TAG = "tag";
+    private static final String TAG_PREFIX = "#";
+    private static final String KEY_IMAGE_URL = "imageUrl";
+    private static final String KEY_HAS_IMAGE = "hasImage";
+    private static final String KEY_TITLE = "title";
+    private static final String MARK_PAGE_AGENDA = "page_agenda";
+    private static final String MARK_PAGE_AGENDA_IDS = "page_agenda_ids";
+    private static final String MARK_UPCOMING_EVENTS = "upcoming_events";
+    private static final String MARK_MONTH_SEARCH_URL = "month_search_url";
+    private static final String MESSAGE_PROPOSAL_NOT_ALLOWED = "calendar.event_proposal.notAllowed";
+    private static final String MARK_MANAGED_CALENDAR_IDS = "managed_calendar_ids";
+    private static final String MARK_PROPOSAL_CALENDAR_IDS = "proposal_calendar_ids";
+    private static final String MESSAGE_PROPOSAL_SENT = "calendar.event_proposal.sent";
+    private static final String URL_CALENDAR_OF = "jsp/site/Portal.jsp?page=calendar&agenda=%d";
+    private static final String MESSAGE_INVALID_LINK = "calendar.create_event_front.invalidLink";
+    private static final int LINK_MAX_LENGTH = 130;
+    private static final java.util.regex.Pattern PATTERN_LINK = java.util.regex.Pattern.compile( "^https?://\\S+$", java.util.regex.Pattern.CASE_INSENSITIVE );
+    private static final int UPCOMING_EVENTS_COUNT = 3;
+    private static final int UPCOMING_EVENTS_DAYS = 90;
+    private static final String MARK_EVENT_CATEGORIES = "event_categories";
+    private static final String MARK_EVENT_NEXT_OCCURRENCES = "event_next_occurrences";
+    private static final String MARK_EVENT_OCCURRENCES_COUNT = "event_occurrences_count";
+    private static final String MARK_EVENT_MAP_URL = "event_map_url";
+    private static final String MARK_EVENT_MAP_TILES = "event_map_tiles";
+    private static final String URL_EVENT_OSM = "https://www.openstreetmap.org/?mlat=%.6f&mlon=%.6f#map=17/%.6f/%.6f";
+    private static final int MAX_NEXT_OCCURRENCES = 8;
+    private static final String URL_SHOW_EVENT = "jsp/site/Portal.jsp?page=calendar&action=show_result&event_id=%d&agenda=%d";
+    private static final String URL_ICAL_OCCURRENCE = "jsp/site/plugins/calendar/CalendarIcal.jsp?occurrence_id=";
+    private static final String URL_EXPORT = "jsp/site/plugins/calendar/GetCalendarFile.jsp?calendar_id=";
+    private static final String URL_RSS = "jsp/site/plugins/calendar/GetCalendarFile.jsp?action=rss&calendar_id=";
+    private static final String URL_ICAL = "jsp/site/plugins/calendar/CalendarIcal.jsp?calendar_id=";
+    private static final java.util.Set<String> VIEW_KEYS = java.util.Set.of( "day", "week", "month", "list" );
     private static final String TEMPLATE_CALENDAR_LEGEND = "skin/plugins/calendar/calendar_legend.html";
     private static final String TEMPLATE_CALENDAR_MANAGE_EVENTS = "skin/plugins/calendar/calendar_manage_events.html";
     private static final String TEMPLATE_CREATE_EVENT_FRONT = "skin/plugins/calendar/create_event_front.html";
@@ -119,7 +197,6 @@ public class CalendarApp implements XPageApplication
     private static final String TEMPLATE_SUBSCRIPTION_FORM = "skin/plugins/calendar/subscription_form.html";
     private static final String TEMPLATE_EMAIL_FRIEND = "skin/plugins/calendar/email_friend.html";
     private static final String TEMPLATE_DOWNLOAD_CALENDAR = "skin/plugins/calendar/download_calendar.html";
-    private static final String TEMPLATE_RSS_CALENDAR = "skin/plugins/calendar/rss_calendar.html";
 
     //Properties
     private static final String PROPERTY_PLUGIN_NAME = "calendar";
@@ -138,7 +215,6 @@ public class CalendarApp implements XPageApplication
     private static final String PROPERTY_CAPTCHA_INVALID_MESSAGE = "calendar.siteMessage.invalid_captcha.message";
     private static final String PROPERTY_CAPTCHA_INVALID_TITLE_MESSAGE = "calendar.siteMessage.invalid_captcha.title";
     private static final String JSP_PAGE_PORTAL = "jsp/site/Portal.jsp";
-    private static final String JSP_PAGE_RSS = "jsp/site/plugins/calendar/GetCalendarFile.jsp";
 
     //JSP
     private static final String URL_JSP_RETURN_SEND_FRIEND_MAIL = "../../Portal.jsp?page=calendar&action=";
@@ -151,12 +227,24 @@ public class CalendarApp implements XPageApplication
     private int _nDefaultItemsPerPage = AppPropertiesService.getPropertyInt( Constants.PROPERTY_EVENTS_PER_PAGE, 10 );
     private String _strCurrentPageIndex;
     private int _nItemsPerPage;
-    private CaptchaSecurityService _captchaService;
-    private AgendaSubscriberService _agendaSubscriberService = AgendaSubscriberService.getInstance( );
-    private CategoryService _categoryService = CategoryService.getInstance( );
-    private EventListService _eventListService = SpringContextService
-            .getBean( Constants.BEAN_CALENDAR_EVENTLISTSERVICE );
-    private CalendarService _calendarService = SpringContextService.getBean( Constants.BEAN_CALENDAR_CALENDARSERVICE );
+    @Inject
+    private EventStructuredDataService _structuredDataService;
+
+    @Inject
+    @Named( BeanUtils.BEAN_CAPTCHA_SERVICE )
+    private Instance<ICaptchaService> _captchaService;
+    @Inject
+    private AgendaSubscriberService _agendaSubscriberService;
+    @Inject
+    private CategoryService _categoryService;
+    @Inject
+    private EventListService _eventListService;
+    @Inject
+    private CalendarService _calendarService;
+    @Inject
+    private CalendarSearchService _calendarSearchService;
+    @Inject
+    private SecurityTokenService _securityTokenService;
 
     /**
      * Returns the content of the page Contact. It is composed by a form which
@@ -180,7 +268,7 @@ public class CalendarApp implements XPageApplication
         String strPluginName = request.getParameter( Constants.PARAMETER_PAGE );
         if ( StringUtils.isBlank( strPluginName ) )
         {
-            strPluginName = CalendarPlugin.PLUGIN_NAME;
+            strPluginName = Constants.PLUGIN_NAME;
         }
 
         if ( StringUtils.isNotBlank( strAction ) )
@@ -195,6 +283,7 @@ public class CalendarApp implements XPageApplication
             }
             else if ( Constants.ACTION_DO_CREATE_EVENT.equals( strAction ) )
             {
+                checkSecurityToken( request, Constants.ACTION_DO_CREATE_EVENT );
                 doCreateEvent( request, plugin );
                 page = getManageEventsPage( request, plugin );
             }
@@ -204,6 +293,7 @@ public class CalendarApp implements XPageApplication
             }
             else if ( Constants.ACTION_DO_MODIFY_EVENT.equals( strAction ) )
             {
+                checkSecurityToken( request, Constants.ACTION_DO_MODIFY_EVENT );
                 doModifyEvent( request, plugin );
                 page = getManageEventsPage( request, plugin );
             }
@@ -213,6 +303,7 @@ public class CalendarApp implements XPageApplication
             }
             else if ( Constants.ACTION_DO_REMOVE_EVENT.equals( strAction ) )
             {
+                checkSecurityToken( request, Constants.ACTION_DO_REMOVE_EVENT );
                 doRemoveEvent( request, plugin );
                 page = getManageEventsPage( request, plugin );
             }
@@ -281,18 +372,11 @@ public class CalendarApp implements XPageApplication
         XPage page = new XPage( );
         // Gets calendar infos from the request parameters and session
         CalendarView view = getView( request );
-        EventList eventlist = _eventListService.newEventList( view.getType( ) );
 
-        MultiAgenda agendaWithOccurences = _calendarService.getMultiAgenda( request );
+        MultiAgenda agendaWithOccurences = keepRequestedAgenda( _calendarService.getMultiAgenda( request ), request.getParameter( Constants.PARAM_AGENDA ) );
         String strDate = getDate( request );
         CalendarUserOptions options = getUserOptions( request );
         options.setShowSearchEngine( Boolean.TRUE );
-
-        boolean bIsSelectedDay = false;
-        if ( view.getType( ) == CalendarView.TYPE_DAY )
-        {
-            bIsSelectedDay = true;
-        }
 
         // Load and fill the page template
         Map<String, Object> model = new HashMap<String, Object>( );
@@ -300,21 +384,14 @@ public class CalendarApp implements XPageApplication
         model.put( Constants.MARK_NEXT, view.getNext( strDate ) );
         model.put( Constants.MARK_TITLE, view.getTitle( strDate, options ) );
         model.put( Constants.MARK_DATE, strDate );
-        model.put( Constants.MARK_LEGEND, getLegend( request, agendaWithOccurences, options ) );
-        model.put( Constants.MARK_VIEW_CALENDAR, view.getCalendarView( strDate, agendaWithOccurences, options, request ) );
-        model.put( Constants.MARK_SMALL_MONTH_CALENDAR,
-                SmallMonthCalendar.getSmallMonthCalendar( strDate, agendaWithOccurences, options, bIsSelectedDay ) );
+        model.put( Constants.MARK_LEGEND, HtmlMarkup.of( getLegend( request, agendaWithOccurences, options ) ) );
+        model.put( MARK_CALENDAR_VIEW, getViewKey( request, agendaWithOccurences ) );
+        model.put( MARK_LOCALE, options.getLocale( ).getLanguage( ) );
+        model.put( CalendarLibraryService.MARK_CALENDAR_LIBRARY, CalendarLibraryService.getLibrary( plugin ) );
+        putPageHeader( model, agendaWithOccurences, request, plugin );
 
-        // Display event list if there is some events to display
-        String strEventList = StringUtils.EMPTY;
-
-        //get events
-        if ( ( eventlist != null ) && ( agendaWithOccurences.getAgendas( ).size( ) != 0 ) )
-        {
-            strEventList = eventlist.getEventList( strDate, agendaWithOccurences, options.getLocale( ), request );
-        }
-
-        model.put( Constants.MARK_EVENT_LIST, strEventList );
+        model.put( MARK_MONTH_SEARCH_URL, getMonthSearchUrl( strDate, agendaWithOccurences ) );
+        putAdvancedSearch( model, agendaWithOccurences, request, plugin );
 
         String strRunAppJspUrl = AppPropertiesService.getProperty( Constants.PROPERTY_RUNAPP_JSP_URL );
         model.put( Constants.MARK_JSP_URL, strRunAppJspUrl );
@@ -328,6 +405,216 @@ public class CalendarApp implements XPageApplication
                 + view.getPath( strDate, options ) );
 
         return page;
+    }
+
+    /**
+     * Reads the optional link of an event added from the site: an http or https address of at most 130 characters
+     * @param request the request, with the parameter event_link_url
+     * @return the link, or an empty string when none is given
+     * @throws SiteMessageException when the link is not an http or https address or is too long
+     */
+    private static String readEventLink( HttpServletRequest request ) throws SiteMessageException
+    {
+        String strLink = org.apache.commons.text.StringEscapeUtils.unescapeHtml4( StringUtils.trimToEmpty( request.getParameter( Constants.PARAMETER_EVENT_LINK_URL ) ) );
+
+        if ( !strLink.isEmpty( ) && ( ( strLink.length( ) > LINK_MAX_LENGTH ) || !PATTERN_LINK.matcher( strLink ).matches( ) ) )
+        {
+            SiteMessageService.setMessage( request, MESSAGE_INVALID_LINK, SiteMessage.TYPE_STOP );
+        }
+
+        return strLink;
+    }
+
+    /**
+     * Reads the optional category of an event added from the site
+     * @param request the request, with the parameter category
+     * @param plugin the plugin
+     * @return the category chosen, or an empty list when none is chosen or the category does not exist
+     */
+    private static List<Category> readEventCategory( HttpServletRequest request, Plugin plugin )
+    {
+        String strCategoryId = request.getParameter( Constants.PARAMETER_CATEGORY );
+        Category category = StringUtils.isNumeric( strCategoryId ) && ( strCategoryId.length( ) < 10 ) ? CategoryHome.find( Integer.parseInt( strCategoryId ), plugin )
+                : null;
+
+        return ( category != null ) ? new ArrayList<>( List.of( category ) ) : new ArrayList<>( );
+    }
+
+    /**
+     * Tells whether a visitor may see a calendar: a calendar without role, or one whose role or manager role the visitor has
+     * @param agenda the calendar
+     * @param request the request
+     * @return true when the visitor may see the calendar
+     */
+    private boolean isVisibleTo( AgendaResource agenda, HttpServletRequest request )
+    {
+        String strRole = agenda.getRole( );
+
+        return StringUtils.isBlank( strRole ) || Constants.PROPERTY_ROLE_NONE.equals( strRole ) || hasRole( strRole, request )
+                || hasManagerRole( agenda, request );
+    }
+
+    /**
+     * Checks that the user may add an event to a calendar from the site: a manager of the calendar (its manager role)
+     * publishes directly; when the calendar accepts proposals, a logged-in user proposes an event that waits for the
+     * confirmation of an administrator; anybody else is refused
+     * @param agenda the calendar
+     * @param request the request
+     * @return true when the event is published directly, false when it is a proposal
+     * @throws SiteMessageException when the user may not add an event to the calendar
+     * @throws UserNotSignedException when the calendar accepts proposals and the user is not logged in
+     */
+    private boolean checkCanAddEvent( AgendaResource agenda, HttpServletRequest request ) throws SiteMessageException, UserNotSignedException
+    {
+        if ( ( agenda != null ) && hasManagerRole( agenda, request ) )
+        {
+            return true;
+        }
+
+        if ( ( agenda == null ) || !agenda.isFrontProposals( ) || !SecurityService.isAuthenticationEnable( ) )
+        {
+            SiteMessageService.setMessage( request, MESSAGE_PROPOSAL_NOT_ALLOWED, SiteMessage.TYPE_STOP );
+        }
+
+        if ( SecurityService.getInstance( ).getRemoteUser( request ) == null )
+        {
+            throw new UserNotSignedException( );
+        }
+
+        return false;
+    }
+
+    /**
+     * Keeps only the calendar asked by the parameter agenda of the calendar page, when the user may see it: the page, its
+     * legend, its quick search and its feed then show that calendar alone
+     * @param multiAgenda the calendars the user may see
+     * @param strAgendaId the identifier of the calendar asked, or null
+     * @return the calendar asked alone, or all the calendars when none is asked or the one asked is not among them
+     */
+    private static MultiAgenda keepRequestedAgenda( MultiAgenda multiAgenda, String strAgendaId )
+    {
+        if ( ( multiAgenda == null ) || !StringUtils.isNumeric( strAgendaId ) )
+        {
+            return multiAgenda;
+        }
+
+        return multiAgenda.getAgendas( ).stream( ).filter( agenda -> ( agenda != null ) && strAgendaId.equals( agenda.getKeyName( ) ) ).findFirst( )
+                .map( agenda -> {
+                    MultiAgenda single = new MultiAgenda( );
+                    single.setName( multiAgenda.getName( ) );
+                    single.setKeyName( multiAgenda.getKeyName( ) );
+                    single.addAgenda( agenda );
+                    return single;
+                } ).orElse( multiAgenda );
+    }
+
+    /**
+     * Returns the URL of the search results of the month of a day, for the calendars shown: the list of the events offered
+     * when the EventCalendar view cannot run (no JavaScript). It replaces the server-side month list, which ran one search
+     * per day of the month grid on every display of the page
+     * @param strDate the day shown, yyyyMMdd
+     * @param multiAgenda the calendars shown
+     * @return the URL of the search
+     */
+    private static String getMonthSearchUrl( String strDate, MultiAgenda multiAgenda )
+    {
+        java.time.LocalDate day = java.time.LocalDate.parse( strDate, java.time.format.DateTimeFormatter.BASIC_ISO_DATE );
+        UrlItem url = new UrlItem( JSP_PAGE_PORTAL );
+        url.addParameter( Constants.PARAMETER_PAGE, Constants.PLUGIN_NAME );
+        url.addParameter( Constants.PARAMETER_ACTION, Constants.ACTION_DO_SEARCH );
+        url.addParameter( Constants.PARAMETER_PERIOD, Constants.PROPERTY_PERIOD_RANGE );
+        url.addParameter( Constants.PARAMETER_DATE_START, day.withDayOfMonth( 1 ).toString( ) );
+        url.addParameter( Constants.PARAMETER_DATE_END, day.withDayOfMonth( day.lengthOfMonth( ) ).toString( ) );
+
+        if ( multiAgenda != null )
+        {
+            multiAgenda.getAgendas( ).stream( ).filter( java.util.Objects::nonNull )
+                    .forEach( agenda -> url.addParameter( Constants.PARAMETER_CALENDAR_ID, agenda.getKeyName( ) ) );
+        }
+
+        return url.getUrl( );
+    }
+
+    /**
+     * Puts in the model of the calendar page the lists of the advanced search: the calendars, the ones shown being checked,
+     * and the categories
+     * @param model the model of the page
+     * @param multiAgenda the calendars shown
+     * @param request the request
+     * @param plugin the plugin
+     */
+    private void putAdvancedSearch( Map<String, Object> model, MultiAgenda multiAgenda, HttpServletRequest request, Plugin plugin )
+    {
+        ReferenceList listAgendas = getListAgenda( request, plugin );
+
+        if ( multiAgenda != null )
+        {
+            listAgendas.checkItems( multiAgenda.getAgendas( ).stream( ).filter( java.util.Objects::nonNull ).map( Agenda::getKeyName ).toArray( String [ ]::new ) );
+        }
+
+        model.put( Constants.MARK_CALENDARS_LIST, listAgendas );
+        model.put( Constants.MARK_CATEGORY_LIST, getReferenceListCategory( _categoryService.getCategories( plugin ) ) );
+    }
+
+    /**
+     * Puts in the model of the calendar page its header: the calendar shown when there is only one, the identifiers of
+     * the calendars shown (for the quick search) and the next events of those calendars, read from their occurrences in one
+     * query (the search index would load every hit)
+     * @param model the model of the page
+     * @param multiAgenda the calendars shown
+     * @param request the request
+     * @param plugin the plugin
+     */
+    private void putPageHeader( Map<String, Object> model, MultiAgenda multiAgenda, HttpServletRequest request, Plugin plugin )
+    {
+        List<String> listAgendaIds = ( multiAgenda == null ) ? List.of( )
+                : multiAgenda.getAgendas( ).stream( ).filter( java.util.Objects::nonNull ).map( Agenda::getKeyName ).toList( );
+
+        if ( listAgendaIds.size( ) == 1 )
+        {
+            model.put( MARK_PAGE_AGENDA, _calendarService.getAgendaResource( listAgendaIds.get( 0 ) ) );
+        }
+
+        model.put( MARK_PAGE_AGENDA_IDS, listAgendaIds );
+
+        List<Integer> listIds = listAgendaIds.stream( ).filter( StringUtils::isNumeric ).map( Integer::valueOf ).toList( );
+
+        if ( !listIds.isEmpty( ) )
+        {
+            java.time.LocalDate today = java.time.LocalDate.now( );
+            Map<Integer, OccurrenceEvent> mapNext = new java.util.LinkedHashMap<>( );
+
+            for ( OccurrenceEvent occurrence : EventProposals.publicOnly(
+                    CalendarHome.findOccurrencesByDateRange( listIds, today, today.plusDays( UPCOMING_EVENTS_DAYS ), List.of( ), plugin ) ) )
+            {
+                mapNext.putIfAbsent( occurrence.getEventId( ), occurrence );
+
+                if ( mapNext.size( ) == UPCOMING_EVENTS_COUNT )
+                {
+                    break;
+                }
+            }
+
+            List<Map<String, Object>> listUpcoming = new ArrayList<>( );
+
+            for ( OccurrenceEvent occurrence : mapNext.values( ) )
+            {
+                SimpleEvent event = _eventListService.getEvent( occurrence.getEventId( ), plugin );
+                AgendaResource agenda = _calendarService.getAgendaResource( occurrence.getIdCalendar( ) );
+
+                if ( ( event != null ) && ( agenda != null ) )
+                {
+                    event.setStatus( occurrence.getStatus( ) );
+                    event.setDateTimeStart( occurrence.getDateTimeStart( ) );
+                    event.setDateTimeEnd( occurrence.getDateTimeEnd( ) );
+                    Map<String, Object> mapEvent = EventDisplayData.build( event, agenda, occurrence.getDate( ), request.getLocale( ), plugin );
+                    mapEvent.put( KEY_TITLE, StringUtils.defaultString( event.getTitle( ) ) );
+                    listUpcoming.add( mapEvent );
+                }
+            }
+
+            model.put( MARK_UPCOMING_EVENTS, listUpcoming );
+        }
     }
 
     /**
@@ -412,14 +699,16 @@ public class CalendarApp implements XPageApplication
      * @param request {@link HttpServletRequest}
      * @param plugin {@link Plugin}
      * @return the html
-     * @throws SiteMessageException message if error
+     * @throws SiteMessageException message if error, or when the user may not add an event to the calendar
+     * @throws UserNotSignedException when the calendar accepts proposals and the user is not logged in
      */
-    private XPage getAddEventPage( HttpServletRequest request, Plugin plugin ) throws SiteMessageException
+    private XPage getAddEventPage( HttpServletRequest request, Plugin plugin ) throws SiteMessageException, UserNotSignedException
     {
         XPage page = null;
         String strCalendarId = request.getParameter( Constants.PARAMETER_CALENDAR_ID );
         if ( StringUtils.isNotBlank( strCalendarId ) && StringUtils.isNumeric( strCalendarId ) )
         {
+            checkCanAddEvent( _calendarService.getAgendaResource( Integer.parseInt( strCalendarId ) ), request );
             page = new XPage( );
 
             Map<String, Object> model = new HashMap<String, Object>( );
@@ -427,6 +716,8 @@ public class CalendarApp implements XPageApplication
             model.put( Constants.MARK_CALENDAR_ID, strCalendarId );
             model.put( Constants.MARK_LOCALE, request.getLocale( ).getLanguage( ) );
 
+            model.put( SecurityTokenService.MARK_TOKEN, _securityTokenService.getToken( request, Constants.ACTION_DO_CREATE_EVENT ) );
+            model.put( MARK_CATEGORY_LIST, CategoryHome.findAll( plugin ) );
             HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_CREATE_EVENT_FRONT, request.getLocale( ),
                     model );
 
@@ -468,6 +759,7 @@ public class CalendarApp implements XPageApplication
                 model.put( Constants.MARK_DEFAULT_SORT_EVENT, request.getParameter( Constants.PARAMETER_SORT_EVENTS ) );
                 model.put( Constants.MARK_LOCALE, request.getLocale( ).getLanguage( ) );
 
+            model.put( SecurityTokenService.MARK_TOKEN, _securityTokenService.getToken( request, Constants.ACTION_DO_MODIFY_EVENT ) );
                 HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_MODIFY_EVENT_FRONT,
                         request.getLocale( ), model );
 
@@ -514,6 +806,7 @@ public class CalendarApp implements XPageApplication
                 url.addParameter( Constants.PARAMETER_CALENDAR_ID,
                         request.getParameter( Constants.PARAMETER_CALENDAR_ID ) );
                 url.addParameter( Constants.PARAMETER_EVENT_ID, request.getParameter( Constants.PARAMETER_EVENT_ID ) );
+                url.addParameter( SecurityTokenService.PARAMETER_TOKEN, _securityTokenService.getToken( request, Constants.ACTION_DO_REMOVE_EVENT ) );
                 SiteMessageService.setMessage( request, PROPERTY_CONFIRM_REMOVE_ALERT_MESSAGE, null,
                         PROPERTY_CONFIRM_REMOVE_TITLE_MESSAGE, url.getUrl( ), null, SiteMessage.TYPE_CONFIRMATION );
             }
@@ -533,7 +826,7 @@ public class CalendarApp implements XPageApplication
     private XPage getSubscriptionPage( HttpServletRequest request, Plugin plugin )
     {
         XPage page = new XPage( );
-        boolean bIsCaptchaEnabled = PluginService.isPluginEnable( Constants.PLUGIN_JCAPTCHA );
+        boolean bIsCaptchaEnabled = _captchaService.isResolvable( );
 
         String strBaseUrl = AppPathService.getBaseUrl( request );
         UrlItem url = new UrlItem( strBaseUrl + JSP_PAGE_PORTAL );
@@ -543,13 +836,15 @@ public class CalendarApp implements XPageApplication
         Map<String, Object> model = new HashMap<String, Object>( );
         model.put( Constants.MARK_JSP_URL, url.getUrl( ) );
         model.put( Constants.MARK_LOCALE, request.getLocale( ) );
-        model.put( Constants.MARK_CALENDARS_LIST, getListAgenda( request, plugin ) );
+        ReferenceList listAgendas = getListAgenda( request, plugin );
+        String strAgendaId = request.getParameter( Constants.PARAM_AGENDA );
+        model.put( Constants.MARK_CALENDARS_LIST, listAgendas );
+        model.put( MARK_SUBSCRIPTION_AGENDA, listAgendas.stream( ).filter( item -> item.getCode( ).equals( strAgendaId ) ).findFirst( ).orElse( null ) );
         model.put( Constants.MARK_IS_ACTIVE_CAPTCHA, bIsCaptchaEnabled );
 
         if ( bIsCaptchaEnabled )
         {
-            _captchaService = new CaptchaSecurityService( );
-            model.put( Constants.MARK_CAPTCHA, _captchaService.getHtmlCode( ) );
+            model.put( Constants.MARK_CAPTCHA, HtmlMarkup.of( _captchaService.get( ).getHtmlCode( ) ) );
         }
 
         HtmlTemplate template = AppTemplateService
@@ -607,7 +902,7 @@ public class CalendarApp implements XPageApplication
         Map<String, Object> model = new HashMap<String, Object>( );
         model.put( Constants.MARK_LOCALE, request.getLocale( ) );
         model.put( Constants.MARK_CALENDARS_LIST, getListAgenda( request, plugin ) );
-        model.put( Constants.MARK_EXPORT_STYLESHEET_LIST, getExportSheetList( request, plugin ) );
+        model.put( MARK_EXPORT_LIST, getExportLinks( request ) );
 
         HtmlTemplate template = AppTemplateService
                 .getTemplate( TEMPLATE_DOWNLOAD_CALENDAR, request.getLocale( ), model );
@@ -645,6 +940,80 @@ public class CalendarApp implements XPageApplication
         page.setPathLabel( I18nService.getLocalizedString( Constants.PROPERTY_PAGE_TITLE_SEARCH, request.getLocale( ) ) );
 
         return page;
+    }
+
+    /**
+     * Builds the display data of the search results of the current page. The date badge of a result shows its first date
+     * from the beginning of the searched period, or from today when no period is searched
+     * @param listEvents the events of the current page
+     * @param dateBegin the beginning of the searched period, or null
+     * @param locale the locale
+     * @param plugin the plugin
+     * @return the display data of the results (see EventDisplayData), with title, imageUrl and hasImage
+     */
+    private List<Map<String, Object>> getSearchResults( List<Event> listEvents, Date dateBegin, java.util.Locale locale, Plugin plugin )
+    {
+        String strReference = Utils.getDate( ( dateBegin != null ) ? dateBegin : new Date( ) );
+        List<Map<String, Object>> listResults = new ArrayList<>( );
+
+        for ( Event event : listEvents )
+        {
+            AgendaResource agenda = _calendarService.getAgendaResource( event.getIdCalendar( ) );
+
+            if ( agenda != null )
+            {
+                Date dateShown = _eventListService.getOccurrenceEvents( event.getIdCalendar( ), event.getId( ), Constants.SORT_ASC, plugin ).stream( )
+                        .map( OccurrenceEvent::getDate ).filter( date -> Utils.getDate( date ).compareTo( strReference ) >= 0 ).findFirst( )
+                        .orElse( event.getDate( ) );
+                Map<String, Object> result = EventDisplayData.build( event, agenda, dateShown, locale, plugin );
+                boolean bHasImage = EventDisplayData.hasImage( event.getId( ), plugin );
+                result.put( KEY_TITLE, StringUtils.defaultString( event.getTitle( ) ) );
+                result.put( KEY_HAS_IMAGE, bHasImage );
+                result.put( KEY_IMAGE_URL, bHasImage ? EventImageResourceService.getResourceImageEvent( event.getId( ) ) : StringUtils.EMPTY );
+                listResults.add( result );
+            }
+        }
+
+        return listResults;
+    }
+
+    /**
+     * Gives the tag searched, without its leading # and its surrounding spaces
+     * @param request The Http request, with the parameter tag
+     * @return the tag, or an empty string when no tag is searched
+     */
+    private static String getTagParameter( HttpServletRequest request )
+    {
+        return Strings.CS.removeStart( StringUtils.trimToEmpty( request.getParameter( PARAMETER_TAG ) ), TAG_PREFIX ).trim( );
+    }
+
+    /**
+     * Keeps the events that carry a tag, ignoring the case
+     * @param listEvents the events found by the search, may be null
+     * @param strTag the tag, an empty string to keep every event
+     * @return the events that carry the tag, or the events given when no tag is searched
+     */
+    private static List<Event> filterByTag( List<Event> listEvents, String strTag )
+    {
+        if ( listEvents == null || StringUtils.isEmpty( strTag ) )
+        {
+            return listEvents;
+        }
+
+        return listEvents.stream( ).filter( event -> hasTag( event, strTag ) ).collect( Collectors.toCollection( ArrayList::new ) );
+    }
+
+    /**
+     * Tells whether an event carries a tag, ignoring the case
+     * @param event the event
+     * @param strTag the tag
+     * @return true if one of the tags of the event is the tag
+     */
+    private static boolean hasTag( Event event, String strTag )
+    {
+        String [ ] arrayTags = ( event instanceof SimpleEvent ) ? ( (SimpleEvent) event ).getTags( ) : null;
+
+        return arrayTags != null && Arrays.stream( arrayTags ).anyMatch( tag -> strTag.equalsIgnoreCase( Strings.CS.removeStart( StringUtils.trimToEmpty( tag ), TAG_PREFIX ) ) );
     }
 
     /**
@@ -694,6 +1063,14 @@ public class CalendarApp implements XPageApplication
         url.addParameter( Constants.PARAMETER_DATE_END, strDateEnd );
         url.addParameter( Constants.PARAMETER_PERIOD, strPeriod );
 
+        String strTag = getTagParameter( request );
+        String strUrlWithoutTag = url.getUrl( );
+
+        if ( StringUtils.isNotEmpty( strTag ) )
+        {
+            url.addParameter( PARAMETER_TAG, URLEncoder.encode( strTag, StandardCharsets.UTF_8 ) );
+        }
+
         List<Event> listEvent = null;
 
         Date dateBegin = null;
@@ -738,8 +1115,8 @@ public class CalendarApp implements XPageApplication
         case Constants.PROPERTY_PERIOD_RANGE:
             if ( StringUtils.isNotBlank( strDateBegin ) && StringUtils.isNotBlank( strDateEnd ) )
             {
-                dateBegin = DateUtil.formatDate( strDateBegin, request.getLocale( ) );
-                dateEnd = DateUtil.formatDate( strDateEnd, request.getLocale( ) );
+                dateBegin = Utils.parseFormDate( strDateBegin, request.getLocale( ) );
+                dateEnd = Utils.parseFormDate( strDateEnd, request.getLocale( ) );
 
                 if ( dateBegin == null || !Utils.isValidDate( dateBegin ) || dateEnd == null
                         || !Utils.isValidDate( dateEnd ) )
@@ -757,8 +1134,8 @@ public class CalendarApp implements XPageApplication
             break;
         }
 
-        listEvent = CalendarSearchService.getInstance( ).getSearchResults( arrayCalendar, arrayCategory, strQuery,
-                dateBegin, dateEnd, plugin );
+        listEvent = filterByTag( _calendarSearchService.getSearchResults( arrayCalendar, arrayCategory, strQuery,
+                dateBegin, dateEnd, plugin ), strTag );
 
         _strCurrentPageIndex = Paginator.getPageIndex( request, Paginator.PARAMETER_PAGE_INDEX, _strCurrentPageIndex );
         _nItemsPerPage = Paginator.getItemsPerPage( request, Paginator.PARAMETER_ITEMS_PER_PAGE, _nItemsPerPage,
@@ -784,29 +1161,6 @@ public class CalendarApp implements XPageApplication
         urlSubscription.addParameter( Constants.PARAMETER_PAGE, Constants.PLUGIN_NAME );
         urlSubscription.addParameter( Constants.PARAMETER_ACTION, Constants.ACTION_GET_SUBSCRIPTION_PAGE );
         urlSubscription.addParameter( Constants.PARAM_AGENDA, strAgenda );
-
-        UrlItem urlDownload = new UrlItem( strBaseUrl + JSP_PAGE_PORTAL );
-        urlDownload.addParameter( Constants.PARAMETER_PAGE, Constants.PLUGIN_NAME );
-        urlDownload.addParameter( Constants.PARAMETER_ACTION, Constants.ACTION_GET_DOWNLOAD_PAGE );
-
-        UrlItem urlRss = new UrlItem( strBaseUrl + JSP_PAGE_RSS );
-        urlRss.addParameter( Constants.PARAMETER_ACTION, Constants.ACTION_RSS );
-
-        if ( arrayCalendar != null )
-        {
-            for ( String strAgendaId : arrayCalendar )
-            {
-                urlRss.addParameter( Constants.PARAMETER_CALENDAR_ID, strAgendaId );
-            }
-        }
-
-        if ( arrayCategory != null )
-        {
-            for ( String strCategoryId : arrayCategory )
-            {
-                urlRss.addParameter( Constants.PARAMETER_CATEGORY, strCategoryId );
-            }
-        }
 
         ReferenceList listAgendas = getListAgenda( request, plugin );
 
@@ -840,7 +1194,7 @@ public class CalendarApp implements XPageApplication
         String strDate;
         if ( StringUtils.isNotBlank( strDateBegin ) && !Constants.NULL.equals( strDateBegin ) )
         {
-            strDate = Utils.getDate( DateUtil.formatDateLongYear( strDateBegin, request.getLocale( ) ) );
+            strDate = Utils.getDate( Utils.parseFormDate( strDateBegin, request.getLocale( ) ) );
             if ( strDateBegin.equals( strDateEnd ) )
             {
                 bIsSelectedDay = true;
@@ -855,13 +1209,15 @@ public class CalendarApp implements XPageApplication
 
         model.put( Constants.MARK_QUERY, ( StringUtils.isNotBlank( strQuery ) ) ? strQuery : StringUtils.EMPTY );
         model.put( Constants.MARK_SUBSCRIPTION_PAGE, urlSubscription.getUrl( ) );
-        model.put( Constants.MARK_DOWNLOAD_PAGE, urlDownload.getUrl( ) );
-        model.put( Constants.MARK_RSS_PAGE, urlRss.getUrl( ) );
-        model.put( Constants.MARK_DATE_START, ( StringUtils.isNotBlank( strDateBegin ) ) ? strDateBegin
-                : StringUtils.EMPTY );
-        model.put( Constants.MARK_DATE_END, ( StringUtils.isNotBlank( strDateEnd ) ) ? strDateEnd : StringUtils.EMPTY );
+        model.put( Constants.MARK_DATE_START, Utils.getIsoFormDate( strDateBegin, request.getLocale( ) ) );
+        model.put( Constants.MARK_DATE_END, Utils.getIsoFormDate( strDateEnd, request.getLocale( ) ) );
         model.put( Constants.MARK_PERIOD, ( StringUtils.isNotBlank( strPeriod ) ) ? strPeriod : StringUtils.EMPTY );
         model.put( Constants.MARK_EVENTS_LIST, paginator.getPageItems( ) );
+        model.put( MARK_SEARCH_RESULTS, getSearchResults( paginator.getPageItems( ), dateBegin, request.getLocale( ), plugin ) );
+        model.put( MARK_TAG, strTag );
+        model.put( MARK_URL_WITHOUT_TAG, strUrlWithoutTag );
+        model.put( MARK_SEARCH_FILTERED, ( arrayCategory != null ) || ( request.getParameterValues( Constants.PARAMETER_CALENDAR_ID ) != null )
+                || ( Integer.parseInt( strPeriod ) != Constants.PROPERTY_PERIOD_NONE ) );
         model.put( Constants.MARK_PAGINATOR, paginator );
         model.put( Constants.MARK_NB_ITEMS_PER_PAGE, Integer.toString( _nItemsPerPage ) );
         model.put( Constants.MARK_CALENDARS_LIST, listAgendas );
@@ -870,7 +1226,7 @@ public class CalendarApp implements XPageApplication
         model.put( Constants.MARK_CATEGORY_LIST, listCategorys );
         model.put( Constants.MARK_OCCURRENCES_LIST, listOccurrences );
         model.put( Constants.MARK_SMALL_MONTH_CALENDAR,
-                SmallMonthCalendar.getSmallMonthCalendar( strDate, agendaWithOccurences, options, bIsSelectedDay ) );
+                HtmlMarkup.of( SmallMonthCalendar.getSmallMonthCalendar( strDate, agendaWithOccurences, options, bIsSelectedDay ) ) );
 
         HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_DO_SEARCH_EVENTS, request.getLocale( ), model );
 
@@ -924,7 +1280,7 @@ public class CalendarApp implements XPageApplication
                     try
                     {
                         IAppUtils documentUtil = (IAppUtils) Class.forName( PROPERTY_UTIL_DOCUMENT_CLASS )
-                                .newInstance( );
+                                .getDeclaredConstructor( ).newInstance( );
                         strTemplateDocument = documentUtil.getTemplateDocument( nDocumentId, request );
                     }
                     catch ( Exception e )
@@ -950,6 +1306,12 @@ public class CalendarApp implements XPageApplication
                     bIsUserAuthorized = true;
                 }
 
+                if ( bIsUserAuthorized && !hasManagerRole( agenda, request )
+                        && EventProposals.getProposedEventIds( event.getIdCalendar( ), plugin ).contains( event.getId( ) ) )
+                {
+                    bIsUserAuthorized = false;
+                }
+
                 Map<String, Object> model = new HashMap<String, Object>( );
 
                 if ( bIsUserAuthorized )
@@ -959,30 +1321,24 @@ public class CalendarApp implements XPageApplication
                     urlEmailFriend.addParameter( Constants.PARAMETER_PAGE, Constants.PLUGIN_NAME );
                     urlEmailFriend.addParameter( Constants.PARAMETER_ACTION, Constants.ACTION_GET_FRIEND_EMAIL_PAGE );
 
-                    UrlItem urlRss = new UrlItem( strBaseUrl + JSP_PAGE_RSS );
-                    urlRss.addParameter( Constants.PARAMETER_ACTION, Constants.ACTION_RSS );
-
                     UrlItem urlSubscription = new UrlItem( strBaseUrl + JSP_PAGE_PORTAL );
                     urlSubscription.addParameter( Constants.PARAMETER_PAGE, Constants.PLUGIN_NAME );
                     urlSubscription.addParameter( Constants.PARAMETER_ACTION, Constants.ACTION_GET_SUBSCRIPTION_PAGE );
+                    urlSubscription.addParameter( Constants.PARAM_AGENDA, agenda.getId( ) );
 
-                    UrlItem urlDownload = new UrlItem( strBaseUrl + JSP_PAGE_PORTAL );
-                    urlDownload.addParameter( Constants.PARAMETER_PAGE, Constants.PLUGIN_NAME );
-                    urlDownload.addParameter( Constants.PARAMETER_ACTION, Constants.ACTION_GET_DOWNLOAD_PAGE );
-
-                    event.setImageUrl( EventImageResourceService.getInstance( ).getResourceImageEvent( event.getId( ) ) );
+                    event.setImageUrl( EventImageResourceService.getResourceImageEvent( event.getId( ) ) );
                     model.put( Constants.MARK_EVENT, event );
-                    model.put( Constants.MARK_DOCUMENT, strTemplateDocument );
+                    model.put( Constants.MARK_DOCUMENT, HtmlMarkup.of( strTemplateDocument ) );
                     model.put( Constants.MARK_AGENDA, agenda );
                     model.put( Constants.MARK_EMAIL_FRIEND_PAGE, urlEmailFriend.getUrl( ) );
-                    model.put( Constants.MARK_RSS_PAGE, urlRss.getUrl( ) );
                     model.put( Constants.MARK_SUBSCRIPTION_PAGE, urlSubscription.getUrl( ) );
-                    model.put( Constants.MARK_DOWNLOAD_PAGE, urlDownload.getUrl( ) );
+                    putCalendarButton( model, event, agenda, request, plugin );
+                    putEventDetails( model, event, request, plugin );
                 }
 
                 model.put( Constants.MARK_IS_AUTHORIZED, bIsUserAuthorized );
-                model.put( Constants.MARK_SMALL_MONTH_CALENDAR, SmallMonthCalendar.getSmallMonthCalendar(
-                        Utils.getDate( event.getDate( ) ), agendaWithOccurences, options, true ) );
+                model.put( Constants.MARK_SMALL_MONTH_CALENDAR, HtmlMarkup.of( SmallMonthCalendar.getSmallMonthCalendar(
+                        Utils.getDate( event.getDate( ) ), agendaWithOccurences, options, true ) ) );
                 template = AppTemplateService.getTemplate( TEMPLATE_SHOW_RESULT, request.getLocale( ), model );
                 strPathResult = event.getTitle( );
             }
@@ -1004,22 +1360,7 @@ public class CalendarApp implements XPageApplication
      */
     private XPage getRssPage( HttpServletRequest request, Plugin plugin )
     {
-        Collection<Category> categoryList = _categoryService.getCategories( plugin );
-
-        Map<String, Object> model = new HashMap<String, Object>( );
-        model.put( Constants.MARK_LOCALE, request.getLocale( ) );
-        model.put( Constants.MARK_CALENDARS_LIST, getListAgenda( request, plugin ) );
-        model.put( Constants.MARK_CATEGORY_LIST, getReferenceListCategory( categoryList ) );
-        model.put( Constants.MARK_CATEGORY_DEFAULT_LIST, StringUtils.EMPTY );
-
-        HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_RSS_CALENDAR, request.getLocale( ), model );
-
-        XPage page = new XPage( );
-        page.setContent( template.getHtml( ) );
-        page.setTitle( I18nService.getLocalizedString( Constants.PROPERTY_PAGE_RSS_TITLE, request.getLocale( ) ) );
-        page.setPathLabel( I18nService.getLocalizedString( Constants.PROPERTY_PAGE_RSS_TITLE, request.getLocale( ) ) );
-
-        return page;
+        return getDownloadPage( request, plugin );
     }
 
     /**
@@ -1154,6 +1495,11 @@ public class CalendarApp implements XPageApplication
             }
 
             model.put( Constants.MARK_AGENDA_RESOURCE_LIST, listAgendaResource );
+            model.put( MARK_CATEGORY_LIST, CategoryHome.findAll( PluginService.getPlugin( Constants.PLUGIN_NAME ) ) );
+            model.put( MARK_ICAL_LIST, getIcalLinks( request, listAgendaResource ) );
+            model.put( MARK_MANAGED_CALENDAR_IDS, listAgendaResource.stream( ).filter( agenda -> hasManagerRole( agenda, request ) ).map( AgendaResource::getId ).toList( ) );
+            model.put( MARK_PROPOSAL_CALENDAR_IDS, listAgendaResource.stream( ).filter( agenda -> agenda.isFrontProposals( ) && SecurityService.isAuthenticationEnable( ) )
+                    .map( AgendaResource::getId ).toList( ) );
 
             HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_CALENDAR_LEGEND, options.getLocale( ),
                     model );
@@ -1171,11 +1517,12 @@ public class CalendarApp implements XPageApplication
      *             Exception used by the front Message mechanism
      * @throws UserNotSignedException
      */
-    private void doCreateEvent( HttpServletRequest request, Plugin plugin ) throws SiteMessageException
+    private void doCreateEvent( HttpServletRequest request, Plugin plugin ) throws SiteMessageException, UserNotSignedException
     {
         String strCalendarId = request.getParameter( Constants.PARAMETER_CALENDAR_ID );
         if ( StringUtils.isNotBlank( strCalendarId ) && StringUtils.isNumeric( strCalendarId ) )
         {
+            boolean bPublishedDirectly = checkCanAddEvent( _calendarService.getAgendaResource( Integer.parseInt( strCalendarId ) ), request );
             //Creation of the event
             String strDate = request.getParameter( Constants.PARAMETER_EVENT_DATE );
             String strEventTitle = request.getParameter( Constants.PARAMETER_EVENT_TITLE );
@@ -1186,7 +1533,7 @@ public class CalendarApp implements XPageApplication
             verifyFieldFilled( request, strEventTitle );
 
             //Convert the date in form to a java.util.Date object
-            Date dateEvent = DateUtil.formatDate( strDate, request.getLocale( ) );
+            Date dateEvent = Utils.parseFormDate( strDate, request.getLocale( ) );
 
             if ( dateEvent == null )
             {
@@ -1211,20 +1558,11 @@ public class CalendarApp implements XPageApplication
             event.setTitle( request.getParameter( Constants.PARAMETER_EVENT_TITLE ) );
             event.setDescription( Constants.EMPTY_STRING );
             event.setOccurrence( 1 );
+            event.setLinkUrl( readEventLink( request ) );
+            event.setListCategories( readEventCategory( request, plugin ) );
 
-            AgendaResource agenda = _calendarService.getAgendaResource( nCalendarId );
-
-            // Set the event status
-            if ( hasManagerRole( agenda, request ) )
-            {
-                // If the user has the manager role, then the event is automatically set as the default status (set in calendar.properties)
-                event.setStatus( AppPropertiesService.getProperty( Constants.PROPERTY_EVENT_STATUS_DEFAULT ) );
-            }
-            else
-            {
-                // Otherwise, the event is set as tentative
-                event.setStatus( AppPropertiesService.getProperty( Constants.PROPERTY_EVENT_STATUS_TENTATIVE ) );
-            }
+            event.setStatus( bPublishedDirectly ? AppPropertiesService.getProperty( Constants.PROPERTY_EVENT_STATUS_DEFAULT )
+                    : EventProposals.getProposedStatus( ) );
 
             LuteceUser user;
             try
@@ -1251,10 +1589,20 @@ public class CalendarApp implements XPageApplication
                 listSubscribers = _agendaSubscriberService.getSubscribers( nCalendarId, plugin );
             }
             // Notify the webmaster an event has been created
-            CalendarSubscriber webmaster = new CalendarSubscriber( );
-            webmaster.setEmail( AppPropertiesService.getProperty( Constants.PROPERTY_WEBMASTER_EMAIL ) );
-            listSubscribers.add( webmaster );
+            String strWebmasterEmail = DatastoreService.getDataValue( Constants.DATASTORE_KEY_WEBMASTER_EMAIL,
+                    AppPropertiesService.getProperty( Constants.PROPERTY_WEBMASTER_EMAIL ) );
+            if ( StringUtils.isNotBlank( strWebmasterEmail ) && StringUtil.checkEmail( strWebmasterEmail ) )
+            {
+                CalendarSubscriber webmaster = new CalendarSubscriber( );
+                webmaster.setEmail( strWebmasterEmail );
+                listSubscribers.add( webmaster );
+            }
             _agendaSubscriberService.sendSubscriberMail( request, listSubscribers, event, nCalendarId );
+
+            if ( !bPublishedDirectly )
+            {
+                SiteMessageService.setMessage( request, MESSAGE_PROPOSAL_SENT, SiteMessage.TYPE_INFO, String.format( URL_CALENDAR_OF, nCalendarId ) );
+            }
         }
     }
 
@@ -1283,7 +1631,7 @@ public class CalendarApp implements XPageApplication
                 verifyFieldFilled( request, strEventDate );
 
                 //Convert the date in form to a java.util.Date object
-                Date dateEvent = DateUtil.formatDate( strEventDate, request.getLocale( ) );
+                Date dateEvent = Utils.parseFormDate( strEventDate, request.getLocale( ) );
 
                 if ( dateEvent == null )
                 {
@@ -1310,7 +1658,12 @@ public class CalendarApp implements XPageApplication
                 }
                 else
                 {
-                    event.setStatus( AppPropertiesService.getProperty( Constants.PROPERTY_EVENT_STATUS_TENTATIVE ) );
+                    if ( ( agenda == null ) || !agenda.isFrontProposals( ) )
+                    {
+                        SiteMessageService.setMessage( request, MESSAGE_PROPOSAL_NOT_ALLOWED, SiteMessage.TYPE_STOP );
+                    }
+
+                    event.setStatus( EventProposals.getProposedStatus( ) );
                     for ( OccurrenceEvent occurrenceEvent : listOccurrenceEvents )
                     {
                         occurrenceEvent.setStatus( event.getStatus( ) );
@@ -1380,7 +1733,7 @@ public class CalendarApp implements XPageApplication
         String strEmail = request.getParameter( Constants.PARAMETER_EMAIL );
         if ( StringUtils.isNotBlank( strEmail ) && StringUtil.checkEmail( strEmail ) )
         {
-            if ( _captchaService != null && !_captchaService.validate( request ) )
+            if ( _captchaService.isResolvable( ) && !_captchaService.get( ).validate( request ) )
             {
                 //invalid captcha
                 SiteMessageService.setMessage( request, PROPERTY_CAPTCHA_INVALID_MESSAGE,
@@ -1433,6 +1786,12 @@ public class CalendarApp implements XPageApplication
     {
         boolean bIsVerified = false;
         AgendaResource agenda = _calendarService.getAgendaResource( nCalendarId );
+        SimpleEvent eventChecked = _eventListService.getEvent( nEventId, plugin );
+
+        if ( ( eventChecked == null ) || ( eventChecked.getIdCalendar( ) != nCalendarId ) )
+        {
+            return false;
+        }
 
         if ( hasManagerRole( agenda, request ) )
         {
@@ -1455,6 +1814,20 @@ public class CalendarApp implements XPageApplication
             }
         }
         return bIsVerified;
+    }
+
+    /**
+     * Refuses a change of the events whose form token is missing or spent
+     * @param request the request
+     * @param strAction the action the token was given for
+     * @throws SiteMessageException the message refusing the change
+     */
+    private void checkSecurityToken( HttpServletRequest request, String strAction ) throws SiteMessageException
+    {
+        if ( !_securityTokenService.validate( request, strAction ) )
+        {
+            SiteMessageService.setMessage( request, MESSAGE_INVALID_TOKEN, SiteMessage.TYPE_STOP );
+        }
     }
 
     /**
@@ -1489,7 +1862,7 @@ public class CalendarApp implements XPageApplication
      */
     public void doSubscription( HttpServletRequest request ) throws SiteMessageException
     {
-        AgendaSubscriberService.getInstance( ).doValidationSubscription( request );
+        _agendaSubscriberService.doValidationSubscription( request );
     }
 
     /**
@@ -1509,7 +1882,23 @@ public class CalendarApp implements XPageApplication
         String strSenderLastName = request.getParameter( Constants.PARAMETER_SENDER_LAST_NAME );
         String strSenderEmail = request.getParameter( Constants.PARAMETER_SENDER_EMAIL );
         String strSenderMessage = request.getParameter( Constants.PARAMETER_SENDER_MESSAGE );
+
+        if ( !StringUtils.isNumeric( strIdCalendar ) || ( strIdCalendar.length( ) > 9 ) || !StringUtils.isNumeric( strIdEvent )
+                || ( strIdEvent.length( ) > 9 ) )
+        {
+            SiteMessageService.setMessage( request, Messages.USER_ACCESS_DENIED, SiteMessage.TYPE_STOP );
+        }
+
         int nIdCalendar = Integer.parseInt( strIdCalendar );
+        int nIdEvent = Integer.parseInt( strIdEvent );
+        SimpleEvent eventSent = _eventListService.getEvent( nIdEvent, PluginService.getPlugin( Constants.PLUGIN_NAME ) );
+        AgendaResource agendaSent = _calendarService.getAgendaResource( nIdCalendar );
+
+        if ( ( eventSent == null ) || ( agendaSent == null ) || ( eventSent.getIdCalendar( ) != nIdCalendar ) || !isVisibleTo( agendaSent, request )
+                || EventProposals.getProposedEventIds( nIdCalendar, PluginService.getPlugin( Constants.PLUGIN_NAME ) ).contains( nIdEvent ) )
+        {
+            SiteMessageService.setMessage( request, Messages.USER_ACCESS_DENIED, SiteMessage.TYPE_STOP );
+        }
 
         // Mandatory field
         if ( StringUtils.isEmpty( strFriendEmail ) || StringUtils.isEmpty( strSenderFirstName )
@@ -1543,7 +1932,7 @@ public class CalendarApp implements XPageApplication
         Map<String, Object> emailModel = new HashMap<String, Object>( );
         emailModel.put( MARK_SENDER_MESSAGE, strSenderMessage );
         emailModel.put( MARK_BASE_URL, strBaseUrl );
-        emailModel.put( Constants.PARAMETER_EVENT_ID, strIdEvent );
+        emailModel.put( Constants.PARAMETER_EVENT_ID, nIdEvent );
         emailModel.put( Constants.PARAMETER_CALENDAR_ID, nIdCalendar );
         emailModel.put( Constants.MARK_ACTION, Constants.ACTION_SHOW_RESULT );
 
@@ -1555,7 +1944,7 @@ public class CalendarApp implements XPageApplication
         MailService.sendMailHtml( strFriendEmail, strSenderName, strSenderEmail, strObject, strNewsLetterCode );
 
         return URL_JSP_RETURN_SEND_FRIEND_MAIL + Constants.ACTION_SHOW_RESULT + "&" + Constants.PARAMETER_EVENT_ID
-                + "=" + strIdEvent + "&" + Constants.PARAM_AGENDA + "=" + strIdCalendar;
+                + "=" + nIdEvent + "&" + Constants.PARAM_AGENDA + "=" + nIdCalendar;
     }
 
     /**
@@ -1577,32 +1966,6 @@ public class CalendarApp implements XPageApplication
         }
 
         return listAgendas;
-    }
-
-    /**
-     * Return the list of agenda for the template html search
-     * @param request The request
-     * @param plugin The plugin
-     * @return The reference list of sheets
-     */
-    public ReferenceList getExportSheetList( HttpServletRequest request, Plugin plugin )
-    {
-        ReferenceList listSheets = new ReferenceList( );
-
-        Collection<StyleSheet> collectionSheets = CalendarStyleSheetHome.getStyleSheetList( plugin );
-
-        if ( collectionSheets != null )
-        {
-            Iterator<StyleSheet> i = collectionSheets.iterator( );
-
-            while ( i.hasNext( ) )
-            {
-                StyleSheet sheet = i.next( );
-                listSheets.addItem( sheet.getId( ), sheet.getDescription( ) );
-            }
-        }
-
-        return listSheets;
     }
 
     /**
@@ -1687,5 +2050,180 @@ public class CalendarApp implements XPageApplication
             return user;
         }
         throw new PageNotFoundException( );
+    }
+    /**
+     * Gives the view the calendar page opens on, read by the EventCalendar view: the one asked in the address of the page,
+     * else the default view of the calendar when the page shows a single calendar
+     * @param request The HTTP request
+     * @param multiAgenda the calendars shown
+     * @return day, week, month or list, or an empty string to let the view choose by the size of the screen
+     */
+    private String getViewKey( HttpServletRequest request, MultiAgenda multiAgenda )
+    {
+        String strView = request.getParameter( Constants.PARAM_VIEW );
+
+        if ( strView != null && VIEW_KEYS.contains( strView ) )
+        {
+            return strView;
+        }
+
+        if ( ( multiAgenda != null ) && ( multiAgenda.getAgendas( ).size( ) == 1 ) && ( multiAgenda.getAgendas( ).get( 0 ) != null ) )
+        {
+            AgendaResource agenda = _calendarService.getAgendaResource( multiAgenda.getAgendas( ).get( 0 ).getKeyName( ) );
+            String strDefaultView = ( agenda != null ) ? agenda.getDefaultView( ) : StringUtils.EMPTY;
+
+            return VIEW_KEYS.contains( strDefaultView ) ? strDefaultView : StringUtils.EMPTY;
+        }
+
+        return StringUtils.EMPTY;
+    }
+
+    /**
+     * Gives the subscription and export links of the calendars open to everybody: the iCalendar feed, the JSON file and
+     * the RSS feed. A calendar application or a feed reader cannot log in, so the calendars restricted to a role have none
+     * @param request The HTTP request
+     * @param listAgendas the calendars shown
+     * @return the links, each one a map with the name and the colour of the calendar and the absolute URLs url (iCalendar),
+     *         json and rss
+     */
+    private static List<Map<String, String>> getIcalLinks( HttpServletRequest request, List<AgendaResource> listAgendas )
+    {
+        List<Map<String, String>> listLinks = new ArrayList<>( );
+        String strBaseUrl = AppPathService.getBaseUrl( request );
+
+        for ( AgendaResource agenda : listAgendas )
+        {
+            String strRole = agenda.getRole( );
+
+            if ( agenda.getId( ) != null && agenda.getId( ).matches( "\\d{1,9}" )
+                    && ( StringUtils.isBlank( strRole ) || Constants.PROPERTY_ROLE_NONE.equals( strRole ) ) )
+            {
+                listLinks.add( Map.of( "name", StringUtils.defaultString( agenda.getName( ) ), "color", agenda.getEventColorCode( ),
+                        "url", strBaseUrl + URL_ICAL + agenda.getId( ), "json", strBaseUrl + URL_EXPORT + agenda.getId( ) + "&format=json",
+                        "rss", strBaseUrl + URL_RSS + agenda.getId( ) ) );
+            }
+        }
+
+        return listLinks;
+    }
+    /**
+     * Gives the exports of the calendars the visitor may see: iCalendar, JSON and RSS
+     * @param request The HTTP request
+     * @return the exports, each one a map with the name of the calendar and the absolute URLs of its files
+     */
+    private List<Map<String, String>> getExportLinks( HttpServletRequest request )
+    {
+        List<Map<String, String>> listLinks = new ArrayList<>( );
+        String strBaseUrl = AppPathService.getBaseUrl( request );
+
+        for ( AgendaResource agenda : _calendarService.getAgendaResources( request ) )
+        {
+            if ( agenda.getId( ) != null && agenda.getId( ).matches( "\\d{1,9}" ) )
+            {
+                listLinks.add( Map.of( "name", StringUtils.defaultString( agenda.getName( ) ), "color", agenda.getEventColorCode( ),
+                        "ical", strBaseUrl + URL_EXPORT + agenda.getId( ),
+                        "json", strBaseUrl + URL_EXPORT + agenda.getId( ) + "&format=json",
+                        "rss", strBaseUrl + URL_RSS + agenda.getId( ) ) );
+            }
+        }
+
+        return listLinks;
+    }
+    /**
+     * Puts in the model of the page of an event its "add to calendar" button, when the calendar shows one: the options,
+     * the links to each calendar application for the next occurrence of the event (its last one when all are past) and
+     * the data of the event card
+     * @param model the model of the page
+     * @param event the event
+     * @param agenda its calendar
+     * @param request The HTTP request
+     * @param plugin The plugin
+     */
+    private void putCalendarButton( Map<String, Object> model, SimpleEvent event, AgendaResource agenda, HttpServletRequest request, Plugin plugin )
+    {
+        CalendarButtonConfig config = CalendarButtonHome.findByCalendar( Integer.parseInt( agenda.getId( ) ), plugin );
+        List<OccurrenceEvent> listOccurrences = CalendarHome.findOccurrencesList( event.getIdCalendar( ), event.getId( ), 1, plugin );
+
+        if ( !config.isEnabled( ) || config.getOptions( ).isEmpty( ) || listOccurrences.isEmpty( ) )
+        {
+            return;
+        }
+
+        java.time.LocalDateTime now = java.time.LocalDateTime.now( );
+        OccurrenceEvent occurrence = listOccurrences.stream( ).filter( o -> !CalendarEventFeedService.getStart( o ).isBefore( now.toLocalDate( ).atStartOfDay( ) ) )
+                .findFirst( ).orElse( listOccurrences.get( listOccurrences.size( ) - 1 ) );
+        java.time.LocalDateTime start = CalendarEventFeedService.getStart( occurrence );
+        java.time.LocalTime timeStart = CalendarEventFeedService.parseTime( occurrence.getDateTimeStart( ) );
+        java.time.LocalTime timeEnd = CalendarEventFeedService.parseTime( occurrence.getDateTimeEnd( ) );
+        java.time.LocalDateTime end;
+
+        if ( timeStart == null )
+        {
+            end = start.plusDays( 1 );
+        }
+        else
+        {
+            end = ( timeEnd != null && timeEnd.isAfter( timeStart ) ) ? start.toLocalDate( ).atTime( timeEnd ) : start.plusHours( 1 );
+        }
+
+        String strEventLocation = java.util.stream.Stream
+                .of( event.getLocation( ), event.getLocationAddress( ), event.getLocationZip( ), event.getLocationTown( ) )
+                .filter( StringUtils::isNotBlank ).collect( java.util.stream.Collectors.joining( " " ) );
+        String strLocation = CalendarButtonService.getLocation( config, strEventLocation );
+        String strIcsUrl = AppPathService.getBaseUrl( request ) + URL_ICAL_OCCURRENCE + occurrence.getId( );
+        Locale locale = request.getLocale( );
+
+        Map<String, String> mapCard = new HashMap<>( );
+        mapCard.put( "day", String.valueOf( start.getDayOfMonth( ) ) );
+        mapCard.put( "month", start.getMonth( ).getDisplayName( java.time.format.TextStyle.SHORT, locale ) );
+        mapCard.put( "title", StringUtils.defaultString( occurrence.getTitle( ) ) );
+        mapCard.put( "location", strLocation );
+        mapCard.put( "date", java.time.format.DateTimeFormatter.ofLocalizedDate( java.time.format.FormatStyle.FULL ).withLocale( locale ).format( start ) );
+        mapCard.put( "time", ( timeStart == null ) ? StringUtils.EMPTY
+                : occurrence.getDateTimeStart( ) + ( ( timeEnd != null ) ? " - " + occurrence.getDateTimeEnd( ) : StringUtils.EMPTY ) );
+
+        model.put( MARK_CALENDAR_BUTTON, config );
+        model.put( MARK_CALENDAR_LINKS, CalendarButtonService.buildLinks( config, occurrence.getTitle( ), start, end, strLocation,
+                CalendarIcalFeedService.toPlainText( event.getDescription( ) ), strIcsUrl ) );
+        model.put( MARK_CALENDAR_EVENT, mapCard );
+    }
+    /**
+     * Puts in the model of the page of an event its details (price, attendance, organizer, registration, accessibility),
+     * the status of its next occurrence, whether it has a picture, its categories, its next dates, its map link and its
+     * schema.org description (JSON-LD)
+     * @param model the model of the page
+     * @param event the event
+     * @param request The HTTP request
+     * @param plugin The plugin
+     */
+    private void putEventDetails( Map<String, Object> model, SimpleEvent event, HttpServletRequest request, Plugin plugin )
+    {
+        EventDetails details = EventDetailsHome.findByEvent( event.getId( ), plugin );
+        List<OccurrenceEvent> listOccurrences = CalendarHome.findOccurrencesList( event.getIdCalendar( ), event.getId( ), 1, plugin );
+        java.time.LocalDateTime today = java.time.LocalDate.now( ).atStartOfDay( );
+        String strStatus = listOccurrences.stream( ).filter( o -> !CalendarEventFeedService.getStart( o ).isBefore( today ) ).findFirst( )
+                .or( ( ) -> listOccurrences.isEmpty( ) ? java.util.Optional.empty( ) : java.util.Optional.of( listOccurrences.get( listOccurrences.size( ) - 1 ) ) )
+                .map( OccurrenceEvent::getStatus ).map( String::trim ).orElse( StringUtils.EMPTY );
+        String strBaseUrl = AppPathService.getBaseUrl( request );
+        String strImageUrl = StringUtils.isNotBlank( event.getImageUrl( ) ) ? strBaseUrl + event.getImageUrl( ) : null;
+
+        List<OccurrenceEvent> listNext = listOccurrences.stream( ).filter( o -> !CalendarEventFeedService.getStart( o ).toLocalDate( ).isBefore( today.toLocalDate( ) ) )
+                .limit( MAX_NEXT_OCCURRENCES ).toList( );
+        String strMapUrl = ( details != null ) && details.isLocated( )
+                ? String.format( java.util.Locale.ROOT, URL_EVENT_OSM, details.getLatitude( ), details.getLongitude( ), details.getLatitude( ), details.getLongitude( ) )
+                : StringUtils.defaultString( event.getMapUrl( ) );
+
+        event.setStatus( strStatus );
+        model.put( MARK_EVENT_HAS_IMAGE, CalendarHome.hasImage( event.getId( ), plugin ) );
+        model.put( MARK_EVENT_CATEGORIES, CategoryHome.findByEvent( event.getId( ), plugin ) );
+        model.put( MARK_EVENT_NEXT_OCCURRENCES, ( listOccurrences.size( ) > 1 ) ? listNext : List.of( ) );
+        model.put( MARK_EVENT_OCCURRENCES_COUNT, listOccurrences.size( ) );
+        model.put( MARK_EVENT_MAP_URL, strMapUrl );
+        model.put( MARK_EVENT_MAP_TILES, ( details != null ) && details.isLocated( ) ? MapPreview.getTiles( details.getLatitude( ), details.getLongitude( ) )
+                : List.of( ) );
+        model.put( MARK_EVENT_DETAILS, details );
+        model.put( MARK_EVENT_STATUS, strStatus );
+        model.put( MARK_EVENT_JSON_LD, HtmlMarkup.of( _structuredDataService.buildJsonLd( event, details,
+                strBaseUrl + String.format( URL_SHOW_EVENT, event.getId( ), event.getIdCalendar( ) ), strImageUrl ) ) );
     }
 }

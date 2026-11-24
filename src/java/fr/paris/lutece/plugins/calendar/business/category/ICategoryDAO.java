@@ -97,6 +97,14 @@ public interface ICategoryDAO
     int selectCountIdEvents( int nIdCategory, Plugin plugin );
 
     /**
+     * Return the identifiers of the events linked to a category
+     * @param nIdCategory The category id
+     * @param plugin Plugin
+     * @return the identifiers of the events
+     */
+    int[] selectAllIdEvent( int nIdCategory, Plugin plugin );
+
+    /**
      * Return the image resource corresponding to the category id
      * @param nCategoryId The Category id
      * @param plugin Plugin

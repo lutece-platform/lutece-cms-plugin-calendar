@@ -1,9 +1,4 @@
-<#escape x as x?html>
-<div class="checkbox">
-	<label>
-		<input type="checkbox" name="cbx_top_event" class="checkbox" ${top_event?string("checked=\"checked\"", "")}  value="top_event" >
-		#i18n{calendar.portlet_mini_calendar.show.topevent}
-	</label>
-</div>
-</#escape>
-
+<@input type='hidden' name='token' value='${token}' />
+<@formGroup labelKey=' '>
+	<@checkBox name='cbx_top_event' id='cbx_top_event' value='top_event' orientation='switch' labelKey='#i18n{calendar.portlet_mini_calendar.show.topevent}' checked=top_event />
+</@formGroup>

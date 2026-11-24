@@ -1,0 +1,19 @@
+<#include "/skin/plugins/calendar/portlet/calendar_portlet_macros.html" />
+<#-- List: a row per event, its picture, its title and actions, then its date, time and place -->
+<@pfFrame style='list'>
+	<div class="d-flex flex-column gap-3">
+	<#list events as event>
+		<article class="calendar-pf-card calendar-pf-accent-end" style="--calendar-dot-color:${event.color!}">
+			<div class="calendar-pf-row">
+				<@pfMedia event=event />
+				<div class="d-flex flex-column gap-2">
+					<@pfTitle event=event class='text-uppercase' />
+					<@pfStatus event=event />
+					<@pfActions event=event />
+				</div>
+				<@pfMeta event=event showDate=true />
+			</div>
+		</article>
+	</#list>
+	</div>
+</@pfFrame>

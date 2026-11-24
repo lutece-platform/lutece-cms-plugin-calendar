@@ -37,12 +37,9 @@ import fr.paris.lutece.plugins.calendar.business.Agenda;
 import fr.paris.lutece.plugins.calendar.web.Constants;
 import fr.paris.lutece.portal.service.resource.Resource;
 import fr.paris.lutece.portal.service.resource.ResourceLoader;
-import fr.paris.lutece.portal.service.util.AppException;
 import fr.paris.lutece.portal.service.util.AppLogService;
 import fr.paris.lutece.portal.service.util.AppPathService;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
-import fr.paris.lutece.util.filesystem.DirectoryNotFoundException;
-import fr.paris.lutece.util.filesystem.FileSystemUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -83,28 +80,18 @@ public class AgendaLoaderProperties implements ResourceLoader
      */
     public Collection<AgendaResource> getResources(  )
     {
-        String strRootDirectory = AppPathService.getWebAppPath(  );
-        List<AgendaResource> listPages = new ArrayList<AgendaResource>(  );
+        List<AgendaResource> listPages = new ArrayList<>( );
 
-        try
+        for ( File file : Utils.getWebappFiles( _strFilesPath ) )
         {
-            List<File> listFiles = FileSystemUtil.getFiles( strRootDirectory, _strFilesPath );
+            String fileName = file.getName( );
 
-            for ( File file : listFiles )
+            if ( fileName.endsWith( EXT_CALENDAR_FILES ) )
             {
-                String fileName = file.getName(  );
-
-                if ( fileName.endsWith( EXT_CALENDAR_FILES ) )
-                {
-                    String strId = fileName.substring( 0, fileName.lastIndexOf( "." ) );
-                    AgendaResource agenda = loadAgenda( file, strId );
-                    listPages.add( agenda );
-                }
+                String strId = fileName.substring( 0, fileName.lastIndexOf( "." ) );
+                AgendaResource agenda = loadAgenda( file, strId );
+                listPages.add( agenda );
             }
-        }
-        catch ( DirectoryNotFoundException e )
-        {
-            throw new AppException( e.getMessage(  ), e );
         }
 
         return listPages;
@@ -154,7 +141,7 @@ public class AgendaLoaderProperties implements ResourceLoader
 
             try
             {
-                AgendaLoader loader = (AgendaLoader) Class.forName( agenda.getLoaderClassName(  ) ).newInstance(  );
+                AgendaLoader loader = (AgendaLoader) Class.forName( agenda.getLoaderClassName(  ) ).getDeclaredConstructor( ).newInstance( );
                 Agenda a = loader.load( agenda.getLoaderParameter(  ) );
 
                 if ( a != null )
@@ -165,15 +152,7 @@ public class AgendaLoaderProperties implements ResourceLoader
                     agenda.setResourceType( AppPropertiesService.getProperty( Constants.PROPERTY_READ_ONLY ) );
                 }
             }
-            catch ( ClassNotFoundException e )
-            {
-                AppLogService.error( e.getMessage(  ), e );
-            }
-            catch ( IllegalAccessException e )
-            {
-                AppLogService.error( e.getMessage(  ), e );
-            }
-            catch ( InstantiationException e )
+            catch ( ReflectiveOperationException e )
             {
                 AppLogService.error( e.getMessage(  ), e );
             }

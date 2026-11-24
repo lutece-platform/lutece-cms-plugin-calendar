@@ -1,44 +1,40 @@
-<div class="row">
-    <div class="col-xs-12 col-sm-12 col-md-12">
-        <div class="box box-primary">
-			<div class="box-header">
-				<h3 class="box-title">#i18n{calendar.manage_subscribers.boxTitle}</h3>
-				<div class="box-tools">
-					<form class="form-inline pull-right" method="post" name="search-subscriber" action="jsp/admin/plugins/calendar/ManageSubscribers.jsp"  >
-						<input type="hidden" name="calendar_id" value="${calendar_id}">
-						<div class="input-group">
-							<input type="text" size="30" class="form-control input-xs" id="key" name="search_key" value="" placeholder="#i18n{calendar.manage_subscribers.searchTitle}">
-							<span class="input-group-btn">
-								<button class="btn btn-default btn-xs btn-flat" title="#i18n{calendar.manage_subscribers.buttonSearch}" type="submit" >
-								<i class="glyphicon glyphicon-search"></i>
-								</button> 
-							</span>
-						</div>
-					</form>
-				</div>
-			</div>
-			<div class="box-body table-responsive">
-				<table class="table table-hover table-condensed">
-					<tr>
-						<th>#i18n{calendar.manage_subscribers.columnTitleEmail}</th>
-						<th>#i18n{calendar.manage_subscribers.columnTitleSubscriptionDate}</th>
-						<th>#i18n{calendar.manage_subscribers.columnTitleDelete}</th>
-					</tr>
-					<#list subscribers_list as subscriber>
-					<tr>
-						<td>${subscriber.email}</td>
-						<td>${subscriber.dateSubscription}</td>
-						<td>
-							<a class="btn btn-danger btn-xs btn-flat" href="jsp/admin/plugins/calendar/UnsubscribeCalendarAdmin.jsp?subscriber_id=${subscriber.id}&calendar_id=${calendar_id}"  title="null" >
-								<i class="fa fa-trash"></i>
-							</a>
-
-						</td>
-					</tr>
-					</#list>
-				</table>
-				<@paginationAdmin paginator=paginator combo=1 />
-			</div>
-		</div>
-    </div>
-</div>
+<#include "/admin/plugins/calendar/macros_calendar_admin.html" />
+<#assign manageUrl = 'jsp/admin/plugins/calendar/ManageCalendars.jsp' />
+<#assign listUrl = '${manageUrl}?view=manageSubscribers&calendar_id=${calendar_id}' />
+<#assign pageTitle><@calendarPageTitle iconName='users' label='#i18n{calendar.manage_subscribers.boxTitle}' /></#assign>
+<@pageContainer>
+	<@pageColumn>
+		<@pageHeader title=pageTitle>
+			<@calendarListFilter action=manageUrl name='subscriber_search' value=search_string!'' placeHolder='#i18n{calendar.manage_subscribers.searchTitle}' resetUrl=listUrl
+				hidden={ 'view': 'manageSubscribers', 'calendar_id': '${calendar_id}' } />
+			<@aButton href=manageUrl title='#i18n{portal.util.labelBack}' buttonIcon='arrow-left' color='light' hideTitle=['xs','sm','md'] class='ms-1' />
+		</@pageHeader>
+		<@messages infos=infos![] errors=errors![] warnings=warnings![] />
+		<#if subscribers_list?has_content>
+			<@manageFeature id='subscribers-list' layout='list'>
+				<#list subscribers_list as subscriber>
+				<#assign meta>#i18n{calendar.manage_subscribers.columnTitleSubscriptionDate} ${subscriber.dateSubscription!}</#assign>
+				<@manageFeatureItem id='subscriber_${subscriber.id}'>
+					<@calendarRowTitle label=subscriber.email! meta=meta>
+						<@span class='avatar avatar-sm bg-teal-lt' params={'aria-hidden': 'true'}><@icon style='mail' /></@span>
+					</@calendarRowTitle>
+					<@calendarRowActions>
+						<@calendarAction href='${manageUrl}?view=confirmRemoveSubscriber&subscriber_id=${subscriber.id}&calendar_id=${calendar_id}' iconName='trash' label='#i18n{calendar.manage_subscribers.columnTitleDelete}' danger=true />
+					</@calendarRowActions>
+				</@manageFeatureItem>
+				</#list>
+			</@manageFeature>
+			<#if ( paginator.itemsCount > paginator.pageItems?size ) || ( paginator.itemsCount >= 10 )>
+			<@paginationAdmin paginator=paginator combo=1 showcount=0 />
+			</#if>
+		<#else>
+			<@card>
+				<#if (search_string!'')?has_content>
+				<@empty title='#i18n{portal.util.labelNoItem}' subtitle=' ' iconName='search-off' actionTitle='#i18n{portal.util.labelReset}' actionIcon='x' actionUrl=listUrl />
+				<#else>
+				<@empty title='#i18n{portal.util.labelNoItem}' subtitle=' ' iconName='users-minus' />
+				</#if>
+			</@card>
+		</#if>
+	</@pageColumn>
+</@pageContainer>

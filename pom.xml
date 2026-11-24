@@ -3,14 +3,14 @@
 	<parent>
         <artifactId>lutece-global-pom</artifactId>
         <groupId>fr.paris.lutece.tools</groupId>
-        <version>7.0.2</version>
+        <version>8.0.3</version>
 	</parent>
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>fr.paris.lutece.plugins</groupId>
     <artifactId>plugin-calendar</artifactId>
     <packaging>lutece-plugin</packaging>
-    <version>4.1.2-SNAPSHOT</version>
+    <version>5.0.0-SNAPSHOT</version>
     <name>Lutece calendar plugin</name>
 
     <repositories>
@@ -27,6 +27,9 @@
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
         </repository>
     </repositories>
 
@@ -34,7 +37,7 @@
         <dependency>
             <groupId>fr.paris.lutece</groupId>
             <artifactId>lutece-core</artifactId>
-            <version>[6.0.0-SNAPSHOT,7.9.9)</version>
+            <version>[8.0.0,)</version>
             <type>lutece-core</type>
         </dependency>
         <dependency>
@@ -47,12 +50,16 @@
             <artifactId>htmlparser</artifactId>
             <version>1.6</version>
         </dependency> 	
+        <dependency>
+            <groupId>fr.paris.lutece.plugins</groupId>
+            <artifactId>library-lutece-unit-testing</artifactId>
+            <type>jar</type>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <properties>
         <componentName>calendar</componentName>
-        <jiraProjectName>CALENDAR</jiraProjectName>
-        <jiraComponentId>10152</jiraComponentId>
     </properties>
     <scm>
         <connection>scm:git:https://github.com/lutece-platform/lutece-cms-plugin-calendar.git</connection>

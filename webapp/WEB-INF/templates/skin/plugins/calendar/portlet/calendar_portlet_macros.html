@@ -1,0 +1,92 @@
+<#-- Shared pieces of the templates of the calendar portlet. An event of the model carries: title, url, imageUrl, day,
+     weekday, monthName, monthShort, monthYear, year, dayKey, fullDate, start (ISO local), timeStart, timeEnd, location, placeName, address, phone, mapUrl, color,
+     excerpt, status, registrationUrl, priceType, price, attendanceMode, agendaName. -->
+
+<#-- The frame of a portlet: its section, its title and the script of the templates -->
+<#macro pfFrame style>
+<@cTpl>
+<@cSection class='portlet portlet-calendar calendar-pf calendar-pf-${style} ${device_class!}' id='portlet_${portlet_id?c}' params={'data-calendar-pf': true}>
+<#if portlet_name??>
+	<@cTitle level=2 class='portlet-header'>${portlet_name}</@cTitle>
+</#if>
+	<@cBlock class='portlet-content'>
+	<#if events?has_content>
+		<#nested>
+	<#else>
+		<p class="calendar-pf-empty">#i18n{calendar.view.noEvents}</p>
+	</#if>
+	</@cBlock>
+</@cSection>
+<script src="themes/shared/plugins/calendar/js/calendar-portlets.js"></script>
+</@cTpl>
+</#macro>
+
+<#-- The picture of an event, replaced by a placeholder when the event has none; nested content goes over it -->
+<#macro pfMedia event class=''>
+<div class="calendar-pf-media ${class}<#if !event.imageUrl?has_content> calendar-pf-noimage</#if>">
+	<#if event.imageUrl?has_content><img class="calendar-pf-img" src="${event.imageUrl}" alt="" loading="lazy"></#if>
+	<#nested>
+</div>
+</#macro>
+
+<#-- The hours of an event -->
+<#macro pfTime event><#if event.timeStart?has_content>${event.timeStart}<#if event.timeEnd?has_content> - ${event.timeEnd}</#if><#else>#i18n{calendar.portlet.allDay}</#if></#macro>
+
+<#-- The hours and the place of an event -->
+<#macro pfMeta event showDate=false>
+<ul class="calendar-pf-meta">
+	<#if showDate><li><i class="ti ti-calendar" aria-hidden="true"></i>${event.fullDate}</li></#if>
+	<li><i class="ti ti-clock" aria-hidden="true"></i><@pfTime event /></li>
+	<#if event.location?has_content><li><i class="ti ti-map-pin" aria-hidden="true"></i>${event.location}</li></#if>
+	<#if event.attendanceMode == 'online' || event.attendanceMode == 'mixed'><li><i class="ti ti-world" aria-hidden="true"></i>#i18n{calendar.event_form.attendance${event.attendanceMode?cap_first}}</li></#if>
+	<#if event.priceType == 'free'><li><i class="ti ti-ticket" aria-hidden="true"></i>#i18n{calendar.event_form.priceFree}</li><#elseif event.price?has_content><li><i class="ti ti-ticket" aria-hidden="true"></i>${event.price}</li></#if>
+</ul>
+</#macro>
+
+<#-- The status of an event, when it is not the usual one -->
+<#macro pfStatus event>
+<#if event.status?has_content && event.status != 'confirmed'>
+	<span class="calendar-pf-badge calendar-pf-badge-${event.status}">#i18n{calendar.event.status.${event.status}.value}</span>
+</#if>
+</#macro>
+
+<#-- The title of an event, a link to its page -->
+<#macro pfTitle event level=3 class=''>
+<h${level} class="calendar-pf-title ${class}"><a href="${event.url}">${event.title}</a></h${level}>
+</#macro>
+
+<#-- The actions of an event: register when it has a registration link, and open its page -->
+<#macro pfActions event>
+<div class="calendar-pf-actions">
+	<#if event.registrationUrl?has_content>
+		<a class="btn btn-outline-primary btn-sm" href="${event.registrationUrl}">#i18n{calendar.event_page.register}<span class="visually-hidden"> : ${event.title}</span></a>
+	</#if>
+	<a class="btn btn-link btn-sm" href="${event.url}">#i18n{calendar.portlet.details}<span class="visually-hidden"> : ${event.title}</span></a>
+</div>
+</#macro>
+
+<#-- The previous / next buttons of a track -->
+<#macro pfNav>
+<div class="calendar-pf-nav">
+	<@cBtn label='#i18n{calendar.view.previous}' btnClass='visually-hidden' class='secondary btn-sm' type='button' params={'data-calendar-pf-prev': true}><i class="ti ti-chevron-left" aria-hidden="true"></i></@cBtn>
+	<@cBtn label='#i18n{calendar.view.next}' btnClass='visually-hidden' class='secondary btn-sm' type='button' params={'data-calendar-pf-next': true}><i class="ti ti-chevron-right" aria-hidden="true"></i></@cBtn>
+</div>
+</#macro>
+
+<#-- The compact list of upcoming events: a date badge, the title, the time and the place, a thumbnail -->
+<#macro pfCompactList bordered=false>
+<ul class="calendar-pf-compact<#if bordered> calendar-pf-compact-bordered</#if>">
+<#list events as event>
+	<li style="--calendar-dot-color:${event.color!}">
+		<span class="calendar-pf-badge-date" aria-hidden="true"><span>${event.monthShort}</span><strong>${event.day?number}</strong></span>
+		<div class="calendar-pf-compact-text">
+			<a href="${event.url}"><span class="visually-hidden">${event.fullDate} - </span>${event.title}</a>
+			<@pfStatus event=event />
+			<span class="calendar-pf-compact-time"><@pfTime event /></span>
+			<#if event.location?has_content><span class="calendar-pf-compact-place">${event.location}</span></#if>
+		</div>
+		<@pfMedia event=event class='calendar-pf-thumb' />
+	</li>
+</#list>
+</ul>
+</#macro>

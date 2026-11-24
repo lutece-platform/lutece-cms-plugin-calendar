@@ -39,6 +39,7 @@ import fr.paris.lutece.portal.service.plugin.Plugin;
 import fr.paris.lutece.portal.service.util.AppException;
 
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -243,6 +244,23 @@ public interface ICalendarDAO
     ImageResource loadImageResource( int nEventId, Plugin plugin );
 
     /**
+     * Tells whether an event has a picture, without loading it
+     * @param nEventId the identifier of the event
+     * @param plugin the plugin
+     * @return true when a non empty picture is stored for the event
+     */
+    boolean hasImage( int nEventId, Plugin plugin );
+
+    /**
+     * Returns the events of a calendar all of whose occurrences have a status: the proposals waiting for confirmation
+     * @param nAgendaId the identifier of the calendar
+     * @param strStatus the status
+     * @param plugin the plugin
+     * @return the identifiers of the events
+     */
+    java.util.Set<Integer> selectEventIdsWithOnlyStatus( int nAgendaId, String strStatus, Plugin plugin );
+
+    /**
      * Load the list of Events
      * 
      * @return The Collection of the Events
@@ -289,4 +307,21 @@ public interface ICalendarDAO
      * @return the list of calendar ids
      */
     List<Integer> selectCalendarIds( Plugin plugin );
+    /**
+     * Returns the occurrences of the given calendars that take place in a date range, with the location of their event
+     *
+     * @param listAgendaIds
+     *            the calendars
+     * @param dateStart
+     *            the first day of the range
+     * @param dateEnd
+     *            the day after the range (excluded)
+     * @param listCategoryIds
+     *            the categories the event must belong to (one of them), or an empty collection for every event
+     * @param plugin
+     *            the plugin
+     * @return the occurrences, ordered by date then start time
+     */
+    List<OccurrenceEvent> selectOccurrencesByDateRange( Collection<Integer> listAgendaIds, java.time.LocalDate dateStart,
+            java.time.LocalDate dateEnd, Collection<Integer> listCategoryIds, Plugin plugin );
 }

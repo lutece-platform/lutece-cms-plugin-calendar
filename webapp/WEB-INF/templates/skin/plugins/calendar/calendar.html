@@ -1,32 +1,111 @@
-<div class="row">
-	<div class="col-xs-12 col-sm-9 col-md-9">
-		<p>
-			<a class="btn btn-xs" href="${jsp_url}?page=calendar&amp;date=${previous}" title="#i18n{portal.util.labelPrevious}" >
-				<i class="glyphicon glyphicon-chevron-left"></i>
-			</a>
-			<a class="btn btn-xs" href="${jsp_url}?page=calendar&amp;date=${date}&amp;view=day" title="#i18n{calendar.interval.day.description}" >
-				<i class="glyphicon glyphicon-calendar"></i>1
-			</a>
-			<a class="btn btn-xs" href="${jsp_url}?page=calendar&amp;date=${date}&amp;view=week" title="#i18n{calendar.interval.week.description}" >
-				<i class="glyphicon glyphicon-calendar"></i>7
-			</a>
-			<a class="btn btn-xs" href="${jsp_url}?page=calendar&amp;date=${date}&amp;view=month" title="#i18n{calendar.interval.month.description}" >
-				<i class="glyphicon glyphicon-calendar"></i>30
-			</a>
-			<a class="btn btn-xs" href="${jsp_url}?page=calendar&amp;date=${next}" title=""#i18n{portal.util.labelNext}" >
-				<i class="glyphicon glyphicon-chevron-right"></i>
-			</a>
-		</p>	
-		<div class="row">
-			<div class="col-xs-8 col-sm-8 col-md-8">
-				<h3>${title}</h3>
-				${view_calendar}
-				${event_list}
-			</div>
+<#-- The calendar page: a header (the calendar shown, a quick search), the next events, the EventCalendar view (with the
+     server-side views as a fallback without JavaScript) and a side column with the calendars, the category filter and the
+     subscription links. -->
+<#include "/skin/plugins/calendar/search/search_form.html" />
+<#if (calendar_library!'event-calendar') == 'agendo'>
+<link rel="stylesheet" href="themes/shared/plugins/calendar/js/lib/agendo/agendo.css">
+<link rel="stylesheet" href="themes/shared/plugins/calendar/js/lib/agendo/themes/bootstrap.css">
+<#else>
+<link rel="stylesheet" href="themes/shared/plugins/calendar/js/lib/event-calendar/event-calendar.min.css">
+</#if>
+<@cContainer>
+<div class="calendar-page"<#if page_agenda??> style="--calendar-dot-color:${page_agenda.eventColorCode}"</#if>>
+	<header class="calendar-page-header">
+		<div class="calendar-page-heading">
+			<#if page_agenda??>
+				<p class="calendar-page-pretitle"><span class="calendar-dot" aria-hidden="true"></span>#i18n{calendar.view.calendars}</p>
+				<@cTitle level=1 class='calendar-page-title'>${page_agenda.name!}</@cTitle>
+			<#else>
+				<@cTitle level=1 class='calendar-page-title'>#i18n{calendar.page.title}</@cTitle>
+			</#if>
 		</div>
-	</div>
-	<div class="col-xs-2 col-sm-2 col-md-2">
-		${small_month_calendar}
-		${legend}
-	</div>
+		<div class="calendar-page-search-area">
+		<@cForm name='calendar_page_search' method='get' action='jsp/site/Portal.jsp' class='calendar-page-search' params={'role': 'search'}>
+			<@cInput type='hidden' name='page' value='calendar' />
+			<@cInput type='hidden' name='action' value='do_search' />
+			<#list page_agenda_ids![] as agendaId><@cInput type='hidden' name='calendar_id' value=agendaId /></#list>
+			<label class="visually-hidden" for="calendar_page_query">#i18n{calendar.search.event.label.search}</label>
+			<@cInput type='search' name='query' id='calendar_page_query' placeholder='#i18n{calendar.search.placeholder}' maxlength=120 />
+			<@cBtn label='#i18n{calendar.search.event.button.search}' btnClass='visually-hidden' class='primary calendar-page-search-button'><@cIcon name='search' /></@cBtn>
+		</@cForm>
+		<@cLink href='jsp/site/Portal.jsp?page=calendar&action=search' label='#i18n{calendar.page.advancedSearch}' class='calendar-advanced-search-toggle' params={'aria-controls': 'calendar_advanced_search', 'aria-expanded': 'false'}><@cIcon name='adjustments-horizontal' class='me-1' /></@cLink>
+		</div>
+	</header>
+	<section class="calendar-page-advanced-search" id="calendar_advanced_search" aria-label="#i18n{calendar.page.advancedSearch}" hidden>
+		<@calendarSearchForm filtersOpen=true hiddenCalendarIds=page_agenda_ids![] />
+	</section>
+	<#if (upcoming_events![])?has_content>
+	<section class="calendar-page-upcoming" aria-labelledby="calendar_upcoming_title">
+		<h2 class="calendar-page-section-title" id="calendar_upcoming_title">#i18n{calendar.page.upcoming}</h2>
+		<ul class="calendar-page-upcoming-list">
+		<#list upcoming_events as event>
+			<li class="calendar-page-upcoming-item" style="--calendar-dot-color:${event.color}">
+				<span class="calendar-search-badge" aria-hidden="true">
+					<span class="calendar-search-badge-weekday">${event.weekday?substring(0, 3)}</span>
+					<strong>${event.day?number}</strong>
+					<span>${event.monthShort}</span>
+				</span>
+				<div class="calendar-page-upcoming-text">
+					<a href="${event.url}" class="calendar-page-upcoming-link"><span class="visually-hidden">${event.fullDate} - </span>${event.title}</a>
+					<span class="calendar-page-upcoming-meta"><#if event.timeStart?has_content>${event.timeStart}<#if event.timeEnd?has_content> - ${event.timeEnd}</#if><#else>#i18n{calendar.portlet.allDay}</#if><#if event.location?has_content> · ${event.location}</#if></span>
+					<#if event.status?has_content && event.status != 'confirmed'><span class="calendar-event-tag calendar-event-tag-${event.status}">#i18n{calendar.event.status.${event.status}.value}</span></#if>
+				</div>
+			</li>
+		</#list>
+		</ul>
+	</section>
+	</#if>
+	<@cRow class='g-4'>
+		<@cCol cols='12' class='col-lg-9'>
+			<div class="calendar-page-view">
+				<div id="calendar-view" class="calendar-view" data-calendar-view
+					data-feed="jsp/site/plugins/calendar/CalendarEvents.jsp"
+					data-date="${date!}" data-view="${calendar_view!}" data-locale="${locale!}" data-theme="bootstrap" data-sync-url="true"
+					data-label-today="#i18n{calendar.view.today}" data-label-day="#i18n{calendar.view.day}" data-label-all-day="#i18n{calendar.view.allDay}"
+					data-label-week="#i18n{calendar.view.week}" data-label-month="#i18n{calendar.view.month}"
+					data-label-list="#i18n{calendar.view.list}" data-label-previous="#i18n{calendar.view.previous}"
+					data-label-next="#i18n{calendar.view.next}" data-label-no-events="#i18n{calendar.view.noEvents}"
+					data-label-error="#i18n{calendar.view.loadError}"></div>
+				<p class="visually-hidden" role="status" aria-live="polite" data-calendar-status="calendar-view"></p>
+				<div data-calendar-fallback="calendar-view">
+					<div class="btn-group mb-3" role="group">
+						<@cBtn href='${jsp_url}?page=calendar&date=${previous}' label='#i18n{portal.util.labelPrevious}' class='secondary' size='sm'><@cIcon name='chevron-left' /></@cBtn>
+						<@cBtn href='${jsp_url}?page=calendar&date=${date}&view=day' label='#i18n{calendar.interval.day.description}' class='secondary' size='sm'><@cIcon name='calendar' /></@cBtn>
+						<@cBtn href='${jsp_url}?page=calendar&date=${date}&view=week' label='#i18n{calendar.interval.week.description}' class='secondary' size='sm'><@cIcon name='calendar-week' /></@cBtn>
+						<@cBtn href='${jsp_url}?page=calendar&date=${date}&view=month' label='#i18n{calendar.interval.month.description}' class='secondary' size='sm'><@cIcon name='calendar-month' /></@cBtn>
+						<@cBtn href='${jsp_url}?page=calendar&date=${next}' label='#i18n{portal.util.labelNext}' class='secondary' size='sm'><@cIcon name='chevron-right' /></@cBtn>
+					</div>
+					<@cTitle level=2>${title}</@cTitle>
+					<p><@cLink href=month_search_url label='#i18n{calendar.page.monthList}'><@cIcon name='list' class='me-1' /></@cLink></p>
+				</div>
+			</div>
+		</@cCol>
+		<@cCol cols='12' class='col-lg-3'>
+			<aside class="calendar-page-side">
+				${legend}
+			</aside>
+		</@cCol>
+	</@cRow>
 </div>
+</@cContainer>
+<#if (calendar_library!'event-calendar') == 'agendo'>
+<script src="themes/shared/plugins/calendar/js/lib/agendo/agendo.js"></script>
+<script src="themes/shared/plugins/calendar/js/calendar-view-agendo.js"></script>
+<#else>
+<script src="themes/shared/plugins/calendar/js/lib/event-calendar/event-calendar.min.js"></script>
+<script src="themes/shared/plugins/calendar/js/calendar-view.js"></script>
+</#if>
+<script>
+document.addEventListener( 'DOMContentLoaded', ( ) => {
+	const panel = document.getElementById( 'calendar_advanced_search' );
+	document.querySelectorAll( '.calendar-advanced-search-toggle' ).forEach( toggle => toggle.addEventListener( 'click', ( e ) => {
+		e.preventDefault( );
+		panel.hidden = !panel.hidden;
+		toggle.setAttribute( 'aria-expanded', String( !panel.hidden ) );
+		if ( !panel.hidden ) {
+			panel.scrollIntoView( { behavior: 'smooth', block: 'start' } );
+			panel.querySelector( 'input[type="search"]' )?.focus( { preventScroll: true } );
+		}
+	} ) );
+} );
+</script>

@@ -1,0 +1,43 @@
+<#-- The month of the calendar portlets: its days, the days with events link to them, and the period shortcuts.
+     Model: month (PortletMonthCalendar), month_url and page_id when the month can be browsed, shortcut_search (true: the shortcuts open the search of the calendar page) -->
+<@cTable themed=false id='' class='calendar-smallmonth table-sm text-center mb-2'>
+	<thead>
+		<tr>
+			<th class="calendar-smallmonth" colspan="7">
+			<#if month_url?? && page_id??>
+				<@cLink href='${month_url}${page_id?c}&month=prev' label='&lt;&lt;' class='float-start' />
+			</#if>
+				<@cLink href=month.monthUrl label=month.monthLabel />
+			<#if month_url?? && page_id??>
+				<@cLink href='${month_url}${page_id?c}&month=next' label='&gt;&gt;' class='float-end' />
+			</#if>
+			</th>
+		</tr>
+		<tr>
+		<#list month.dayLabels as dayLabel>
+			<th class="calendar-smallmonth">${dayLabel}</th>
+		</#list>
+		</tr>
+	</thead>
+	<tbody>
+	<#list month.weeks as week>
+		<tr>
+		<#list week as day>
+			<td class="${day.cssClass}"><#if day.number == 0>&nbsp;<#elseif day.url??><strong><@cLink href=day.url label='${day.number}' /></strong><#else>${day.number}</#if></td>
+		</#list>
+		</tr>
+	</#list>
+	</tbody>
+</@cTable>
+<ul class="list-unstyled mb-2">
+<#list month.shortcuts as shortcut>
+	<li>
+		<i class="ti ti-calendar" aria-hidden="true"></i>
+	<#if shortcut_search!false>
+		<@cLink href='jsp/site/Portal.jsp?page=calendar&action=do_search&date_start=${shortcut.dateStart?url("UTF-8")}&date_end=${shortcut.dateEnd?url("UTF-8")}&period=${shortcut.period}' label=shortcut.label />
+	<#else>
+		<@cLink href='jsp/site/Portal.jsp?page_id=${(page_id!0)?c}&date=${shortcut.dateStart?url("UTF-8")}&date_end=${shortcut.dateEnd?url("UTF-8")}' label=shortcut.label />
+	</#if>
+	</li>
+</#list>
+</ul>

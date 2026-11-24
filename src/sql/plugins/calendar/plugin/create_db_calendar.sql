@@ -1,3 +1,7 @@
+-- liquibase formatted sql
+-- changeset calendar:create_db_calendar.sql
+-- preconditions onFail:MARK_RAN onError:WARN
+-- precondition-sql-check expectedResult:1 SELECT COUNT(*) FROM calendar_agendas WHERE 1 = 0
 --
 -- Table structure for table calendar_agendas
 --
@@ -11,8 +15,10 @@ CREATE TABLE calendar_agendas
 	role varchar(130) NOT NULL,
 	workgroup_key varchar(50) default NULL,
 	role_manage varchar(130) default NULL,
-	is_notify smallint NOT NULL DEFAULT 0,
+	is_notify smallint DEFAULT 0 NOT NULL,
 	period_validity int DEFAULT -1,
+	front_proposals smallint DEFAULT 0 NOT NULL,
+	default_view varchar(10) default NULL,
 	PRIMARY KEY (id_agenda)
 );
 
@@ -77,19 +83,6 @@ CREATE TABLE calendar_events_features
 	PRIMARY KEY (id_feature)
 );
 
---
--- Table structure for table calendar_export_stylesheets
---
-DROP TABLE IF EXISTS calendar_export_stylesheets;
-CREATE TABLE calendar_export_stylesheets
-(
-	id_stylesheet int default 0 NOT NULL,
-	description varchar(255),
-	file_name varchar(255),
-	source long varbinary,
-	extension varchar(5),
-	PRIMARY KEY (id_stylesheet)
-);
 --
 -- Table structure for table calendar_subscriber_details
 --
@@ -173,3 +166,57 @@ CREATE TABLE calendar_parameter
 	parameter_value varchar(100) NOT NULL,
 	PRIMARY KEY (parameter_key)
 );
+
+-- changeset calendar:create_db_calendar.sql-rev1
+-- preconditions onFail:MARK_RAN onError:WARN
+-- comment The reminders sent to the subscribers, one row per occurrence and subscriber
+-- precondition-sql-check expectedResult:0 SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = database() AND table_name = 'calendar_reminder_sent'
+CREATE TABLE calendar_reminder_sent (
+	id_occurrence int NOT NULL,
+	id_subscriber int NOT NULL,
+	date_sent timestamp default CURRENT_TIMESTAMP NOT NULL,
+	PRIMARY KEY (id_occurrence, id_subscriber)
+);
+
+-- changeset calendar:create_db_calendar.sql-rev2
+-- preconditions onFail:MARK_RAN onError:WARN
+-- comment The options of the "add to calendar" button of each calendar, as JSON
+-- precondition-sql-check expectedResult:0 SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = database() AND table_name = 'calendar_button'
+CREATE TABLE calendar_button (
+	id_agenda int NOT NULL,
+	config long varchar,
+	PRIMARY KEY (id_agenda)
+);
+
+-- changeset calendar:create_db_calendar.sql-rev3
+-- preconditions onFail:MARK_RAN onError:WARN
+-- comment The details of the events: price, attendance mode, organizer, registration, accessibility and coordinates of the place
+-- precondition-sql-check expectedResult:0 SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = database() AND table_name = 'calendar_event_details'
+CREATE TABLE calendar_event_details (
+	id_event int NOT NULL,
+	price_type varchar(10) default NULL,
+	price varchar(100) default NULL,
+	attendance_mode varchar(10) default NULL,
+	online_url varchar(255) default NULL,
+	organizer_name varchar(100) default NULL,
+	organizer_email varchar(100) default NULL,
+	organizer_phone varchar(30) default NULL,
+	organizer_url varchar(255) default NULL,
+	registration_url varchar(255) default NULL,
+	accessibility varchar(255) default NULL,
+	latitude decimal(10,7) default NULL,
+	longitude decimal(10,7) default NULL,
+	PRIMARY KEY (id_event)
+);
+
+-- changeset calendar:create_db_calendar.sql-rev4
+-- preconditions onFail:MARK_RAN onError:WARN
+-- comment Each calendar may accept events proposed from the site by logged-in users
+-- precondition-sql-check expectedResult:0 SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = database() AND table_name = 'calendar_agendas' AND column_name = 'front_proposals'
+ALTER TABLE calendar_agendas ADD COLUMN front_proposals smallint DEFAULT 0 NOT NULL;
+
+-- changeset calendar:create_db_calendar.sql-rev5
+-- preconditions onFail:MARK_RAN onError:WARN
+-- comment The view the calendar page opens on for each calendar: month, week, day or list (empty: month on a large screen, list on a small one)
+-- precondition-sql-check expectedResult:0 SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = database() AND table_name = 'calendar_agendas' AND column_name = 'default_view'
+ALTER TABLE calendar_agendas ADD COLUMN default_view varchar(10) default NULL;

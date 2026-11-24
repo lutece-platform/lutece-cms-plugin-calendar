@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document>
+    <properties>
+        <title>Introduction</title>
+    </properties>
+    <body>
+        <section name="Plugin calendar">
+            <subsection name="Introduction">
+                <p>
+                    This plugin publishes events on calendars (agendas) of a Lutece site. Webmasters create the calendars and their
+                    events in the back office; visitors browse them in the front office by month, week, day or as a list, search
+                    them, subscribe to them and add them to their own calendar application.
+                </p>
+                <p>
+                    It can be used together with
+                    <a href="../module-calendar-document/">module-calendar-document</a> or
+                    <a href="../module-documenttocalendar/">module-documenttocalendar</a>.
+                </p>
+            </subsection>
+            <subsection name="Features">
+                <ul>
+                    <li>Calendars with a name, a colour, a role and a workgroup, an optional e-mail notification and a period for it.</li>
+                    <li>Events with dates, times, description, location, categories, image, URL, status (confirmed, tentative, cancelled) and occurrences (repeated by day, week or month, with excluded days).</li>
+                    <li>Front-office views built with <a href="https://github.com/vkurko/calendar">EventCalendar</a> (MIT): month, week, day and list, filters by calendar and category, responsive (list view on small screens). Without JavaScript, a text list of the events is shown.</li>
+                    <li>A back-office calendar view: a click on a day creates an event on that day, an event is moved or resized by drag and drop (one occurrence or the whole series).</li>
+                    <li>An "Add to calendar" button on the page of an event (Google, Outlook.com, Microsoft 365, Teams, Yahoo, Apple, iCal file), set for each calendar in the back office.</li>
+                    <li>Event proposals from the site, an option of each calendar: the managers of the calendar (its manager role) publish directly, logged-in users propose events that stay hidden from every public view (calendar views, portlets, exports, reminders, search) until an administrator confirms them by changing their status. The list of the calendars shows the proposals waiting.</li>
+                    <li>Exports: iCalendar (.ics, also as a subscription link for the calendars open to everybody), JSON, and an RSS 2.0 feed of the events.</li>
+                    <li>Subscription to a calendar by e-mail, with reminders sent before each occurrence by the daemon calendarReminder.</li>
+                    <li>Two portlets: a calendar portlet listing the events of selected calendars, and a mini calendar of the month.</li>
+                    <li>Full-text search of the events through the core Lucene indexer, an insert service to put a link to an event in a rich text editor, and back-office dashboard widgets.</li>
+                </ul>
+            </subsection>
+        </section>
+        <section name="Configuration">
+            <subsection name="Rights">
+                <p>
+                    The admin feature <code>CALENDAR_MANAGEMENT</code> (menu "Calendar management") gives access to the calendars,
+                    the calendar view, the "Add to calendar" button options and the categories. The installation script grants it
+                    to the <code>admin</code> user. The calendars are also RBAC resources (type <code>CALENDAR</code>, permission
+                    <code>MANAGE</code>) and are filtered by workgroup.
+                </p>
+            </subsection>
+            <subsection name="Exports">
+                <ul>
+                    <li><code>jsp/site/plugins/calendar/CalendarIcal.jsp?calendar_id=N</code>: iCalendar feed of a calendar (from <code>calendar.ical.feed.daysBefore</code> days before today to <code>calendar.ical.feed.daysAfter</code> days after), or of one occurrence with <code>occurrence_id=N</code>.</li>
+                    <li><code>jsp/site/plugins/calendar/GetCalendarFile.jsp?calendar_id=N&amp;format=json</code>: JSON file of a calendar.</li>
+                    <li><code>jsp/site/plugins/calendar/GetCalendarFile.jsp?action=rss&amp;calendar_id=N</code>: RSS 2.0 feed (at most <code>calendar.rss.maxItems</code> items).</li>
+                </ul>
+                <p>A calendar restricted to a role is exported only to a visitor logged in with that role. The exports are not managed in the back office.</p>
+            </subsection>
+            <subsection name="Reminders">
+                <p>
+                    The daemon <code>calendarReminder</code> is off by default: start it in the daemons screen of the back office.
+                    It sends to the subscribers of a calendar a reminder of each occurrence starting within
+                    <code>calendar.reminder.hoursBefore</code> hours (24 by default), once per subscriber. The links of the
+                    e-mails use <code>lutece.prod.url</code>, or <code>lutece.base.url</code>: one of them must be set.
+                </p>
+            </subsection>
+            <subsection name="Portlet templates">
+                <p>The portlets are rendered by FreeMarker templates registered in the core portlet templates, chosen in the portlet form:</p>
+                <ul>
+                    <li><code>CALENDAR_PORTLET</code>: <code>skin/plugins/calendar/portlet/calendar_portlet.html</code> (default) and <code>calendar_portlet_organized_events.html</code>.</li>
+                    <li><code>MINI_CALENDAR_PORTLET</code>: <code>skin/plugins/calendar/portlet/mini_calendar_portlet.html</code>.</li>
+                </ul>
+            </subsection>
+        </section>
+        <section name="Upgrading to Lutece 8">
+            <p>Version 5.0.0 requires Lutece core 8 (CDI, Jakarta EE, Liquibase). The script <code>upgrade/update_db_calendar-4.9.9-5.0.0.sql</code>:</p>
+            <ul>
+                <li>replaces the XSL styles of the portlets by the FreeMarker templates above;</li>
+                <li>converts the dot image of each calendar into its colour (<code>.../dots/blue.png</code> becomes <code>blue</code>);</li>
+                <li>removes the XSL export stylesheets (<code>calendar_export_stylesheets</code>): the exports are iCalendar, JSON and RSS;</li>
+                <li>creates the tables of the reminders and of the "Add to calendar" button.</li>
+            </ul>
+            <p>
+                The v7 SQL scripts carry no Liquibase header, so a v7 database records no version for the plugin: the site must be
+                taken over in two passes (version of the plugin recorded first, then start), otherwise the plugin is installed as
+                new and the upgrade script does not run. The former export links (<code>GetCalendarFile.jsp</code>) keep working:
+                they now answer the iCalendar file of the calendar, or its RSS feed.
+            </p>
+        </section>
+    </body>
+</document>

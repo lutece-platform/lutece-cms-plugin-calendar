@@ -33,6 +33,7 @@
  */
 package fr.paris.lutece.plugins.calendar.business;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import fr.paris.lutece.plugins.calendar.business.category.Category;
 import fr.paris.lutece.plugins.calendar.business.category.CategoryHome;
 import fr.paris.lutece.plugins.calendar.service.AgendaResource;
@@ -51,21 +52,22 @@ import java.util.Collection;
 import java.util.GregorianCalendar;
 import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 
 /**
  * This DAO class used to fetch the calendars in the database
  */
+@ApplicationScoped
 public class CalendarDAO implements ICalendarDAO
 {
     private static final String SQL_QUERY_NEW_PK = " SELECT max( id_agenda ) FROM calendar_agendas ";
     private static final String SQL_QUERY_NEW_PK_EVENTS = " SELECT max( id_event ) FROM calendar_events ";
-    private static final String SQL_QUERY_INSERT_AGENDA = " INSERT INTO calendar_agendas ( id_agenda, agenda_name, agenda_image, agenda_prefix, role ,role_manage, workgroup_key, is_notify, period_validity) VALUES ( ?, ?, ?, ?, ?, ? ,?, ?, ? ) ";
-    private static final String SQL_QUERY_UPDATE_AGENDA = " UPDATE calendar_agendas SET agenda_name = ?, agenda_image = ?, agenda_prefix = ?, role = ?, role_manage = ?, workgroup_key = ?, is_notify = ?, period_validity = ? WHERE id_agenda = ?  ";
+    private static final String SQL_QUERY_INSERT_AGENDA = " INSERT INTO calendar_agendas ( id_agenda, agenda_name, agenda_image, agenda_prefix, role ,role_manage, workgroup_key, is_notify, period_validity, front_proposals, default_view) VALUES ( ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ? ) ";
+    private static final String SQL_QUERY_UPDATE_AGENDA = " UPDATE calendar_agendas SET agenda_name = ?, agenda_image = ?, agenda_prefix = ?, role = ?, role_manage = ?, workgroup_key = ?, is_notify = ?, period_validity = ?, front_proposals = ?, default_view = ? WHERE id_agenda = ?  ";
     private static final String SQL_QUERY_DELETE_AGENDA = " DELETE FROM calendar_agendas WHERE id_agenda = ?  ";
-    private static final String SQL_QUERY_SELECT_AGENDA = "SELECT id_agenda, agenda_name, agenda_image, agenda_prefix, role, role_manage, workgroup_key, is_notify, period_validity FROM calendar_agendas WHERE id_agenda = ? ";
-    private static final String SQL_QUERY_SELECTALL_AGENDAS = "SELECT id_agenda, agenda_name, agenda_image, agenda_prefix, role,role_manage, workgroup_key, is_notify, period_validity FROM calendar_agendas ORDER BY agenda_name";
+    private static final String SQL_QUERY_SELECT_AGENDA = "SELECT id_agenda, agenda_name, agenda_image, agenda_prefix, role, role_manage, workgroup_key, is_notify, period_validity, front_proposals, default_view FROM calendar_agendas WHERE id_agenda = ? ";
+    private static final String SQL_QUERY_SELECTALL_AGENDAS = "SELECT id_agenda, agenda_name, agenda_image, agenda_prefix, role,role_manage, workgroup_key, is_notify, period_validity, front_proposals, default_view FROM calendar_agendas ORDER BY agenda_name";
     private static final String SQL_QUERY_INSERT_EVENT = " INSERT INTO calendar_events ( id_event, id_agenda, event_date, event_date_end, event_time_start, event_time_end, event_title, event_date_occurence, event_date_periodicity, event_date_creation, event_excluded_day ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ) ";
     private static final String SQL_QUERY_UPDATE_EVENT = " UPDATE calendar_events SET id_agenda =?, event_date = ?, event_date_end = ? , event_time_start = ?, event_time_end = ?, event_title = ?, event_date_occurence = ?, event_date_periodicity = ?, event_excluded_day = ? WHERE id_event = ? ";
     private static final String SQL_QUERY_UPDATE_EVENT_DATE = " UPDATE calendar_events SET event_date = ? WHERE id_event = ? AND id_agenda = ?";
@@ -84,7 +86,13 @@ public class CalendarDAO implements ICalendarDAO
     private static final String SQL_QUERY_UPDATE_OCCURRENCE = " UPDATE calendar_events_occurrences SET occurrence_date = ?, occurrence_time_start = ?, occurrence_time_end = ?, occurrence_title = ?, occurrence_status = ? WHERE id_occurrence = ? ";
     private static final String SQL_QUERY_DELETE_ALL_OCCURRENCE = " DELETE FROM calendar_events_occurrences WHERE id_agenda = ? AND id_event= ? ";
     private static final String SQL_QUERY_DELETE_OCCURRENCE = " DELETE FROM calendar_events_occurrences WHERE id_occurrence = ? ";
-    private static final String SQL_QUERY_SELECT_OCCURRENCE = "SELECT a.id_event, a.occurrence_date, b.event_date_end, a.occurrence_time_start, a.occurrence_time_end, a.occurrence_title, a.occurrence_status"
+    private static final String SQL_QUERY_SELECT_OCCURRENCES_BY_RANGE = "SELECT a.id_occurrence, a.id_event, a.id_agenda, a.occurrence_date, a.occurrence_time_start, a.occurrence_time_end, a.occurrence_title, a.occurrence_status, f.feature_location, f.feature_location_town, f.feature_top_event, ( SELECT COUNT(*) FROM calendar_events_occurrences c WHERE c.id_event = a.id_event )"
+            + " FROM calendar_events_occurrences a LEFT JOIN calendar_events_features f ON f.id_event = a.id_event"
+            + " WHERE a.occurrence_date >= ? AND a.occurrence_date < ? AND a.id_agenda IN ( ";
+    private static final String SQL_FILTER_OCCURRENCES_CATEGORIES = " ) AND a.id_event IN ( SELECT id_event FROM calendar_category_link WHERE id_category IN ( ";
+    private static final String SQL_ORDER_OCCURRENCES_BY_RANGE = " ) ORDER BY a.occurrence_date, a.occurrence_time_start, a.id_occurrence";
+
+    private static final String SQL_QUERY_SELECT_OCCURRENCE = "SELECT a.id_event, a.occurrence_date, b.event_date_end, a.occurrence_time_start, a.occurrence_time_end, a.occurrence_title, a.occurrence_status, a.id_agenda"
             + " FROM calendar_events_occurrences a, calendar_events b"
             + " WHERE a.id_occurrence = ? and a.id_event = b.id_event";
     private static final String SQL_QUERY_SELECT_OCCURRENCE_DATE_MIN = "SELECT MIN(occurrence_date) FROM calendar_events_occurrences WHERE id_event = ? ";
@@ -116,6 +124,8 @@ public class CalendarDAO implements ICalendarDAO
     private static final String SQL_QUERY_SELECT_AGENDA_IDS = " SELECT id_agenda FROM calendar_agendas ORDER BY id_agenda ASC ";
 
     // ImageResource queries
+    private static final String SQL_QUERY_EVENTS_WITH_ONLY_STATUS = " SELECT DISTINCT a.id_event FROM calendar_events_occurrences a WHERE a.id_agenda = ? AND a.occurrence_status = ? AND NOT EXISTS ( SELECT 1 FROM calendar_events_occurrences b WHERE b.id_event = a.id_event AND ( b.occurrence_status IS NULL OR b.occurrence_status <> ? ) )";
+    private static final String SQL_QUERY_HAS_IMAGE = " SELECT COUNT(*) FROM calendar_events_features WHERE id_event = ? AND feature_image IS NOT NULL AND LENGTH( feature_image ) > 0 ";
     private static final String SQL_QUERY_SELECT_RESOURCE_IMAGE = " SELECT feature_image, image_mime_type FROM calendar_events_features WHERE id_event = ? ";
 
     //Filter select
@@ -155,20 +165,23 @@ public class CalendarDAO implements ICalendarDAO
      */
     public void insertAgenda( AgendaResource agenda, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT_AGENDA, plugin );
-        agenda.setId( String.valueOf( getNewPrimaryKey( plugin, SQL_QUERY_NEW_PK ) ) );
-        daoUtil.setInt( 1, Integer.parseInt( agenda.getId( ) ) );
-        daoUtil.setString( 2, agenda.getName( ) );
-        daoUtil.setString( 3, agenda.getEventImage( ) );
-        daoUtil.setString( 4, agenda.getEventPrefix( ) );
-        daoUtil.setString( 5, agenda.getRole( ) );
-        daoUtil.setString( 6, agenda.getRoleManager( ) );
-        daoUtil.setString( 7, agenda.getWorkgroup( ) );
-        daoUtil.setBoolean( 8, agenda.isNotify( ) );
-        daoUtil.setInt( 9, agenda.getPeriodValidity( ) );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT_AGENDA, plugin ) )
+        {
+            agenda.setId( String.valueOf( getNewPrimaryKey( plugin, SQL_QUERY_NEW_PK ) ) );
+            daoUtil.setInt( 1, Integer.parseInt( agenda.getId( ) ) );
+            daoUtil.setString( 2, agenda.getName( ) );
+            daoUtil.setString( 3, agenda.getEventImage( ) );
+            daoUtil.setString( 4, agenda.getEventPrefix( ) );
+            daoUtil.setString( 5, agenda.getRole( ) );
+            daoUtil.setString( 6, agenda.getRoleManager( ) );
+            daoUtil.setString( 7, agenda.getWorkgroup( ) );
+            daoUtil.setBoolean( 8, agenda.isNotify( ) );
+            daoUtil.setInt( 9, agenda.getPeriodValidity( ) );
+            daoUtil.setBoolean( 10, agenda.isFrontProposals( ) );
+            daoUtil.setString( 11, agenda.getDefaultView( ) );
 
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
+            daoUtil.executeUpdate( );
+        }
     }
 
     /**
@@ -178,19 +191,22 @@ public class CalendarDAO implements ICalendarDAO
      */
     public void storeAgenda( AgendaResource agenda, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE_AGENDA, plugin );
-        daoUtil.setString( 1, agenda.getName( ) );
-        daoUtil.setString( 2, agenda.getEventImage( ) );
-        daoUtil.setString( 3, agenda.getEventPrefix( ) );
-        daoUtil.setString( 4, agenda.getRole( ) );
-        daoUtil.setString( 5, agenda.getRoleManager( ) );
-        daoUtil.setString( 6, agenda.getWorkgroup( ) );
-        daoUtil.setBoolean( 7, agenda.isNotify( ) );
-        daoUtil.setInt( 8, agenda.getPeriodValidity( ) );
-        daoUtil.setInt( 9, Integer.parseInt( agenda.getId( ) ) );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE_AGENDA, plugin ) )
+        {
+            daoUtil.setString( 1, agenda.getName( ) );
+            daoUtil.setString( 2, agenda.getEventImage( ) );
+            daoUtil.setString( 3, agenda.getEventPrefix( ) );
+            daoUtil.setString( 4, agenda.getRole( ) );
+            daoUtil.setString( 5, agenda.getRoleManager( ) );
+            daoUtil.setString( 6, agenda.getWorkgroup( ) );
+            daoUtil.setBoolean( 7, agenda.isNotify( ) );
+            daoUtil.setInt( 8, agenda.getPeriodValidity( ) );
+            daoUtil.setBoolean( 9, agenda.isFrontProposals( ) );
+            daoUtil.setString( 10, agenda.getDefaultView( ) );
+            daoUtil.setInt( 11, Integer.parseInt( agenda.getId( ) ) );
 
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
+            daoUtil.executeUpdate( );
+        }
     }
 
     /**
@@ -200,10 +216,11 @@ public class CalendarDAO implements ICalendarDAO
      */
     public void deleteAgenda( int nAgendaId, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_AGENDA, plugin );
-        daoUtil.setInt( 1, nAgendaId );
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_AGENDA, plugin ) )
+        {
+            daoUtil.setInt( 1, nAgendaId );
+            daoUtil.executeUpdate( );
+        }
     }
 
     /**
@@ -214,35 +231,36 @@ public class CalendarDAO implements ICalendarDAO
      */
     public void insertEvent( SimpleEvent event, Plugin plugin, String strUserLogin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT_EVENT, plugin );
-        event.setId( getNewPrimaryKey( plugin, SQL_QUERY_NEW_PK_EVENTS ) );
-        daoUtil.setInt( 1, event.getId( ) );
-        daoUtil.setInt( 2, event.getIdCalendar( ) );
-        daoUtil.setDate( 3, new java.sql.Date( event.getDate( ).getTime( ) ) );
-        daoUtil.setDate( 4, new java.sql.Date( event.getDateEnd( ).getTime( ) ) );
-        daoUtil.setString( 5, event.getDateTimeStart( ) );
-        daoUtil.setString( 6, event.getDateTimeEnd( ) );
-        daoUtil.setString( 7, event.getTitle( ) );
-        daoUtil.setInt( 8, event.getOccurrence( ) );
-        daoUtil.setInt( 9, event.getPeriodicity( ) );
-        daoUtil.setTimestamp( 10, new java.sql.Timestamp( new java.util.Date( ).getTime( ) ) );
-        String[] arrayExcludedDays = event.getExcludedDays( );
-        if ( arrayExcludedDays != null && arrayExcludedDays.length != 0 )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT_EVENT, plugin ) )
         {
-            StringBuilder sbExcludedDays = new StringBuilder( );
-            for ( int i = 0; i < arrayExcludedDays.length - 1; i++ )
+            event.setId( getNewPrimaryKey( plugin, SQL_QUERY_NEW_PK_EVENTS ) );
+            daoUtil.setInt( 1, event.getId( ) );
+            daoUtil.setInt( 2, event.getIdCalendar( ) );
+            daoUtil.setDate( 3, new java.sql.Date( event.getDate( ).getTime( ) ) );
+            daoUtil.setDate( 4, new java.sql.Date( event.getDateEnd( ).getTime( ) ) );
+            daoUtil.setString( 5, event.getDateTimeStart( ) );
+            daoUtil.setString( 6, event.getDateTimeEnd( ) );
+            daoUtil.setString( 7, event.getTitle( ) );
+            daoUtil.setInt( 8, event.getOccurrence( ) );
+            daoUtil.setInt( 9, event.getPeriodicity( ) );
+            daoUtil.setTimestamp( 10, new java.sql.Timestamp( new java.util.Date( ).getTime( ) ) );
+            String[] arrayExcludedDays = event.getExcludedDays( );
+            if ( arrayExcludedDays != null && arrayExcludedDays.length != 0 )
             {
-                sbExcludedDays.append( arrayExcludedDays[i] + Constants.COMMA );
+                StringBuilder sbExcludedDays = new StringBuilder( );
+                for ( int i = 0; i < arrayExcludedDays.length - 1; i++ )
+                {
+                    sbExcludedDays.append( arrayExcludedDays[i] + Constants.COMMA );
+                }
+                sbExcludedDays.append( arrayExcludedDays[arrayExcludedDays.length - 1] );
+                daoUtil.setString( 11, sbExcludedDays.toString( ) );
             }
-            sbExcludedDays.append( arrayExcludedDays[arrayExcludedDays.length - 1] );
-            daoUtil.setString( 11, sbExcludedDays.toString( ) );
+            else
+            {
+                daoUtil.setString( 11, Constants.EMPTY_STRING );
+            }
+            daoUtil.executeUpdate( );
         }
-        else
-        {
-            daoUtil.setString( 11, Constants.EMPTY_STRING );
-        }
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
 
         //Occurrence storage on database 
         insertOccurrence( event, plugin );
@@ -253,12 +271,12 @@ public class CalendarDAO implements ICalendarDAO
 
         if ( StringUtils.isNotBlank( strUserLogin ) )
         {
-            daoUtil = new DAOUtil( SQL_QUERY_INSERT_EVENT_USER, plugin );
-
-            daoUtil.setInt( 1, event.getId( ) );
-            daoUtil.setString( 2, strUserLogin );
-            daoUtil.executeUpdate( );
-            daoUtil.free( );
+            try ( DAOUtil daoUtilUser = new DAOUtil( SQL_QUERY_INSERT_EVENT_USER, plugin ) )
+            {
+                daoUtilUser.setInt( 1, event.getId( ) );
+                daoUtilUser.setString( 2, strUserLogin );
+                daoUtilUser.executeUpdate( );
+            }
         }
     }
 
@@ -270,42 +288,43 @@ public class CalendarDAO implements ICalendarDAO
      */
     public void storeEvent( SimpleEvent event, Plugin plugin, boolean bPeriodiciteUpdated )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE_EVENT, plugin );
-        daoUtil.setInt( 1, event.getIdCalendar( ) );
-        daoUtil.setDate( 2, new java.sql.Date( event.getDate( ).getTime( ) ) );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE_EVENT, plugin ) )
+        {
+            daoUtil.setInt( 1, event.getIdCalendar( ) );
+            daoUtil.setDate( 2, new java.sql.Date( event.getDate( ).getTime( ) ) );
 
-        if ( event.getDateEnd( ) != null )
-        {
-            daoUtil.setDate( 3, new java.sql.Date( event.getDateEnd( ).getTime( ) ) );
-        }
-        else
-        {
-            daoUtil.setDate( 3, null );
-        }
-
-        daoUtil.setString( 4, event.getDateTimeStart( ) );
-        daoUtil.setString( 5, event.getDateTimeEnd( ) );
-        daoUtil.setString( 6, event.getTitle( ) );
-        daoUtil.setInt( 7, event.getOccurrence( ) );
-        daoUtil.setInt( 8, event.getPeriodicity( ) );
-        String[] arrayExcludedDays = event.getExcludedDays( );
-        if ( arrayExcludedDays != null && arrayExcludedDays.length != 0 )
-        {
-            StringBuilder sbExcludedDays = new StringBuilder( );
-            for ( int i = 0; i < arrayExcludedDays.length - 1; i++ )
+            if ( event.getDateEnd( ) != null )
             {
-                sbExcludedDays.append( arrayExcludedDays[i] + Constants.COMMA );
+                daoUtil.setDate( 3, new java.sql.Date( event.getDateEnd( ).getTime( ) ) );
             }
-            sbExcludedDays.append( arrayExcludedDays[arrayExcludedDays.length - 1] );
-            daoUtil.setString( 9, sbExcludedDays.toString( ) );
+            else
+            {
+                daoUtil.setDate( 3, null );
+            }
+
+            daoUtil.setString( 4, event.getDateTimeStart( ) );
+            daoUtil.setString( 5, event.getDateTimeEnd( ) );
+            daoUtil.setString( 6, event.getTitle( ) );
+            daoUtil.setInt( 7, event.getOccurrence( ) );
+            daoUtil.setInt( 8, event.getPeriodicity( ) );
+            String[] arrayExcludedDays = event.getExcludedDays( );
+            if ( arrayExcludedDays != null && arrayExcludedDays.length != 0 )
+            {
+                StringBuilder sbExcludedDays = new StringBuilder( );
+                for ( int i = 0; i < arrayExcludedDays.length - 1; i++ )
+                {
+                    sbExcludedDays.append( arrayExcludedDays[i] + Constants.COMMA );
+                }
+                sbExcludedDays.append( arrayExcludedDays[arrayExcludedDays.length - 1] );
+                daoUtil.setString( 9, sbExcludedDays.toString( ) );
+            }
+            else
+            {
+                daoUtil.setString( 9, Constants.EMPTY_STRING );
+            }
+            daoUtil.setInt( 10, event.getId( ) );
+            daoUtil.executeUpdate( );
         }
-        else
-        {
-            daoUtil.setString( 9, Constants.EMPTY_STRING );
-        }
-        daoUtil.setInt( 10, event.getId( ) );
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
 
         if ( bPeriodiciteUpdated )
         {
@@ -329,11 +348,12 @@ public class CalendarDAO implements ICalendarDAO
      */
     public void deleteEvent( int nAgendaId, int nEventId, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_EVENT, plugin );
-        daoUtil.setInt( 1, nAgendaId );
-        daoUtil.setInt( 2, nEventId );
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_EVENT, plugin ) )
+        {
+            daoUtil.setInt( 1, nAgendaId );
+            daoUtil.setInt( 2, nEventId );
+            daoUtil.executeUpdate( );
+        }
         //the list of occurrences is deleted when the event is deleted 
         deleteAllOccurrence( nAgendaId, nEventId, plugin );
         deleteFeature( plugin, nEventId );
@@ -351,29 +371,31 @@ public class CalendarDAO implements ICalendarDAO
      */
     public AgendaResource loadAgenda( int nId, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_AGENDA, plugin );
-        daoUtil.setInt( 1, nId );
-        daoUtil.executeQuery( );
-
-        AgendaResource agenda = null;
-
-        if ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_AGENDA, plugin ) )
         {
-            agenda = new AgendaResource( );
-            agenda.setId( String.valueOf( daoUtil.getInt( 1 ) ) );
-            agenda.setName( daoUtil.getString( 2 ) );
-            agenda.setEventImage( daoUtil.getString( 3 ) );
-            agenda.setEventPrefix( daoUtil.getString( 4 ) );
-            agenda.setRole( daoUtil.getString( 5 ) );
-            agenda.setRoleManager( daoUtil.getString( 6 ) );
-            agenda.setWorkgroup( daoUtil.getString( 7 ) );
-            agenda.setNotify( daoUtil.getBoolean( 8 ) );
-            agenda.setPeriodValidity( daoUtil.getInt( 9 ) );
+            daoUtil.setInt( 1, nId );
+            daoUtil.executeQuery( );
+
+            AgendaResource agenda = null;
+
+            if ( daoUtil.next( ) )
+            {
+                agenda = new AgendaResource( );
+                agenda.setId( String.valueOf( daoUtil.getInt( 1 ) ) );
+                agenda.setName( daoUtil.getString( 2 ) );
+                agenda.setEventImage( daoUtil.getString( 3 ) );
+                agenda.setEventPrefix( daoUtil.getString( 4 ) );
+                agenda.setRole( daoUtil.getString( 5 ) );
+                agenda.setRoleManager( daoUtil.getString( 6 ) );
+                agenda.setWorkgroup( daoUtil.getString( 7 ) );
+                agenda.setNotify( daoUtil.getBoolean( 8 ) );
+                agenda.setPeriodValidity( daoUtil.getInt( 9 ) );
+                agenda.setFrontProposals( daoUtil.getBoolean( 10 ) );
+                agenda.setDefaultView( daoUtil.getString( 11 ) );
+            }
+
+            return agenda;
         }
-
-        daoUtil.free( );
-
-        return agenda;
     }
 
     /**
@@ -385,26 +407,29 @@ public class CalendarDAO implements ICalendarDAO
     public List<AgendaResource> selectAgendaResourceList( Plugin plugin )
     {
         List<AgendaResource> agendaList = new ArrayList<AgendaResource>( );
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECTALL_AGENDAS, plugin );
-        daoUtil.executeQuery( );
-
-        while ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECTALL_AGENDAS, plugin ) )
         {
-            AgendaResource agenda = new AgendaResource( );
-            agenda.setId( String.valueOf( daoUtil.getInt( 1 ) ) );
-            agenda.setName( daoUtil.getString( 2 ) );
-            agenda.setEventImage( daoUtil.getString( 3 ) );
-            agenda.setEventPrefix( daoUtil.getString( 4 ) );
-            agenda.setRole( daoUtil.getString( 5 ) );
-            agenda.setRoleManager( daoUtil.getString( 6 ) );
-            agenda.setWorkgroup( daoUtil.getString( 7 ) );
-            agenda.setNotify( daoUtil.getBoolean( 8 ) );
-            agenda.setPeriodValidity( daoUtil.getInt( 9 ) );
+            daoUtil.executeQuery( );
 
-            agendaList.add( agenda );
+            while ( daoUtil.next( ) )
+            {
+                AgendaResource agenda = new AgendaResource( );
+                agenda.setId( String.valueOf( daoUtil.getInt( 1 ) ) );
+                agenda.setName( daoUtil.getString( 2 ) );
+                agenda.setEventImage( daoUtil.getString( 3 ) );
+                agenda.setEventPrefix( daoUtil.getString( 4 ) );
+                agenda.setRole( daoUtil.getString( 5 ) );
+                agenda.setRoleManager( daoUtil.getString( 6 ) );
+                agenda.setWorkgroup( daoUtil.getString( 7 ) );
+                agenda.setNotify( daoUtil.getBoolean( 8 ) );
+                agenda.setPeriodValidity( daoUtil.getInt( 9 ) );
+                agenda.setFrontProposals( daoUtil.getBoolean( 10 ) );
+                agenda.setDefaultView( daoUtil.getString( 11 ) );
+
+                agendaList.add( agenda );
+            }
+
         }
-
-        daoUtil.free( );
 
         return agendaList;
     }
@@ -417,51 +442,51 @@ public class CalendarDAO implements ICalendarDAO
      */
     public SimpleEvent loadEvent( int nEventId, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_EVENT, plugin );
-        daoUtil.setInt( 1, nEventId );
-        daoUtil.executeQuery( );
-
-        SimpleEvent event = null;
-
-        if ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_EVENT, plugin ) )
         {
-            event = new SimpleEvent( );
-            event.setId( nEventId );
-            event.setIdCalendar( daoUtil.getInt( 1 ) );
-            event.setDate( new java.util.Date( daoUtil.getDate( 2 ).getTime( ) ) );
+            daoUtil.setInt( 1, nEventId );
+            daoUtil.executeQuery( );
 
-            if ( daoUtil.getDate( 2 ) != null )
+            SimpleEvent event = null;
+
+            if ( daoUtil.next( ) )
             {
-                event.setDateEnd( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
+                event = new SimpleEvent( );
+                event.setId( nEventId );
+                event.setIdCalendar( daoUtil.getInt( 1 ) );
+                event.setDate( new java.util.Date( daoUtil.getDate( 2 ).getTime( ) ) );
+
+                if ( daoUtil.getDate( 2 ) != null )
+                {
+                    event.setDateEnd( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
+                }
+
+                event.setDateTimeStart( daoUtil.getString( 4 ) );
+                event.setDateTimeEnd( daoUtil.getString( 5 ) );
+                event.setTitle( daoUtil.getString( 6 ) );
+                event.setOccurrence( daoUtil.getInt( 7 ) );
+                event.setPeriodicity( daoUtil.getInt( 8 ) );
+                event.setDateCreation( daoUtil.getTimestamp( 9 ) );
+                if ( daoUtil.getString( 10 ) != null )
+                {
+                    String[] listExcludedDays = daoUtil.getString( 10 ).split( Constants.COMMA );
+                    event.setExcludedDays( listExcludedDays );
+                }
+                else
+                {
+                    String[] listExcludedDays = {};
+                    event.setExcludedDays( listExcludedDays );
+                }
             }
 
-            event.setDateTimeStart( daoUtil.getString( 4 ) );
-            event.setDateTimeEnd( daoUtil.getString( 5 ) );
-            event.setTitle( daoUtil.getString( 6 ) );
-            event.setOccurrence( daoUtil.getInt( 7 ) );
-            event.setPeriodicity( daoUtil.getInt( 8 ) );
-            event.setDateCreation( daoUtil.getTimestamp( 9 ) );
-            if ( daoUtil.getString( 10 ) != null )
+            if ( event != null )
             {
-                String[] listExcludedDays = daoUtil.getString( 10 ).split( Constants.COMMA );
-                event.setExcludedDays( listExcludedDays );
+                getFeature( plugin, event.getId( ), event );
+                event.setListCategories( CategoryHome.findByEvent( event.getId( ), plugin ) );
             }
-            else
-            {
-                String[] listExcludedDays = {};
-                event.setExcludedDays( listExcludedDays );
-            }
+
+            return event;
         }
-
-        daoUtil.free( );
-
-        if ( event != null )
-        {
-            getFeature( plugin, event.getId( ), event );
-            event.setListCategories( CategoryHome.findByEvent( event.getId( ), plugin ) );
-        }
-
-        return event;
     }
 
     /**
@@ -485,29 +510,30 @@ public class CalendarDAO implements ICalendarDAO
             strSortEvents = "DESC";
         }
 
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_EVENTS + strSortEvents, plugin );
-        daoUtil.setInt( 1, nAgendaId );
-        daoUtil.executeQuery( );
-
-        while ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_EVENTS + strSortEvents, plugin ) )
         {
-            SimpleEvent event = new SimpleEvent( );
-            event.setId( daoUtil.getInt( 1 ) );
-            event.setIdCalendar( daoUtil.getInt( 2 ) );
-            event.setDate( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
-            event.setDateEnd( new java.util.Date( daoUtil.getDate( 4 ).getTime( ) ) );
-            event.setDateTimeStart( daoUtil.getString( 5 ) );
-            event.setDateTimeEnd( daoUtil.getString( 6 ) );
-            event.setTitle( daoUtil.getString( 7 ) );
-            event.setOccurrence( daoUtil.getInt( 8 ) );
-            event.setPeriodicity( daoUtil.getInt( 9 ) );
-            event.setDateCreation( daoUtil.getTimestamp( 10 ) );
-            getFeature( plugin, event.getId( ), event );
-            event.setListCategories( CategoryHome.findByEvent( event.getId( ), plugin ) );
-            eventList.add( event );
-        }
+            daoUtil.setInt( 1, nAgendaId );
+            daoUtil.executeQuery( );
 
-        daoUtil.free( );
+            while ( daoUtil.next( ) )
+            {
+                SimpleEvent event = new SimpleEvent( );
+                event.setId( daoUtil.getInt( 1 ) );
+                event.setIdCalendar( daoUtil.getInt( 2 ) );
+                event.setDate( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
+                event.setDateEnd( new java.util.Date( daoUtil.getDate( 4 ).getTime( ) ) );
+                event.setDateTimeStart( daoUtil.getString( 5 ) );
+                event.setDateTimeEnd( daoUtil.getString( 6 ) );
+                event.setTitle( daoUtil.getString( 7 ) );
+                event.setOccurrence( daoUtil.getInt( 8 ) );
+                event.setPeriodicity( daoUtil.getInt( 9 ) );
+                event.setDateCreation( daoUtil.getTimestamp( 10 ) );
+                getFeature( plugin, event.getId( ), event );
+                event.setListCategories( CategoryHome.findByEvent( event.getId( ), plugin ) );
+                eventList.add( event );
+            }
+
+        }
 
         return eventList;
     }
@@ -522,22 +548,22 @@ public class CalendarDAO implements ICalendarDAO
      */
     int getNewPrimaryKey( Plugin plugin, String strSqlQuery )
     {
-        DAOUtil daoUtil = new DAOUtil( strSqlQuery, plugin );
-        daoUtil.executeQuery( );
-
-        int nKey;
-
-        if ( !daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( strSqlQuery, plugin ) )
         {
-            // if the table is empty
-            nKey = 1;
+            daoUtil.executeQuery( );
+
+            int nKey;
+
+            if ( !daoUtil.next( ) )
+            {
+                // if the table is empty
+                nKey = 1;
+            }
+
+            nKey = daoUtil.getInt( 1 ) + 1;
+
+            return nKey;
         }
-
-        nKey = daoUtil.getInt( 1 ) + 1;
-
-        daoUtil.free( );
-
-        return nKey;
     }
 
     /**
@@ -547,49 +573,50 @@ public class CalendarDAO implements ICalendarDAO
      */
     public void insertOccurrence( SimpleEvent event, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT_OCCURRENCE, plugin );
-
-        //set the default idOccurrence
-        int nIdOccurrence = 1;
-        int i = 0;
-        int index = 0;
-
-        //set the date reference
-        String strDateReference = Utils.getDate( event.getDate( ) );
-
-        //Set the occurrence default status
-        String strDefaultStatus = AppPropertiesService.getProperty( Constants.PROPERTY_EVENT_DEFAULT_STATUS );
-
-        while ( index < event.getOccurrence( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT_OCCURRENCE, plugin ) )
         {
-            if ( event.getExcludedDays( ) != null && event.getExcludedDays( ).length == 7 )
+
+            //set the default idOccurrence
+            int nIdOccurrence = 1;
+            int i = 0;
+            int index = 0;
+
+            //set the date reference
+            String strDateReference = Utils.getDate( event.getDate( ) );
+
+            //Set the occurrence default status
+            String strDefaultStatus = AppPropertiesService.getProperty( Constants.PROPERTY_EVENT_DEFAULT_STATUS );
+
+            while ( index < event.getOccurrence( ) )
             {
-                break;
+                if ( event.getExcludedDays( ) != null && event.getExcludedDays( ).length == 7 )
+                {
+                    break;
+                }
+
+                Date date = new java.sql.Date( event.getDate( ).getTime( ) );
+                String strDate = Utils.getDate( date );
+                if ( !Utils.isDayExcluded( Utils.getDayOfWeek( strDate ), event.getExcludedDays( ) ) )
+                {
+                    nIdOccurrence = getNewPrimaryKey( plugin, SQL_QUERY_NEW_PK_OCCURRENCE );
+                    daoUtil.setInt( 1, nIdOccurrence );
+                    daoUtil.setInt( 2, event.getId( ) );
+                    daoUtil.setInt( 3, event.getIdCalendar( ) );
+                    daoUtil.setDate( 4, date );
+                    daoUtil.setString( 5, event.getDateTimeStart( ) );
+                    daoUtil.setString( 6, event.getDateTimeEnd( ) );
+                    daoUtil.setString( 7, event.getTitle( ) );
+                    daoUtil.setString( 8, StringUtils.isNotBlank( event.getStatus( ) ) ? event.getStatus( )
+                            : strDefaultStatus );
+                    daoUtil.executeUpdate( );
+                    index++;
+                }
+                i++;
+
+                event = getNextOccurrence( event, strDateReference, i );
             }
 
-            Date date = new java.sql.Date( event.getDate( ).getTime( ) );
-            String strDate = Utils.getDate( date );
-            if ( !Utils.isDayExcluded( Utils.getDayOfWeek( strDate ), event.getExcludedDays( ) ) )
-            {
-                nIdOccurrence = getNewPrimaryKey( plugin, SQL_QUERY_NEW_PK_OCCURRENCE );
-                daoUtil.setInt( 1, nIdOccurrence );
-                daoUtil.setInt( 2, event.getId( ) );
-                daoUtil.setInt( 3, event.getIdCalendar( ) );
-                daoUtil.setDate( 4, date );
-                daoUtil.setString( 5, event.getDateTimeStart( ) );
-                daoUtil.setString( 6, event.getDateTimeEnd( ) );
-                daoUtil.setString( 7, event.getTitle( ) );
-                daoUtil.setString( 8, StringUtils.isNotBlank( event.getStatus( ) ) ? event.getStatus( )
-                        : strDefaultStatus );
-                daoUtil.executeUpdate( );
-                index++;
-            }
-            i++;
-
-            event = getNextOccurrence( event, strDateReference, i );
         }
-
-        daoUtil.free( );
     }
 
     /**
@@ -600,15 +627,16 @@ public class CalendarDAO implements ICalendarDAO
      */
     public void storeOccurrence( OccurrenceEvent occurrence, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE_OCCURRENCE, plugin );
-        daoUtil.setDate( 1, new java.sql.Date( occurrence.getDate( ).getTime( ) ) );
-        daoUtil.setString( 2, occurrence.getDateTimeStart( ) );
-        daoUtil.setString( 3, occurrence.getDateTimeEnd( ) );
-        daoUtil.setString( 4, occurrence.getTitle( ) );
-        daoUtil.setString( 5, occurrence.getStatus( ) );
-        daoUtil.setInt( 6, occurrence.getId( ) );
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE_OCCURRENCE, plugin ) )
+        {
+            daoUtil.setDate( 1, new java.sql.Date( occurrence.getDate( ).getTime( ) ) );
+            daoUtil.setString( 2, occurrence.getDateTimeStart( ) );
+            daoUtil.setString( 3, occurrence.getDateTimeEnd( ) );
+            daoUtil.setString( 4, occurrence.getTitle( ) );
+            daoUtil.setString( 5, occurrence.getStatus( ) );
+            daoUtil.setInt( 6, occurrence.getId( ) );
+            daoUtil.executeUpdate( );
+        }
 
         Date newDateEvent = selectOccurrenceDateMin( occurrence.getEventId( ), plugin );
         updateDateEvent( occurrence.getEventId( ), occurrence.getIdCalendar( ), plugin, newDateEvent );
@@ -637,28 +665,29 @@ public class CalendarDAO implements ICalendarDAO
             strSortEvents = "DESC";
         }
 
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_OCCURRENCES + strSortEvents, plugin );
-        daoUtil.setInt( 1, nAgendaId );
-        daoUtil.setInt( 2, nEventId );
-        daoUtil.executeQuery( );
-
-        while ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_OCCURRENCES + strSortEvents, plugin ) )
         {
-            OccurrenceEvent occurrence = new OccurrenceEvent( );
-            occurrence.setId( daoUtil.getInt( 1 ) );
-            occurrence.setEventId( daoUtil.getInt( 2 ) );
-            occurrence.setDate( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
-            occurrence.setDateEnd( new java.util.Date( daoUtil.getDate( 4 ).getTime( ) ) );
-            occurrence.setDateTimeStart( daoUtil.getString( 5 ) );
-            occurrence.setDateTimeEnd( daoUtil.getString( 6 ) );
-            occurrence.setTitle( daoUtil.getString( 7 ) );
-            occurrence.setStatus( daoUtil.getString( 8 ) );
-            getFeature( plugin, occurrence.getEventId( ), occurrence );
-            occurrence.setListCategories( CategoryHome.findByEvent( occurrence.getEventId( ), plugin ) );
-            occurrenceList.add( occurrence );
-        }
+            daoUtil.setInt( 1, nAgendaId );
+            daoUtil.setInt( 2, nEventId );
+            daoUtil.executeQuery( );
 
-        daoUtil.free( );
+            while ( daoUtil.next( ) )
+            {
+                OccurrenceEvent occurrence = new OccurrenceEvent( );
+                occurrence.setId( daoUtil.getInt( 1 ) );
+                occurrence.setEventId( daoUtil.getInt( 2 ) );
+                occurrence.setDate( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
+                occurrence.setDateEnd( new java.util.Date( daoUtil.getDate( 4 ).getTime( ) ) );
+                occurrence.setDateTimeStart( daoUtil.getString( 5 ) );
+                occurrence.setDateTimeEnd( daoUtil.getString( 6 ) );
+                occurrence.setTitle( daoUtil.getString( 7 ) );
+                occurrence.setStatus( daoUtil.getString( 8 ) );
+                getFeature( plugin, occurrence.getEventId( ), occurrence );
+                occurrence.setListCategories( CategoryHome.findByEvent( occurrence.getEventId( ), plugin ) );
+                occurrenceList.add( occurrence );
+            }
+
+        }
 
         return occurrenceList;
     }
@@ -685,27 +714,28 @@ public class CalendarDAO implements ICalendarDAO
             strSortEvents = "DESC";
         }
 
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_ALL_OCCURRENCES + strSortEvents, plugin );
-        daoUtil.setInt( 1, nAgendaId );
-        daoUtil.executeQuery( );
-
-        while ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_ALL_OCCURRENCES + strSortEvents, plugin ) )
         {
-            OccurrenceEvent occurrence = new OccurrenceEvent( );
-            occurrence.setId( daoUtil.getInt( 1 ) );
-            occurrence.setEventId( daoUtil.getInt( 2 ) );
-            occurrence.setDate( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
-            occurrence.setDateEnd( new java.util.Date( daoUtil.getDate( 4 ).getTime( ) ) );
-            occurrence.setDateTimeStart( daoUtil.getString( 5 ) );
-            occurrence.setDateTimeEnd( daoUtil.getString( 6 ) );
-            occurrence.setTitle( daoUtil.getString( 7 ) );
-            occurrence.setStatus( daoUtil.getString( 8 ) );
-            getFeature( plugin, occurrence.getEventId( ), occurrence );
-            occurrence.setListCategories( CategoryHome.findByEvent( occurrence.getEventId( ), plugin ) );
-            occurrenceList.add( occurrence );
-        }
+            daoUtil.setInt( 1, nAgendaId );
+            daoUtil.executeQuery( );
 
-        daoUtil.free( );
+            while ( daoUtil.next( ) )
+            {
+                OccurrenceEvent occurrence = new OccurrenceEvent( );
+                occurrence.setId( daoUtil.getInt( 1 ) );
+                occurrence.setEventId( daoUtil.getInt( 2 ) );
+                occurrence.setDate( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
+                occurrence.setDateEnd( new java.util.Date( daoUtil.getDate( 4 ).getTime( ) ) );
+                occurrence.setDateTimeStart( daoUtil.getString( 5 ) );
+                occurrence.setDateTimeEnd( daoUtil.getString( 6 ) );
+                occurrence.setTitle( daoUtil.getString( 7 ) );
+                occurrence.setStatus( daoUtil.getString( 8 ) );
+                getFeature( plugin, occurrence.getEventId( ), occurrence );
+                occurrence.setListCategories( CategoryHome.findByEvent( occurrence.getEventId( ), plugin ) );
+                occurrenceList.add( occurrence );
+            }
+
+        }
 
         return occurrenceList;
     }
@@ -721,26 +751,27 @@ public class CalendarDAO implements ICalendarDAO
     {
         List<OccurrenceEvent> occurrenceList = new ArrayList<OccurrenceEvent>( );
 
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_ALL_OCCURRENCES2, plugin );
-        daoUtil.setInt( 1, nAgendaId );
-        daoUtil.executeQuery( );
-
-        while ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_ALL_OCCURRENCES2, plugin ) )
         {
-            OccurrenceEvent occurrence = new OccurrenceEvent( );
-            occurrence.setId( daoUtil.getInt( 1 ) );
-            occurrence.setEventId( daoUtil.getInt( 2 ) );
-            occurrence.setDate( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
-            occurrence.setDateEnd( new java.util.Date( daoUtil.getDate( 4 ).getTime( ) ) );
-            occurrence.setDateTimeStart( daoUtil.getString( 5 ) );
-            occurrence.setDateTimeEnd( daoUtil.getString( 6 ) );
-            occurrence.setTitle( daoUtil.getString( 7 ) );
-            occurrence.setStatus( daoUtil.getString( 8 ) );
-            getFeature( plugin, occurrence.getEventId( ), occurrence );
-            occurrenceList.add( occurrence );
-        }
+            daoUtil.setInt( 1, nAgendaId );
+            daoUtil.executeQuery( );
 
-        daoUtil.free( );
+            while ( daoUtil.next( ) )
+            {
+                OccurrenceEvent occurrence = new OccurrenceEvent( );
+                occurrence.setId( daoUtil.getInt( 1 ) );
+                occurrence.setEventId( daoUtil.getInt( 2 ) );
+                occurrence.setDate( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
+                occurrence.setDateEnd( new java.util.Date( daoUtil.getDate( 4 ).getTime( ) ) );
+                occurrence.setDateTimeStart( daoUtil.getString( 5 ) );
+                occurrence.setDateTimeEnd( daoUtil.getString( 6 ) );
+                occurrence.setTitle( daoUtil.getString( 7 ) );
+                occurrence.setStatus( daoUtil.getString( 8 ) );
+                getFeature( plugin, occurrence.getEventId( ), occurrence );
+                occurrenceList.add( occurrence );
+            }
+
+        }
 
         return occurrenceList;
     }
@@ -753,29 +784,31 @@ public class CalendarDAO implements ICalendarDAO
      */
     public OccurrenceEvent loadOccurrence( int nOccurenceId, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_OCCURRENCE, plugin );
-        daoUtil.setInt( 1, nOccurenceId );
-        daoUtil.executeQuery( );
-
-        OccurrenceEvent occurrence = null;
-
-        if ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_OCCURRENCE, plugin ) )
         {
-            occurrence = new OccurrenceEvent( );
-            occurrence.setId( nOccurenceId );
-            occurrence.setEventId( daoUtil.getInt( 1 ) );
-            occurrence.setDate( new java.util.Date( daoUtil.getDate( 2 ).getTime( ) ) );
-            occurrence.setDateEnd( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
-            occurrence.setDateTimeStart( daoUtil.getString( 4 ) );
-            occurrence.setDateTimeEnd( daoUtil.getString( 5 ) );
-            occurrence.setTitle( daoUtil.getString( 6 ) );
-            occurrence.setStatus( daoUtil.getString( 7 ) );
-            getFeature( plugin, occurrence.getEventId( ), occurrence );
+            daoUtil.setInt( 1, nOccurenceId );
+            daoUtil.executeQuery( );
+
+            OccurrenceEvent occurrence = null;
+
+            if ( daoUtil.next( ) )
+            {
+                occurrence = new OccurrenceEvent( );
+                occurrence.setId( nOccurenceId );
+                occurrence.setEventId( daoUtil.getInt( 1 ) );
+                occurrence.setDate( new java.util.Date( daoUtil.getDate( 2 ).getTime( ) ) );
+                occurrence.setDateEnd( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
+                occurrence.setDateTimeStart( daoUtil.getString( 4 ) );
+                occurrence.setDateTimeEnd( daoUtil.getString( 5 ) );
+                occurrence.setTitle( daoUtil.getString( 6 ) );
+                occurrence.setStatus( daoUtil.getString( 7 ) );
+                occurrence.setIdCalendar( daoUtil.getInt( 8 ) );
+                getFeature( plugin, occurrence.getEventId( ), occurrence );
+                occurrence.setListCategories( CategoryHome.findByEvent( occurrence.getEventId( ), plugin ) );
+            }
+
+            return occurrence;
         }
-
-        daoUtil.free( );
-
-        return occurrence;
     }
 
     /**
@@ -786,11 +819,12 @@ public class CalendarDAO implements ICalendarDAO
      */
     public void deleteAllOccurrence( int nAgendaId, int nEventId, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_ALL_OCCURRENCE, plugin );
-        daoUtil.setInt( 1, nAgendaId );
-        daoUtil.setInt( 2, nEventId );
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_ALL_OCCURRENCE, plugin ) )
+        {
+            daoUtil.setInt( 1, nAgendaId );
+            daoUtil.setInt( 2, nEventId );
+            daoUtil.executeUpdate( );
+        }
     }
 
     /**
@@ -802,10 +836,11 @@ public class CalendarDAO implements ICalendarDAO
      */
     public void deleteOccurrence( int nOccurrenceId, int nEventId, int nAgendaId, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_OCCURRENCE, plugin );
-        daoUtil.setInt( 1, nOccurrenceId );
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_OCCURRENCE, plugin ) )
+        {
+            daoUtil.setInt( 1, nOccurrenceId );
+            daoUtil.executeUpdate( );
+        }
 
         /*
          * int nNewNumberOccurrence = getOccurrenceNumber( nEventId );
@@ -829,12 +864,13 @@ public class CalendarDAO implements ICalendarDAO
      */
     public void updateDateEvent( int nEventId, int nAgendaId, Plugin plugin, Date newDateEvent )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE_EVENT_DATE, plugin );
-        daoUtil.setDate( 1, newDateEvent );
-        daoUtil.setInt( 2, nEventId );
-        daoUtil.setInt( 3, nAgendaId );
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE_EVENT_DATE, plugin ) )
+        {
+            daoUtil.setDate( 1, newDateEvent );
+            daoUtil.setInt( 2, nEventId );
+            daoUtil.setInt( 3, nAgendaId );
+            daoUtil.executeUpdate( );
+        }
     }
 
     /**
@@ -846,20 +882,20 @@ public class CalendarDAO implements ICalendarDAO
      */
     public Date selectOccurrenceDateMin( int nIdEvent, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_OCCURRENCE_DATE_MIN, plugin );
-        daoUtil.setInt( 1, nIdEvent );
-        daoUtil.executeQuery( );
-
-        Date newDateEvent = null;
-
-        while ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_OCCURRENCE_DATE_MIN, plugin ) )
         {
-            newDateEvent = daoUtil.getDate( 1 );
+            daoUtil.setInt( 1, nIdEvent );
+            daoUtil.executeQuery( );
+
+            Date newDateEvent = null;
+
+            while ( daoUtil.next( ) )
+            {
+                newDateEvent = daoUtil.getDate( 1 );
+            }
+
+            return newDateEvent;
         }
-
-        daoUtil.free( );
-
-        return newDateEvent;
     }
 
     /**
@@ -871,12 +907,13 @@ public class CalendarDAO implements ICalendarDAO
      */
     public void updateNumberOccurrence( int nEventId, int nAgendaId, Plugin plugin, int nNewNumberOccurrence )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE_EVENT_OCCURRENCE_NUMBER, plugin );
-        daoUtil.setInt( 1, nNewNumberOccurrence );
-        daoUtil.setInt( 2, nEventId );
-        daoUtil.setInt( 3, nAgendaId );
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE_EVENT_OCCURRENCE_NUMBER, plugin ) )
+        {
+            daoUtil.setInt( 1, nNewNumberOccurrence );
+            daoUtil.setInt( 2, nEventId );
+            daoUtil.setInt( 3, nAgendaId );
+            daoUtil.executeUpdate( );
+        }
     }
 
     /**
@@ -888,16 +925,17 @@ public class CalendarDAO implements ICalendarDAO
     public int getRepetitionDays( int nEventId, Plugin plugin )
     {
         int nNumberDays = 0;
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_NUMBER_DAYS_BY_EVENT, plugin );
-        daoUtil.setInt( 1, nEventId );
-        daoUtil.executeQuery( );
-
-        while ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_NUMBER_DAYS_BY_EVENT, plugin ) )
         {
-            nNumberDays = daoUtil.getInt( 1 );
-        }
+            daoUtil.setInt( 1, nEventId );
+            daoUtil.executeQuery( );
 
-        daoUtil.free( );
+            while ( daoUtil.next( ) )
+            {
+                nNumberDays = daoUtil.getInt( 1 );
+            }
+
+        }
 
         return nNumberDays;
     }
@@ -911,16 +949,17 @@ public class CalendarDAO implements ICalendarDAO
     public int getOccurrenceNumber( int nEventId, Plugin plugin )
     {
         int nNumberDays = 0;
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_NUMBER_OCCURRENCE, plugin );
-        daoUtil.setInt( 1, nEventId );
-        daoUtil.executeQuery( );
-
-        while ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_NUMBER_OCCURRENCE, plugin ) )
         {
-            nNumberDays = daoUtil.getInt( 1 );
-        }
+            daoUtil.setInt( 1, nEventId );
+            daoUtil.executeQuery( );
 
-        daoUtil.free( );
+            while ( daoUtil.next( ) )
+            {
+                nNumberDays = daoUtil.getInt( 1 );
+            }
+
+        }
 
         return nNumberDays;
     }
@@ -975,48 +1014,49 @@ public class CalendarDAO implements ICalendarDAO
      */
     private void insertFeature( Plugin plugin, SimpleEvent event )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT_FEATURE, plugin );
-        int nIdFeature = getNewPrimaryKey( plugin, SQL_QUERY_NEW_PK_FEATURE );
-        daoUtil.setInt( 1, nIdFeature );
-        daoUtil.setInt( 2, event.getId( ) );
-        daoUtil.setString( 3, event.getDescription( ) );
-        daoUtil.setString( 4, event.getLocation( ) );
-        daoUtil.setString( 5, event.getLocationTown( ) );
-        daoUtil.setString( 6, event.getLocationZip( ) );
-        daoUtil.setString( 7, event.getLocationAddress( ) );
-        daoUtil.setString( 8, event.getMapUrl( ) );
-        daoUtil.setString( 9, event.getLinkUrl( ) );
-        daoUtil.setInt( 10, event.getDocumentId( ) );
-        daoUtil.setString( 11, event.getPageUrl( ) );
-        daoUtil.setInt( 12, event.getTopEvent( ) );
-
-        ImageResource imageResource = event.getImageResource( );
-
-        if ( imageResource != null )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT_FEATURE, plugin ) )
         {
-            daoUtil.setBytes( 13, imageResource.getImage( ) );
-            daoUtil.setString( 14, imageResource.getMimeType( ) );
-        }
-        else
-        {
-            daoUtil.setBytes( 13, null );
-            daoUtil.setString( 14, null );
-        }
+            int nIdFeature = getNewPrimaryKey( plugin, SQL_QUERY_NEW_PK_FEATURE );
+            daoUtil.setInt( 1, nIdFeature );
+            daoUtil.setInt( 2, event.getId( ) );
+            daoUtil.setString( 3, event.getDescription( ) );
+            daoUtil.setString( 4, event.getLocation( ) );
+            daoUtil.setString( 5, event.getLocationTown( ) );
+            daoUtil.setString( 6, event.getLocationZip( ) );
+            daoUtil.setString( 7, event.getLocationAddress( ) );
+            daoUtil.setString( 8, event.getMapUrl( ) );
+            daoUtil.setString( 9, event.getLinkUrl( ) );
+            daoUtil.setInt( 10, event.getDocumentId( ) );
+            daoUtil.setString( 11, event.getPageUrl( ) );
+            daoUtil.setInt( 12, event.getTopEvent( ) );
 
-        String[] listTags = event.getTags( );
-        StringBuffer strTags = new StringBuffer( );
+            ImageResource imageResource = event.getImageResource( );
 
-        if ( listTags != null )
-        {
-            for ( String tags : listTags )
+            if ( imageResource != null )
             {
-                strTags.append( tags + Constants.SPACE );
+                daoUtil.setBytes( 13, imageResource.getImage( ) );
+                daoUtil.setString( 14, imageResource.getMimeType( ) );
             }
-        }
+            else
+            {
+                daoUtil.setBytes( 13, null );
+                daoUtil.setString( 14, null );
+            }
 
-        daoUtil.setString( 15, strTags.toString( ) );
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
+            String[] listTags = event.getTags( );
+            StringBuffer strTags = new StringBuffer( );
+
+            if ( listTags != null )
+            {
+                for ( String tags : listTags )
+                {
+                    strTags.append( tags + Constants.SPACE );
+                }
+            }
+
+            daoUtil.setString( 15, strTags.toString( ) );
+            daoUtil.executeUpdate( );
+        }
     }
 
     /**
@@ -1026,46 +1066,47 @@ public class CalendarDAO implements ICalendarDAO
      */
     private void updateFeature( Plugin plugin, SimpleEvent event )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE_FEATURE, plugin );
-        daoUtil.setString( 1, event.getDescription( ) );
-        daoUtil.setString( 2, event.getLocation( ) );
-        daoUtil.setString( 3, event.getLocationTown( ) );
-        daoUtil.setString( 4, event.getLocationZip( ) );
-        daoUtil.setString( 5, event.getLocationAddress( ) );
-        daoUtil.setString( 6, event.getMapUrl( ) );
-        daoUtil.setString( 7, event.getLinkUrl( ) );
-        daoUtil.setInt( 8, event.getDocumentId( ) );
-        daoUtil.setString( 9, event.getPageUrl( ) );
-        daoUtil.setInt( 10, event.getTopEvent( ) );
-
-        ImageResource imageResource = event.getImageResource( );
-
-        if ( imageResource != null )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE_FEATURE, plugin ) )
         {
-            daoUtil.setBytes( 11, imageResource.getImage( ) );
-            daoUtil.setString( 12, imageResource.getMimeType( ) );
-        }
-        else
-        {
-            daoUtil.setBytes( 11, null );
-            daoUtil.setString( 12, null );
-        }
+            daoUtil.setString( 1, event.getDescription( ) );
+            daoUtil.setString( 2, event.getLocation( ) );
+            daoUtil.setString( 3, event.getLocationTown( ) );
+            daoUtil.setString( 4, event.getLocationZip( ) );
+            daoUtil.setString( 5, event.getLocationAddress( ) );
+            daoUtil.setString( 6, event.getMapUrl( ) );
+            daoUtil.setString( 7, event.getLinkUrl( ) );
+            daoUtil.setInt( 8, event.getDocumentId( ) );
+            daoUtil.setString( 9, event.getPageUrl( ) );
+            daoUtil.setInt( 10, event.getTopEvent( ) );
 
-        StringBuffer strTags = new StringBuffer( );
-        String[] listTags = event.getTags( );
+            ImageResource imageResource = event.getImageResource( );
 
-        if ( listTags != null )
-        {
-            for ( String tags : listTags )
+            if ( imageResource != null )
             {
-                strTags.append( tags + Constants.SPACE );
+                daoUtil.setBytes( 11, imageResource.getImage( ) );
+                daoUtil.setString( 12, imageResource.getMimeType( ) );
             }
-        }
+            else
+            {
+                daoUtil.setBytes( 11, null );
+                daoUtil.setString( 12, null );
+            }
 
-        daoUtil.setString( 13, strTags.toString( ) );
-        daoUtil.setInt( 14, event.getId( ) );
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
+            StringBuffer strTags = new StringBuffer( );
+            String[] listTags = event.getTags( );
+
+            if ( listTags != null )
+            {
+                for ( String tags : listTags )
+                {
+                    strTags.append( tags + Constants.SPACE );
+                }
+            }
+
+            daoUtil.setString( 13, strTags.toString( ) );
+            daoUtil.setInt( 14, event.getId( ) );
+            daoUtil.executeUpdate( );
+        }
     }
 
     /**
@@ -1075,10 +1116,11 @@ public class CalendarDAO implements ICalendarDAO
      */
     private void deleteFeature( Plugin plugin, int nEventId )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_FEATURE, plugin );
-        daoUtil.setInt( 1, nEventId );
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_FEATURE, plugin ) )
+        {
+            daoUtil.setInt( 1, nEventId );
+            daoUtil.executeUpdate( );
+        }
     }
 
     /**
@@ -1089,38 +1131,39 @@ public class CalendarDAO implements ICalendarDAO
      */
     private void getFeature( Plugin plugin, int nIdEvent, SimpleEvent event )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_FEATURE, plugin );
-        daoUtil.setInt( 1, nIdEvent );
-        daoUtil.executeQuery( );
-
-        while ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_FEATURE, plugin ) )
         {
-            event.setDescription( daoUtil.getString( 1 ) );
-            event.setLocation( daoUtil.getString( 2 ) );
-            event.setLocationTown( daoUtil.getString( 3 ) );
-            event.setLocationZip( daoUtil.getString( 4 ) );
-            event.setLocationAddress( daoUtil.getString( 5 ) );
-            event.setMapUrl( daoUtil.getString( 6 ) );
-            event.setLinkUrl( daoUtil.getString( 7 ) );
-            event.setDocumentId( daoUtil.getInt( 8 ) );
-            event.setPageUrl( daoUtil.getString( 9 ) );
-            event.setTopEvent( daoUtil.getInt( 10 ) );
+            daoUtil.setInt( 1, nIdEvent );
+            daoUtil.executeQuery( );
 
-            ImageResource imageResource = new ImageResource( );
-            imageResource.setImage( daoUtil.getBytes( 11 ) );
-            imageResource.setMimeType( daoUtil.getString( 12 ) );
-            event.setImageResource( imageResource );
-
-            if ( daoUtil.getString( 13 ) != null )
+            while ( daoUtil.next( ) )
             {
-                String strTags = daoUtil.getString( 13 );
-                String[] listTags = strTags.split( Constants.SPACE );
-                event.setListTags( strTags );
-                event.setTags( listTags );
-            }
-        }
+                event.setDescription( daoUtil.getString( 1 ) );
+                event.setLocation( daoUtil.getString( 2 ) );
+                event.setLocationTown( daoUtil.getString( 3 ) );
+                event.setLocationZip( daoUtil.getString( 4 ) );
+                event.setLocationAddress( daoUtil.getString( 5 ) );
+                event.setMapUrl( daoUtil.getString( 6 ) );
+                event.setLinkUrl( daoUtil.getString( 7 ) );
+                event.setDocumentId( daoUtil.getInt( 8 ) );
+                event.setPageUrl( daoUtil.getString( 9 ) );
+                event.setTopEvent( daoUtil.getInt( 10 ) );
 
-        daoUtil.free( );
+                ImageResource imageResource = new ImageResource( );
+                imageResource.setImage( daoUtil.getBytes( 11 ) );
+                imageResource.setMimeType( daoUtil.getString( 12 ) );
+                event.setImageResource( imageResource );
+
+                if ( daoUtil.getString( 13 ) != null )
+                {
+                    String strTags = daoUtil.getString( 13 );
+                    String[] listTags = strTags.split( Constants.SPACE );
+                    event.setListTags( strTags );
+                    event.setTags( listTags );
+                }
+            }
+
+        }
     }
 
     /**
@@ -1128,22 +1171,23 @@ public class CalendarDAO implements ICalendarDAO
      * @param listCategory The list of Category
      * @param nIdEvent The id of event
      * @param plugin Plugin
-     * 
+     * No statement is prepared for an empty list: closing a statement never executed fails with the MariaDB driver
      */
     private void insertLinkCategories( Collection<Category> listCategory, int nIdEvent, Plugin plugin )
     {
-        if ( listCategory != null )
+        if ( listCategory != null && !listCategory.isEmpty( ) )
         {
-            DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT_LINK_CATEGORY_CALENDAR, plugin );
-
-            for ( Category category : listCategory )
+            try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT_LINK_CATEGORY_CALENDAR, plugin ) )
             {
-                daoUtil.setInt( 1, category.getId( ) );
-                daoUtil.setInt( 2, nIdEvent );
-                daoUtil.executeUpdate( );
-            }
 
-            daoUtil.free( );
+                for ( Category category : listCategory )
+                {
+                    daoUtil.setInt( 1, category.getId( ) );
+                    daoUtil.setInt( 2, nIdEvent );
+                    daoUtil.executeUpdate( );
+                }
+
+            }
         }
     }
 
@@ -1154,10 +1198,50 @@ public class CalendarDAO implements ICalendarDAO
      */
     private void deleteLinkCategories( Plugin plugin, int nEventId )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_LINK_CATEGORY_CALENDAR, plugin );
-        daoUtil.setInt( 1, nEventId );
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_LINK_CATEGORY_CALENDAR, plugin ) )
+        {
+            daoUtil.setInt( 1, nEventId );
+            daoUtil.executeUpdate( );
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public java.util.Set<Integer> selectEventIdsWithOnlyStatus( int nAgendaId, String strStatus, Plugin plugin )
+    {
+        java.util.Set<Integer> setEventIds = new java.util.HashSet<>( );
+
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_EVENTS_WITH_ONLY_STATUS, plugin ) )
+        {
+            daoUtil.setInt( 1, nAgendaId );
+            daoUtil.setString( 2, strStatus );
+            daoUtil.setString( 3, strStatus );
+            daoUtil.executeQuery( );
+
+            while ( daoUtil.next( ) )
+            {
+                setEventIds.add( daoUtil.getInt( 1 ) );
+            }
+        }
+
+        return setEventIds;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean hasImage( int nEventId, Plugin plugin )
+    {
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_HAS_IMAGE, plugin ) )
+        {
+            daoUtil.setInt( 1, nEventId );
+            daoUtil.executeQuery( );
+
+            return daoUtil.next( ) && ( daoUtil.getInt( 1 ) > 0 );
+        }
     }
 
     /**
@@ -1168,22 +1252,22 @@ public class CalendarDAO implements ICalendarDAO
      */
     public ImageResource loadImageResource( int nCategoryId, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_RESOURCE_IMAGE, plugin );
-        daoUtil.setInt( 1, nCategoryId );
-        daoUtil.executeQuery( );
-
-        ImageResource image = null;
-
-        if ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_RESOURCE_IMAGE, plugin ) )
         {
-            image = new ImageResource( );
-            image.setImage( daoUtil.getBytes( 1 ) );
-            image.setMimeType( daoUtil.getString( 2 ) );
+            daoUtil.setInt( 1, nCategoryId );
+            daoUtil.executeQuery( );
+
+            ImageResource image = null;
+
+            if ( daoUtil.next( ) )
+            {
+                image = new ImageResource( );
+                image.setImage( daoUtil.getBytes( 1 ) );
+                image.setMimeType( daoUtil.getString( 2 ) );
+            }
+
+            return image;
         }
-
-        daoUtil.free( );
-
-        return image;
     }
 
     /**
@@ -1196,27 +1280,28 @@ public class CalendarDAO implements ICalendarDAO
     public List<Event> selectByFilter( CalendarFilter filter, Plugin plugin )
     {
         List<Event> eventList = new ArrayList<Event>( );
-        DAOUtil daoUtil = getDaoFromFilter( SQL_QUERY_SELECT_BY_FILTER, filter, plugin );
-        daoUtil.executeQuery( );
-
-        while ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = getDaoFromFilter( SQL_QUERY_SELECT_BY_FILTER, filter, plugin ) )
         {
-            SimpleEvent event = new SimpleEvent( );
-            event.setId( daoUtil.getInt( 1 ) );
-            event.setIdCalendar( daoUtil.getInt( 2 ) );
-            event.setDate( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
-            event.setDateEnd( new java.util.Date( daoUtil.getDate( 4 ).getTime( ) ) );
-            event.setDateTimeStart( daoUtil.getString( 5 ) );
-            event.setDateTimeEnd( daoUtil.getString( 6 ) );
-            event.setTitle( daoUtil.getString( 7 ) );
-            event.setOccurrence( daoUtil.getInt( 8 ) );
-            event.setPeriodicity( daoUtil.getInt( 9 ) );
-            event.setDateCreation( daoUtil.getTimestamp( 10 ) );
-            getFeature( plugin, event.getId( ), event );
-            eventList.add( event );
-        }
+            daoUtil.executeQuery( );
 
-        daoUtil.free( );
+            while ( daoUtil.next( ) )
+            {
+                SimpleEvent event = new SimpleEvent( );
+                event.setId( daoUtil.getInt( 1 ) );
+                event.setIdCalendar( daoUtil.getInt( 2 ) );
+                event.setDate( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
+                event.setDateEnd( new java.util.Date( daoUtil.getDate( 4 ).getTime( ) ) );
+                event.setDateTimeStart( daoUtil.getString( 5 ) );
+                event.setDateTimeEnd( daoUtil.getString( 6 ) );
+                event.setTitle( daoUtil.getString( 7 ) );
+                event.setOccurrence( daoUtil.getInt( 8 ) );
+                event.setPeriodicity( daoUtil.getInt( 9 ) );
+                event.setDateCreation( daoUtil.getTimestamp( 10 ) );
+                getFeature( plugin, event.getId( ), event );
+                eventList.add( event );
+            }
+
+        }
 
         return eventList;
     }
@@ -1320,7 +1405,7 @@ public class CalendarDAO implements ICalendarDAO
 
         sbSQL.append( SQL_ORDER_BY_EVENTS );
         sbSQL.append( strSortEvents );
-        AppLogService.debug( "Sql query filter : " + sbSQL.toString( ) );
+        AppLogService.debug( "Sql query filter : {}", sbSQL );
 
         DAOUtil daoUtil = new DAOUtil( sbSQL.toString( ), plugin );
         int nIndex = 1;
@@ -1330,7 +1415,7 @@ public class CalendarDAO implements ICalendarDAO
             for ( int nCategoryId : filter.getCategoriesId( ) )
             {
                 daoUtil.setInt( nIndex, nCategoryId );
-                AppLogService.debug( "Param" + nIndex + " (getCategoriesId) = " + nCategoryId );
+                AppLogService.debug( "Param{} (getCategoriesId) = {}", nIndex, nCategoryId );
                 nIndex++;
             }
         }
@@ -1340,7 +1425,7 @@ public class CalendarDAO implements ICalendarDAO
             for ( int nId : filter.getIds( ) )
             {
                 daoUtil.setInt( nIndex, nId );
-                AppLogService.debug( "Param" + nIndex + " (getIds) = " + nId );
+                AppLogService.debug( "Param{} (getIds) = {}", nIndex, nId );
                 nIndex++;
             }
         }
@@ -1350,7 +1435,7 @@ public class CalendarDAO implements ICalendarDAO
             for ( int nId : filter.getCalendarIds( ) )
             {
                 daoUtil.setInt( nIndex, nId );
-                AppLogService.debug( "Param" + nIndex + " (getCalendarIds) = " + nId );
+                AppLogService.debug( "Param{} (getCalendarIds) = {}", nIndex, nId );
                 nIndex++;
             }
         }
@@ -1367,27 +1452,28 @@ public class CalendarDAO implements ICalendarDAO
     {
         List<SimpleEvent> eventList = new ArrayList<SimpleEvent>( );
 
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_TOP_EVENTS, plugin );
-        daoUtil.executeQuery( );
-
-        while ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_TOP_EVENTS, plugin ) )
         {
-            SimpleEvent event = new SimpleEvent( );
-            event.setId( daoUtil.getInt( 1 ) );
-            event.setIdCalendar( daoUtil.getInt( 2 ) );
-            event.setDate( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
-            event.setDateEnd( new java.util.Date( daoUtil.getDate( 4 ).getTime( ) ) );
-            event.setDateTimeStart( daoUtil.getString( 5 ) );
-            event.setDateTimeEnd( daoUtil.getString( 6 ) );
-            event.setTitle( daoUtil.getString( 7 ) );
-            event.setOccurrence( daoUtil.getInt( 8 ) );
-            event.setPeriodicity( daoUtil.getInt( 9 ) );
-            event.setDateCreation( daoUtil.getTimestamp( 10 ) );
-            getFeature( plugin, event.getId( ), event );
-            eventList.add( event );
-        }
+            daoUtil.executeQuery( );
 
-        daoUtil.free( );
+            while ( daoUtil.next( ) )
+            {
+                SimpleEvent event = new SimpleEvent( );
+                event.setId( daoUtil.getInt( 1 ) );
+                event.setIdCalendar( daoUtil.getInt( 2 ) );
+                event.setDate( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
+                event.setDateEnd( new java.util.Date( daoUtil.getDate( 4 ).getTime( ) ) );
+                event.setDateTimeStart( daoUtil.getString( 5 ) );
+                event.setDateTimeEnd( daoUtil.getString( 6 ) );
+                event.setTitle( daoUtil.getString( 7 ) );
+                event.setOccurrence( daoUtil.getInt( 8 ) );
+                event.setPeriodicity( daoUtil.getInt( 9 ) );
+                event.setDateCreation( daoUtil.getTimestamp( 10 ) );
+                getFeature( plugin, event.getId( ), event );
+                eventList.add( event );
+            }
+
+        }
 
         return eventList;
     }
@@ -1400,21 +1486,21 @@ public class CalendarDAO implements ICalendarDAO
      */
     public boolean hasOccurenceEvent( Calendar calendar, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_HAS_EVENT, plugin );
-        boolean isOccurrence = false;
-        String date = Utils.getDate( calendar );
-        java.util.Date dateEvent = Utils.getDate( date );
-        daoUtil.setDate( 1, new java.sql.Date( dateEvent.getTime( ) ) );
-        daoUtil.executeQuery( );
-
-        while ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_HAS_EVENT, plugin ) )
         {
-            isOccurrence = true;
+            boolean isOccurrence = false;
+            String date = Utils.getDate( calendar );
+            java.util.Date dateEvent = Utils.getDate( date );
+            daoUtil.setDate( 1, new java.sql.Date( dateEvent.getTime( ) ) );
+            daoUtil.executeQuery( );
+
+            while ( daoUtil.next( ) )
+            {
+                isOccurrence = true;
+            }
+
+            return isOccurrence;
         }
-
-        daoUtil.free( );
-
-        return isOccurrence;
     }
 
     /**
@@ -1440,30 +1526,31 @@ public class CalendarDAO implements ICalendarDAO
             strSortEvents = "DESC";
         }
 
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_EVENTS_BY_USER_LOGIN + strSortEvents, plugin );
-        daoUtil.setInt( 1, nAgendaId );
-        daoUtil.setString( 2, strUserLogin );
-        daoUtil.executeQuery( );
-
-        while ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_EVENTS_BY_USER_LOGIN + strSortEvents, plugin ) )
         {
-            SimpleEvent event = new SimpleEvent( );
-            event.setId( daoUtil.getInt( 1 ) );
-            event.setIdCalendar( daoUtil.getInt( 2 ) );
-            event.setDate( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
-            event.setDateEnd( new java.util.Date( daoUtil.getDate( 4 ).getTime( ) ) );
-            event.setDateTimeStart( daoUtil.getString( 5 ) );
-            event.setDateTimeEnd( daoUtil.getString( 6 ) );
-            event.setTitle( daoUtil.getString( 7 ) );
-            event.setOccurrence( daoUtil.getInt( 8 ) );
-            event.setPeriodicity( daoUtil.getInt( 9 ) );
-            event.setDateCreation( daoUtil.getTimestamp( 10 ) );
-            getFeature( plugin, event.getId( ), event );
-            event.setListCategories( CategoryHome.findByEvent( event.getId( ), plugin ) );
-            eventList.add( event );
-        }
+            daoUtil.setInt( 1, nAgendaId );
+            daoUtil.setString( 2, strUserLogin );
+            daoUtil.executeQuery( );
 
-        daoUtil.free( );
+            while ( daoUtil.next( ) )
+            {
+                SimpleEvent event = new SimpleEvent( );
+                event.setId( daoUtil.getInt( 1 ) );
+                event.setIdCalendar( daoUtil.getInt( 2 ) );
+                event.setDate( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
+                event.setDateEnd( new java.util.Date( daoUtil.getDate( 4 ).getTime( ) ) );
+                event.setDateTimeStart( daoUtil.getString( 5 ) );
+                event.setDateTimeEnd( daoUtil.getString( 6 ) );
+                event.setTitle( daoUtil.getString( 7 ) );
+                event.setOccurrence( daoUtil.getInt( 8 ) );
+                event.setPeriodicity( daoUtil.getInt( 9 ) );
+                event.setDateCreation( daoUtil.getTimestamp( 10 ) );
+                getFeature( plugin, event.getId( ), event );
+                event.setListCategories( CategoryHome.findByEvent( event.getId( ), plugin ) );
+                eventList.add( event );
+            }
+
+        }
 
         return eventList;
     }
@@ -1475,10 +1562,11 @@ public class CalendarDAO implements ICalendarDAO
      */
     public void deleteEventUser( int nEventId, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_EVENT_USER, plugin );
-        daoUtil.setInt( 1, nEventId );
-        daoUtil.executeUpdate( );
-        daoUtil.free( );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_EVENT_USER, plugin ) )
+        {
+            daoUtil.setInt( 1, nEventId );
+            daoUtil.executeUpdate( );
+        }
     }
 
     /**
@@ -1503,39 +1591,40 @@ public class CalendarDAO implements ICalendarDAO
             strSortEvents = "DESC";
         }
 
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_EVENTS_N_NEXT_DAYS + strSortEvents, plugin );
-        daoUtil.setInt( 1, nAgendaId );
-
-        String strDate = Utils.getDateToday( );
-        Calendar calendar = new GregorianCalendar( );
-        calendar.set( Utils.getYear( strDate ), Utils.getMonth( strDate ), Utils.getDay( strDate ) );
-
-        daoUtil.setString( 2, Utils.getDate( calendar ) );
-
-        calendar.add( Calendar.DATE, nNextDays );
-
-        daoUtil.setString( 3, Utils.getDate( calendar ) );
-        daoUtil.executeQuery( );
-
-        while ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_EVENTS_N_NEXT_DAYS + strSortEvents, plugin ) )
         {
-            SimpleEvent event = new SimpleEvent( );
-            event.setId( daoUtil.getInt( 1 ) );
-            event.setIdCalendar( daoUtil.getInt( 2 ) );
-            event.setDate( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
-            event.setDateEnd( new java.util.Date( daoUtil.getDate( 4 ).getTime( ) ) );
-            event.setDateTimeStart( daoUtil.getString( 5 ) );
-            event.setDateTimeEnd( daoUtil.getString( 6 ) );
-            event.setTitle( daoUtil.getString( 7 ) );
-            event.setOccurrence( daoUtil.getInt( 8 ) );
-            event.setPeriodicity( daoUtil.getInt( 9 ) );
-            event.setDateCreation( daoUtil.getTimestamp( 10 ) );
-            getFeature( plugin, event.getId( ), event );
-            event.setListCategories( CategoryHome.findByEvent( event.getId( ), plugin ) );
-            eventList.add( event );
-        }
+            daoUtil.setInt( 1, nAgendaId );
 
-        daoUtil.free( );
+            String strDate = Utils.getDateToday( );
+            Calendar calendar = new GregorianCalendar( );
+            calendar.set( Utils.getYear( strDate ), Utils.getMonth( strDate ), Utils.getDay( strDate ) );
+
+            daoUtil.setString( 2, Utils.getDate( calendar ) );
+
+            calendar.add( Calendar.DATE, nNextDays );
+
+            daoUtil.setString( 3, Utils.getDate( calendar ) );
+            daoUtil.executeQuery( );
+
+            while ( daoUtil.next( ) )
+            {
+                SimpleEvent event = new SimpleEvent( );
+                event.setId( daoUtil.getInt( 1 ) );
+                event.setIdCalendar( daoUtil.getInt( 2 ) );
+                event.setDate( new java.util.Date( daoUtil.getDate( 3 ).getTime( ) ) );
+                event.setDateEnd( new java.util.Date( daoUtil.getDate( 4 ).getTime( ) ) );
+                event.setDateTimeStart( daoUtil.getString( 5 ) );
+                event.setDateTimeEnd( daoUtil.getString( 6 ) );
+                event.setTitle( daoUtil.getString( 7 ) );
+                event.setOccurrence( daoUtil.getInt( 8 ) );
+                event.setPeriodicity( daoUtil.getInt( 9 ) );
+                event.setDateCreation( daoUtil.getTimestamp( 10 ) );
+                getFeature( plugin, event.getId( ), event );
+                event.setListCategories( CategoryHome.findByEvent( event.getId( ), plugin ) );
+                eventList.add( event );
+            }
+
+        }
 
         return eventList;
     }
@@ -1546,16 +1635,86 @@ public class CalendarDAO implements ICalendarDAO
     public List<Integer> selectCalendarIds( Plugin plugin )
     {
         List<Integer> listIds = new ArrayList<Integer>( );
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_AGENDA_IDS, plugin );
-        daoUtil.executeQuery( );
-
-        while ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_AGENDA_IDS, plugin ) )
         {
-            listIds.add( daoUtil.getInt( 1 ) );
+            daoUtil.executeQuery( );
+
+            while ( daoUtil.next( ) )
+            {
+                listIds.add( daoUtil.getInt( 1 ) );
+            }
+
         }
 
-        daoUtil.free( );
-
         return listIds;
+    }
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<OccurrenceEvent> selectOccurrencesByDateRange( Collection<Integer> listAgendaIds, java.time.LocalDate dateStart,
+            java.time.LocalDate dateEnd, Collection<Integer> listCategoryIds, Plugin plugin )
+    {
+        List<OccurrenceEvent> listOccurrences = new ArrayList<>( );
+
+        if ( listAgendaIds == null || listAgendaIds.isEmpty( ) )
+        {
+            return listOccurrences;
+        }
+
+        boolean bCategories = ( listCategoryIds != null ) && !listCategoryIds.isEmpty( );
+        StringBuilder sbSql = new StringBuilder( SQL_QUERY_SELECT_OCCURRENCES_BY_RANGE );
+        sbSql.append( String.join( ", ", java.util.Collections.nCopies( listAgendaIds.size( ), "?" ) ) );
+
+        if ( bCategories )
+        {
+            sbSql.append( SQL_FILTER_OCCURRENCES_CATEGORIES );
+            sbSql.append( String.join( ", ", java.util.Collections.nCopies( listCategoryIds.size( ), "?" ) ) );
+            sbSql.append( " )" );
+        }
+
+        sbSql.append( SQL_ORDER_OCCURRENCES_BY_RANGE );
+
+        try ( DAOUtil daoUtil = new DAOUtil( sbSql.toString( ), plugin ) )
+        {
+            int nIndex = 1;
+            daoUtil.setDate( nIndex++, Date.valueOf( dateStart ) );
+            daoUtil.setDate( nIndex++, Date.valueOf( dateEnd ) );
+
+            for ( Integer nAgendaId : listAgendaIds )
+            {
+                daoUtil.setInt( nIndex++, nAgendaId );
+            }
+
+            if ( bCategories )
+            {
+                for ( Integer nCategoryId : listCategoryIds )
+                {
+                    daoUtil.setInt( nIndex++, nCategoryId );
+                }
+            }
+
+            daoUtil.executeQuery( );
+
+            while ( daoUtil.next( ) )
+            {
+                OccurrenceEvent occurrence = new OccurrenceEvent( );
+                occurrence.setId( daoUtil.getInt( 1 ) );
+                occurrence.setEventId( daoUtil.getInt( 2 ) );
+                occurrence.setIdCalendar( daoUtil.getInt( 3 ) );
+                occurrence.setDate( new java.util.Date( daoUtil.getDate( 4 ).getTime( ) ) );
+                occurrence.setDateTimeStart( daoUtil.getString( 5 ) );
+                occurrence.setDateTimeEnd( daoUtil.getString( 6 ) );
+                occurrence.setTitle( daoUtil.getString( 7 ) );
+                occurrence.setStatus( daoUtil.getString( 8 ) );
+                occurrence.setLocation( daoUtil.getString( 9 ) );
+                occurrence.setLocationTown( daoUtil.getString( 10 ) );
+                occurrence.setTopEvent( daoUtil.getInt( 11 ) );
+                occurrence.setOccurrence( daoUtil.getInt( 12 ) );
+                listOccurrences.add( occurrence );
+            }
+        }
+
+        return listOccurrences;
     }
 }

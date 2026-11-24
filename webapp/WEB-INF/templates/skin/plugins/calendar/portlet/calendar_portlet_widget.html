@@ -1,0 +1,44 @@
+<#include "/skin/plugins/calendar/portlet/calendar_portlet_macros.html" />
+<#-- Widget: the current month, a dot on the days with events; a day shows its events below -->
+<@pfFrame style='widget'>
+	<#assign month = widget_month />
+	<div data-calendar-pf-widget>
+		<h3 class="calendar-pf-title text-center text-uppercase mb-2">${month.label}</h3>
+		<@cTable themed=false id='' class='calendar-pf-month' caption=month.label>
+			<thead><tr><#list month.dayLabels as label><th scope="col">${label}</th></#list></tr></thead>
+			<tbody>
+			<#assign cells = month.offset + month.days />
+			<#assign rows = ( ( cells + 6 ) / 7 )?floor />
+			<#list 0..<rows as row>
+				<tr>
+				<#list 0..6 as column>
+					<#assign dayNumber = row * 7 + column - month.offset + 1 />
+					<td>
+					<#if dayNumber gte 1 && dayNumber lte month.days>
+						<#assign dayKey = month.monthKey + '-' + dayNumber?string('00') />
+						<#assign hasEvent = month.eventDays?seq_contains( dayNumber ) />
+						<#assign dayClass><#if hasEvent>calendar-pf-has-event</#if><#if dayNumber == month.today> calendar-pf-today</#if></#assign><#assign dayClass = dayClass?markup_string />
+						<@cBtn label='${dayNumber}' noclass=true class=dayClass type='button' disabled=!hasEvent params={'data-day': '${dayKey}', 'data-label': '${dayNumber} ${month.label}', 'aria-pressed': 'false'} />
+					</#if>
+					</td>
+				</#list>
+				</tr>
+			</#list>
+			</tbody>
+		</@cTable>
+		<h4 class="fs-5 mt-3 mb-0">#i18n{calendar.portlet.eventsOf} <span data-calendar-pf-day-title></span></h4>
+		<ul class="calendar-pf-daylist">
+		<#list events as event>
+			<li data-day-key="${event.dayKey}" style="--calendar-dot-color:${event.color!}">
+				<@pfMedia event=event />
+				<div>
+					<small class="text-primary"><i class="ti ti-clock" aria-hidden="true"></i> <@pfTime event /></small>
+					<@pfTitle event=event level=5 class='fs-6 text-uppercase' />
+					<#if event.location?has_content><small class="text-secondary">${event.location}</small></#if>
+				</div>
+			</li>
+		</#list>
+		</ul>
+		<p class="calendar-pf-empty" data-calendar-pf-day-empty hidden>#i18n{calendar.view.noEvents}</p>
+	</div>
+</@pfFrame>

@@ -40,13 +40,15 @@ import fr.paris.lutece.portal.service.search.SearchItem;
 import fr.paris.lutece.portal.service.util.AppLogService;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
 
+import jakarta.enterprise.context.ApplicationScoped;
+
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.document.DateTools;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
@@ -62,12 +64,14 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.BytesRef;
 
 
 /**
  * LuceneSearchEngine
  */
+@ApplicationScoped
 public class CalendarLuceneSearchEngine implements CalendarSearchEngine
 {
     private static final String OPEN_PARENTHESIS = "(";
@@ -101,7 +105,14 @@ public class CalendarLuceneSearchEngine implements CalendarSearchEngine
 
         try
         {
-            IndexReader ir = DirectoryReader.open( IndexationService.getDirectoryIndex( ) );
+            Directory directory = IndexationService.getDirectoryIndex( );
+
+            if ( !DirectoryReader.indexExists( directory ) )
+            {
+                return new ArrayList<CalendarSearchResult>( );
+            }
+
+            IndexReader ir = DirectoryReader.open( directory );
             searcher = new IndexSearcher( ir );
 
             Collection<String> queriesForSearchInContent = new ArrayList<String>( );
@@ -237,7 +248,7 @@ public class CalendarLuceneSearchEngine implements CalendarSearchEngine
 
             hits = searcher.search( queryMulti, nLimit );
 
-            for ( int i = 0; hits.totalHits > i; i++ )
+            for ( int i = 0; hits.scoreDocs.length > i; i++ )
             {
                 ScoreDoc hit = hits.scoreDocs[i];
                 Document document = searcher.doc( hit.doc );
@@ -264,7 +275,7 @@ public class CalendarLuceneSearchEngine implements CalendarSearchEngine
 
             hitsTitle = searcher.search( queryMultiTitle, nLimit );
 
-            for ( int i = 0; hitsTitle.totalHits > i; i++ )
+            for ( int i = 0; hitsTitle.scoreDocs.length > i; i++ )
             {
                 ScoreDoc hit = hitsTitle.scoreDocs[i];
                 Document document = searcher.doc( hit.doc );
@@ -300,8 +311,7 @@ public class CalendarLuceneSearchEngine implements CalendarSearchEngine
             }
             catch ( ParseException e )
             {
-                AppLogService.error( "Bad Date Format for indexed item \"" + item.getTitle( ) + "\" : "
-                        + e.getMessage( ) );
+                AppLogService.error( "Bad Date Format for indexed item \"{}\" : {}", item.getTitle( ), e.getMessage( ) );
             }
 
             result.setUrl( item.getUrl( ) );

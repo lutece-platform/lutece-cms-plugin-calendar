@@ -35,7 +35,7 @@ package fr.paris.lutece.plugins.calendar.service.daemon;
 
 import fr.paris.lutece.plugins.calendar.business.notification.CalendarNotification;
 import fr.paris.lutece.plugins.calendar.business.notification.CalendarNotificationHome;
-import fr.paris.lutece.plugins.calendar.service.CalendarPlugin;
+import fr.paris.lutece.plugins.calendar.web.Constants;
 import fr.paris.lutece.portal.service.daemon.Daemon;
 import fr.paris.lutece.portal.service.plugin.Plugin;
 import fr.paris.lutece.portal.service.plugin.PluginService;
@@ -53,7 +53,7 @@ public class DaemonCleanerNotifySubscription extends Daemon
      */
     public void run(  )
     {
-    	 Plugin pluginCalendar = PluginService.getPlugin( CalendarPlugin.PLUGIN_NAME );
+    	 Plugin pluginCalendar = PluginService.getPlugin( Constants.PLUGIN_NAME );
          for ( CalendarNotification calendarNotification : CalendarNotificationHome.selectNotificationExpiry( pluginCalendar ) )
          {
         	 CalendarNotificationHome.remove( calendarNotification.getKey(  ), pluginCalendar );

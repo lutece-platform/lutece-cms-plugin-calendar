@@ -34,8 +34,8 @@
 package fr.paris.lutece.plugins.calendar.business.notification;
 
 //import fr.paris.lutece.plugins.calendar.service.NotifyDirectoryPlugin;
+import jakarta.enterprise.inject.spi.CDI;
 import fr.paris.lutece.portal.service.plugin.Plugin;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
 
 import java.util.List;
 
@@ -46,7 +46,7 @@ import java.util.List;
 public final class CalendarNotificationHome
 {
     // Static variable pointed at the DAO instance
-    private static ICalendarNotificationDAO _dao = SpringContextService.getBean( "calendar.calendarNotificationDAO" );
+    private static ICalendarNotificationDAO _dao = CDI.current( ).select( ICalendarNotificationDAO.class ).get( );
 
     /**
      * Private constructor - this class need not be instantiated

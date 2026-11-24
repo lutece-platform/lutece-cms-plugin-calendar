@@ -1,9 +1,9 @@
 <%@ page errorPage="../../ErrorPage.jsp" %>
 <jsp:include page="../../PortletAdminHeader.jsp" />
 
-<jsp:useBean id="portletCalendar" scope="session" class="fr.paris.lutece.plugins.calendar.web.portlet.CalendarPortletJspBean" />
+<%@page import="fr.paris.lutece.plugins.calendar.web.portlet.CalendarPortletJspBean"%>
 
-<% portletCalendar.init( request, fr.paris.lutece.plugins.calendar.web.portlet.CalendarPortletJspBean.RIGHT_MANAGE_ADMIN_SITE ); %>
-<%= portletCalendar.getCreate( request ) %>
+${ calendarPortletJspBean.init( pageContext.request, CalendarPortletJspBean.RIGHT_MANAGE_ADMIN_SITE ) }
+${ calendarPortletJspBean.getCreate( pageContext.request ) }
 
 <%@ include file="../../AdminFooter.jsp" %>

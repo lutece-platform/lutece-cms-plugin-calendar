@@ -33,16 +33,21 @@
  */
 package fr.paris.lutece.plugins.calendar.service;
 
+import fr.paris.lutece.api.user.User;
 import fr.paris.lutece.plugins.calendar.business.CalendarHome;
+import fr.paris.lutece.plugins.calendar.business.button.CalendarButtonHome;
 import fr.paris.lutece.plugins.calendar.business.MultiAgenda;
 import fr.paris.lutece.plugins.calendar.business.parameter.CalendarParameterHome;
 import fr.paris.lutece.plugins.calendar.service.cache.CalendarCacheService;
 import fr.paris.lutece.plugins.calendar.web.Constants;
 import fr.paris.lutece.portal.business.user.AdminUser;
+import fr.paris.lutece.portal.service.cache.DefaultCacheKeyService;
 import fr.paris.lutece.portal.service.cache.ICacheKeyService;
 import fr.paris.lutece.portal.service.plugin.Plugin;
 import fr.paris.lutece.portal.service.plugin.PluginService;
 import fr.paris.lutece.portal.service.security.SecurityService;
+import fr.paris.lutece.portal.service.util.BeanUtils;
+import fr.paris.lutece.portal.service.util.RemovalListenerService;
 import fr.paris.lutece.portal.service.workgroup.AdminWorkgroupService;
 import fr.paris.lutece.portal.web.PortalJspBean;
 
@@ -51,14 +56,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.Initialized;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 
 /**
  * CalendarService
  */
+@ApplicationScoped
 public class CalendarService
 {
     // CONSTANTS
@@ -69,21 +81,24 @@ public class CalendarService
     private static final String KEY_CALENDAR = "calendar";
 
     // VARIABLES
-    private ICacheKeyService _cksCalendar;
-    private CalendarCacheService _cacheCalendar = CalendarCacheService.getInstance( );
-
-    /** Creates a new instance of CalendarService */
-    public CalendarService( )
-    {
-        init( );
-    }
+    private final ICacheKeyService _cksCalendar = new DefaultCacheKeyService( List.of( KEY_CALENDAR ), null );
+    @Inject
+    private CalendarCacheService _cacheCalendar;
+    @Inject
+    @Named( BeanUtils.BEAN_WORKGROUP_REMOVAL_SERVICE )
+    private RemovalListenerService _workgroupRemovalService;
+    @Inject
+    @Named( BeanUtils.BEAN_ROLE_REMOVAL_SERVICE )
+    private RemovalListenerService _roleRemovalService;
 
     /**
-     * Initialize the CalendarService
+     * Registers the removal listeners of the agendas when the application starts
+     * @param context the servlet context
      */
-    private void init( )
+    public void initializedService( @Observes @Initialized( ApplicationScoped.class ) ServletContext context )
     {
-        _cacheCalendar.initCache( );
+        _workgroupRemovalService.registerListener( new AgendaResourceWorkgroupRemovalListener( ) );
+        _roleRemovalService.registerListener( new AgendaResourceRoleRemovalListener( ) );
     }
 
     /**
@@ -93,15 +108,6 @@ public class CalendarService
     public String getName( )
     {
         return SERVICE_NAME;
-    }
-
-    /**
-     * Set the agenda cache key service
-     * @param cacheKeyService the cache key service
-     */
-    public void setCalendarCacheKeyService( ICacheKeyService cacheKeyService )
-    {
-        _cksCalendar = cacheKeyService;
     }
 
     /**
@@ -123,20 +129,26 @@ public class CalendarService
     /**
      * Returns the agenda
      * @param nAgendaId the ID agenda
-     * @return The AgendaResource object
+     * @return The AgendaResource object, or null when the agenda does not exist (removed meanwhile)
      */
     public AgendaResource getAgendaResource( int nAgendaId )
     {
         String strKey = getKey( nAgendaId );
 
-        AgendaResource agenda = (AgendaResource) _cacheCalendar.getFromCache( strKey );
+        AgendaResource agenda = (AgendaResource) _cacheCalendar.get( strKey );
 
         if ( agenda == null )
         {
-            Plugin plugin = PluginService.getPlugin( CalendarPlugin.PLUGIN_NAME );
+            Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
             agenda = CalendarHome.findAgendaResource( nAgendaId, plugin );
+
+            if ( agenda == null )
+            {
+                return null;
+            }
+
             Utils.loadAgendaOccurrences( agenda, plugin );
-            _cacheCalendar.putInCache( strKey, agenda );
+            _cacheCalendar.put( strKey, agenda );
         }
 
         return agenda;
@@ -149,12 +161,12 @@ public class CalendarService
     public List<Integer> getAgendaIds( )
     {
         String strKey = getKey( );
-        List<Integer> listIds = (List<Integer>) _cacheCalendar.getFromCache( strKey );
+        List<Integer> listIds = (List<Integer>) _cacheCalendar.get( strKey );
         if ( listIds == null )
         {
-            Plugin plugin = PluginService.getPlugin( CalendarPlugin.PLUGIN_NAME );
+            Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
             listIds = CalendarHome.findCalendarIds( plugin );
-            _cacheCalendar.putInCache( strKey, listIds );
+            _cacheCalendar.put( strKey, listIds );
         }
 
         return listIds;
@@ -248,7 +260,7 @@ public class CalendarService
     public List<AgendaResource> getAgendaResources( AdminUser user, Plugin plugin )
     {
         List<AgendaResource> listAgendas = CalendarHome.findAgendaResourcesList( plugin );
-        listAgendas = (List<AgendaResource>) AdminWorkgroupService.getAuthorizedCollection( listAgendas, user );
+        listAgendas = (List<AgendaResource>) AdminWorkgroupService.getAuthorizedCollection( listAgendas, (User) user );
 
         return listAgendas;
     }
@@ -298,6 +310,7 @@ public class CalendarService
     public void doRemoveAgenda( int nAgendaId, Plugin plugin )
     {
         CalendarHome.removeAgenda( nAgendaId, plugin );
+        CalendarButtonHome.remove( nAgendaId, plugin );
 
         // Reset caches
         removeCache( );
@@ -331,7 +344,7 @@ public class CalendarService
      */
     public void removeCache( int nAgendaId )
     {
-        _cacheCalendar.removeCache( getKey( nAgendaId ) );
+        _cacheCalendar.remove( getKey( nAgendaId ) );
     }
 
     /**
@@ -339,7 +352,7 @@ public class CalendarService
      */
     public void removeCache( )
     {
-        _cacheCalendar.removeCache( getKey( ) );
+        _cacheCalendar.remove( getKey( ) );
     }
 
     /**

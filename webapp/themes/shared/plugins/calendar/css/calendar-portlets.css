@@ -1,0 +1,611 @@
+/* Plugin calendar - templates of the calendar portlet: carousel, slider, timeline, countdown, widget, grid, list.
+   The accent of an event is the colour of its calendar (--calendar-dot-color, set in the style attribute of the event). */
+
+.calendar-pf,
+.calendar-pf .portlet-content,
+.calendar-pf-track {
+    min-width: 0;
+    max-width: 100%;
+}
+.calendar-pf {
+    container-type: inline-size;
+    --calendar-pf-radius: .5rem;
+    --calendar-pf-border: rgba(128, 128, 128, .25);
+    --calendar-pf-muted: rgba(128, 128, 128, .9);
+}
+
+/* Shared pieces */
+.calendar-pf-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid var(--calendar-pf-border);
+    border-radius: var(--calendar-pf-radius);
+}
+.calendar-pf-media {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--calendar-dot-color, #868e96) 18%, transparent);
+}
+.calendar-pf-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.calendar-pf-noimage::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: center / 3rem no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='1.5'%3E%3Crect x='4' y='5' width='16' height='16' rx='2'/%3E%3Cpath d='M16 3v4M8 3v4M4 11h16'/%3E%3C/svg%3E");
+}
+.calendar-pf-body {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    flex: 1;
+    padding: 1.25rem;
+}
+.calendar-pf-title {
+    margin: 0;
+    font-size: 1.125rem;
+    line-height: 1.3;
+}
+.calendar-pf-title a {
+    color: inherit;
+    text-decoration: none;
+}
+.calendar-pf-title a:hover,
+.calendar-pf-title a:focus-visible {
+    text-decoration: underline;
+}
+.calendar-pf-meta {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--calendar-pf-muted);
+    font-size: .875rem;
+}
+.calendar-pf-meta .ti {
+    margin-right: .375rem;
+    color: var(--calendar-dot-color, currentColor);
+}
+.calendar-pf-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-top: auto;
+    padding-top: .5rem;
+}
+.calendar-pf-accent-bottom {
+    border-bottom: 4px solid var(--calendar-dot-color, #868e96);
+}
+.calendar-pf-accent-top {
+    border-top: 4px solid var(--calendar-dot-color, #868e96);
+}
+.calendar-pf-accent-start {
+    border-left: 4px solid var(--calendar-dot-color, #868e96);
+}
+.calendar-pf-accent-end {
+    border-right: 4px solid var(--calendar-dot-color, #868e96);
+}
+.calendar-pf-date-overlay {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    padding: .5rem 1.25rem .5rem 1rem;
+    color: #fff;
+    background: rgba(0, 0, 0, .72);
+    border-top-right-radius: 1.5rem;
+    line-height: 1.1;
+}
+.calendar-pf-date-overlay .calendar-pf-day {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-right: .25rem;
+}
+.calendar-pf-date-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: .5rem .75rem;
+    color: #fff;
+    background: rgba(0, 0, 0, .6);
+    font-size: .8125rem;
+    text-transform: uppercase;
+}
+.calendar-pf-badge {
+    align-self: flex-start;
+    padding: .125rem .5rem;
+    border-radius: .25rem;
+    font-size: .75rem;
+    color: #fff;
+    background: #2fb344;
+}
+.calendar-pf-badge-cancelled { background: #d63939; }
+.calendar-pf-badge-postponed,
+.calendar-pf-badge-tentative { background: #f59f00; color: #1d1d1d; }
+.calendar-pf-badge-movedOnline { background: #206bc4; }
+.calendar-pf-empty {
+    margin: 0;
+    color: var(--calendar-pf-muted);
+}
+
+/* Carousel and slider: native horizontal scrolling with snap points, driven by the prev/next buttons */
+.calendar-pf-track {
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    padding-bottom: .25rem;
+}
+.calendar-pf-track::-webkit-scrollbar {
+    display: none;
+}
+.calendar-pf-track,
+.calendar-pf-track > * {
+    position: relative;
+}
+.calendar-pf-track > * {
+    scroll-snap-align: start;
+    flex: 0 0 100%;
+}
+.calendar-pf-carousel .calendar-pf-track > * {
+    flex-basis: 85%;
+}
+@container (min-width: 36rem) {
+    .calendar-pf-carousel .calendar-pf-track > * { flex-basis: calc((100% - 1.5rem) / 2); }
+}
+@container (min-width: 56rem) {
+    .calendar-pf-carousel .calendar-pf-track > * { flex-basis: calc((100% - 3rem) / 3); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .calendar-pf-track { scroll-behavior: auto; }
+}
+.calendar-pf-nav {
+    display: flex;
+    justify-content: center;
+    gap: .5rem;
+    margin-top: 1rem;
+}
+
+/* Carousel: the prev / next buttons on each side of the cards, in a gutter kept free so they never hide a card */
+.calendar-pf-carousel .portlet-content {
+    position: relative;
+}
+.calendar-pf-carousel .portlet-content:has(> .calendar-pf-nav) {
+    padding-inline: 3rem;
+}
+.calendar-pf-carousel .calendar-pf-nav {
+    position: absolute;
+    inset: 0;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0;
+    pointer-events: none;
+}
+.calendar-pf-carousel .calendar-pf-nav button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--calendar-pf-surface, Canvas);
+    box-shadow: 0 .125rem .5rem color-mix(in srgb, currentColor 20%, transparent);
+    pointer-events: auto;
+}
+@container (max-width: 30rem) {
+    .calendar-pf-carousel .portlet-content:has(> .calendar-pf-nav) { padding-inline: 2.25rem; }
+    .calendar-pf-carousel .calendar-pf-nav button { width: 2rem; height: 2rem; }
+}
+
+/* Slider: text on one side, picture on the other. Every slide has the same fixed height, so the prev / next buttons
+   stay at the same place under the slider whatever the event; a long text is clamped, the actions stay at the bottom */
+.calendar-pf-slider .calendar-pf-track {
+    align-items: stretch;
+}
+.calendar-pf-slide {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    grid-template-rows: minmax(0, 1fr);
+    height: 22rem;
+    overflow: hidden;
+}
+.calendar-pf-slide .calendar-pf-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+.calendar-pf-slide .calendar-pf-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    flex: none;
+}
+.calendar-pf-slide .calendar-pf-meta {
+    min-height: 0;
+    overflow: hidden;
+}
+.calendar-pf-slide .calendar-pf-actions {
+    margin-top: auto;
+    padding-top: .5rem;
+}
+.calendar-pf-slide .calendar-pf-media {
+    aspect-ratio: auto;
+    height: 100%;
+}
+.calendar-pf-countdown .calendar-pf-slide {
+    height: auto;
+    overflow: visible;
+}
+@media (max-width: 767.98px) {
+    .calendar-pf-slide {
+        grid-template-columns: 1fr;
+        grid-template-rows: 11rem minmax(0, 1fr);
+        height: 32rem;
+    }
+    .calendar-pf-slide .calendar-pf-media { order: -1; }
+    .calendar-pf-slide:has(> .calendar-pf-noimage) { grid-template-rows: minmax(0, 1fr); }
+    .calendar-pf-countdown .calendar-pf-slide { grid-template-rows: auto; height: auto; }
+}
+/* A slide in a narrow column (a side column of the page) stacks the same way: the picture above, the text below */
+@container (max-width: 600px) {
+    .calendar-pf-slide {
+        grid-template-columns: 1fr;
+        grid-template-rows: 11rem minmax(0, 1fr);
+        height: 32rem;
+    }
+    .calendar-pf-slide .calendar-pf-media { order: -1; }
+    .calendar-pf-slide:has(> .calendar-pf-noimage) { grid-template-rows: minmax(0, 1fr); }
+    .calendar-pf-countdown .calendar-pf-slide { grid-template-rows: 11rem auto; height: auto; }
+    .calendar-pf-countdown .calendar-pf-slide:has(> .calendar-pf-noimage) { grid-template-rows: auto; }
+    .calendar-pf-timer li { min-width: 3.25rem; flex: 1 1 0; }
+}
+.calendar-pf-bigdate {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--calendar-pf-border);
+}
+.calendar-pf-bigdate .calendar-pf-day {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--bs-primary, #206bc4);
+    line-height: 1;
+}
+.calendar-pf-bigdate small {
+    display: block;
+    color: var(--calendar-pf-muted);
+}
+
+/* Timeline */
+.calendar-pf-timeline-list {
+    position: relative;
+    margin: 0;
+    padding: 0 0 0 1.5rem;
+    list-style: none;
+}
+.calendar-pf-timeline-list::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: .4375rem;
+    border-left: 2px solid var(--calendar-pf-border);
+}
+.calendar-pf-timeline-month {
+    display: inline-block;
+    margin: 0 0 1.25rem -1.5rem;
+    padding: .375rem 1.25rem;
+    border: 1px solid var(--bs-primary, #206bc4);
+    border-radius: 2rem;
+    background: var(--bs-body-bg, #fff);
+    color: var(--bs-primary, #206bc4);
+    position: relative;
+}
+.calendar-pf-timeline-item {
+    position: relative;
+    margin-bottom: 2rem;
+}
+.calendar-pf-timeline-item::before {
+    content: "";
+    position: absolute;
+    left: -1.5rem;
+    top: .375rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: var(--calendar-dot-color, #868e96);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--calendar-dot-color, #868e96) 25%, transparent);
+}
+.calendar-pf-timeline-date {
+    display: block;
+    margin-bottom: .5rem;
+    color: var(--bs-primary, #206bc4);
+}
+.calendar-pf-timeline-row {
+    display: flex;
+    flex: 1;
+}
+.calendar-pf-timeline-row .calendar-pf-media {
+    flex: 0 0 38%;
+    aspect-ratio: auto;
+}
+@media (max-width: 767.98px) {
+    .calendar-pf-timeline-row { flex-direction: column; }
+    .calendar-pf-timeline-row .calendar-pf-media { aspect-ratio: 16 / 9; order: -1; }
+}
+.calendar-pf-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    padding: .25rem .75rem;
+    border-radius: 2rem;
+    font-size: .875rem;
+    color: var(--bs-primary, #206bc4);
+    background: color-mix(in srgb, var(--bs-primary, #206bc4) 10%, transparent);
+}
+.calendar-pf-register {
+    display: block;
+    padding: .75rem;
+    text-align: center;
+    font-weight: 600;
+    color: #fff;
+    background: var(--bs-primary, #206bc4);
+    text-decoration: none;
+}
+.calendar-pf-register:hover,
+.calendar-pf-register:focus-visible {
+    color: #fff;
+    text-decoration: underline;
+}
+
+/* Countdown */
+.calendar-pf-timer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.calendar-pf-timer li {
+    min-width: 4rem;
+    padding: .5rem;
+    text-align: center;
+    border: 1px solid var(--calendar-pf-border);
+    border-radius: .25rem;
+}
+.calendar-pf-timer strong {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+.calendar-pf-timer span {
+    font-size: .75rem;
+    text-transform: uppercase;
+    color: var(--calendar-pf-muted);
+}
+.calendar-pf-datebox {
+    padding: .75rem 1rem;
+    border-radius: .25rem;
+    background: color-mix(in srgb, var(--bs-primary, #206bc4) 6%, transparent);
+    line-height: 1.2;
+}
+.calendar-pf-datebox .calendar-pf-day {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--bs-primary, #206bc4);
+    margin-right: .25rem;
+}
+
+/* Widget: month with dots, events of the chosen day */
+.calendar-pf-month {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    text-align: center;
+}
+.calendar-pf-month th {
+    padding: .5rem 0;
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--calendar-pf-muted);
+}
+.calendar-pf-month td {
+    padding: .125rem;
+}
+.calendar-pf-month button {
+    position: relative;
+    width: 100%;
+    min-height: 2.5rem;
+    border: 0;
+    border-radius: .25rem;
+    background: transparent;
+    color: inherit;
+    font-weight: 600;
+}
+.calendar-pf-month button .btn-label {
+    color: inherit;
+}
+.calendar-pf-month button:disabled {
+    color: var(--calendar-pf-muted);
+    font-weight: 400;
+}
+.calendar-pf-month button[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--bs-primary, #206bc4) 14%, transparent);
+}
+.calendar-pf-month .calendar-pf-today {
+    box-shadow: inset 0 0 0 2px var(--bs-primary, #206bc4);
+}
+.calendar-pf-month .calendar-pf-has-event::after {
+    content: "";
+    position: absolute;
+    bottom: .2rem;
+    left: 50%;
+    width: .375rem;
+    height: .375rem;
+    margin-left: -.1875rem;
+    border-radius: 50%;
+    background: var(--bs-primary, #206bc4);
+}
+.calendar-pf-daylist {
+    margin: 1rem 0 0;
+    padding: 1rem 0 0;
+    list-style: none;
+    border-top: 1px solid var(--calendar-pf-border);
+}
+.calendar-pf-daylist li {
+    display: flex;
+    gap: .75rem;
+    padding: .5rem 0;
+}
+.calendar-pf-daylist .calendar-pf-media {
+    flex: 0 0 4rem;
+    width: 4rem;
+    height: 4rem;
+    aspect-ratio: 1;
+    border-radius: .25rem;
+}
+
+/* List */
+.calendar-pf-row {
+    display: grid;
+    grid-template-columns: 12rem minmax(0, 1fr) 14rem;
+    gap: 1.5rem;
+    align-items: center;
+    padding: 1.25rem;
+}
+.calendar-pf-row .calendar-pf-media {
+    border-radius: .25rem;
+}
+@media (max-width: 767.98px) {
+    .calendar-pf-row { grid-template-columns: 1fr; }
+}
+
+/* Without a picture, the big layouts give its room to the text */
+.calendar-pf-slide:has(> .calendar-pf-noimage) {
+    grid-template-columns: 1fr;
+}
+.calendar-pf-slide > .calendar-pf-noimage,
+.calendar-pf-timeline-row > .calendar-pf-noimage {
+    display: none;
+}
+
+/* Grid: as many columns as the width of the portlet holds */
+.calendar-pf-grid-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+    gap: 1.5rem;
+}
+
+/* Compact: a date badge, the text, a thumbnail */
+.calendar-pf-compact {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.calendar-pf-compact li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: .75rem;
+    align-items: start;
+    padding: .625rem 0;
+}
+.calendar-pf-compact-bordered {
+    border: 1px solid var(--calendar-pf-border);
+    border-radius: var(--calendar-pf-radius);
+}
+.calendar-pf-compact-bordered li {
+    padding: .875rem 1rem;
+}
+.calendar-pf-compact-bordered li + li {
+    border-top: 1px solid var(--calendar-pf-border);
+}
+.calendar-pf-badge-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 3rem;
+    padding: .25rem .375rem;
+    border-radius: .25rem;
+    background: #1d1d1d;
+    color: #fff;
+    line-height: 1.2;
+}
+.calendar-pf-compact-bordered .calendar-pf-badge-date {
+    background: transparent;
+    color: inherit;
+    border-left: 3px solid var(--calendar-dot-color, #868e96);
+}
+.calendar-pf-badge-date span {
+    font-size: .8125rem;
+    text-transform: capitalize;
+}
+.calendar-pf-badge-date strong {
+    font-size: 1.25rem;
+}
+.calendar-pf-compact-text {
+    display: flex;
+    flex-direction: column;
+    gap: .125rem;
+}
+.calendar-pf-compact-text > a {
+    font-weight: 600;
+}
+.calendar-pf-compact-place {
+    font-weight: 600;
+    font-size: .875rem;
+}
+.calendar-pf-compact-time {
+    font-size: .875rem;
+}
+.calendar-pf-thumb {
+    width: 4.5rem;
+    height: 4.5rem;
+    aspect-ratio: 1;
+    border-radius: .25rem;
+}
+.calendar-pf-thumb.calendar-pf-noimage {
+    display: none;
+}
+
+/* Table: striped rows of three columns, stacked in a narrow portlet */
+.calendar-pf-table {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.calendar-pf-table li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .5rem;
+    padding: 1rem;
+    border-left: 3px solid var(--calendar-dot-color, transparent);
+}
+.calendar-pf-table address {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.calendar-pf-table li:nth-child(odd) {
+    background: rgba(128, 128, 128, .08);
+}
+@container (min-width: 36rem) {
+    .calendar-pf-table li { grid-template-columns: 12rem minmax(0, 1fr) minmax(0, 1.2fr); }
+}

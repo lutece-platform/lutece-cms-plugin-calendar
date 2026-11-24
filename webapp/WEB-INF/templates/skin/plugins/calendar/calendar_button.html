@@ -1,0 +1,79 @@
+<#-- "Add to calendar" button of the page of an event, ported from plugin-appointment. Model: calendarButton, calendarLinks, calendarEvent -->
+<#if calendarButton?? && calendarLinks??>
+<link rel="stylesheet" href="themes/shared/plugins/calendar/css/calendar-button.css" />
+<#include "/skin/plugins/calendar/calendar_button_icons.html" />
+<#assign calendarStyleClass><#if calendarButton.buttonStyle == 'bootstrap'>btn btn-${calendarButton.color}<#else>calendar-btn-btn calendar-btn-style-${calendarButton.buttonStyle}</#if></#assign><#assign calendarStyleClass = calendarStyleClass?markup_string />
+<#assign calendarButtonText><#if calendarButton.label?has_content><#outputformat "HTML">${calendarButton.label}</#outputformat><#else>#i18n{calendar.calendarButton.defaultLabel}</#if></#assign><#assign calendarButtonText = calendarButtonText?markup_string />
+<#macro calendarLink option url class>
+<a class="${class} calendar-btn-link" href="<#outputformat "HTML">${url}</#outputformat>"<#if !['apple', 'ical']?seq_contains(option)> target="_blank" rel="noopener"</#if>><#if calendarButton.showLinkIcons><@calendarButtonIcon name=option /></#if><span>#i18n{calendar.calendarButton.options.${option}}</span></a>
+</#macro>
+<#macro calendarMenu toggleLabel toggleClass>
+<@cDropdown label=toggleLabel btnClass=toggleClass>
+	<#list calendarLinks as calendarOption, calendarUrl>
+		<li><@calendarLink option=calendarOption url=calendarUrl class='dropdown-item' /></li>
+	</#list>
+</@cDropdown>
+</#macro>
+<@cRow class='my-3'>
+	<@cCol class='d-flex justify-content-center'>
+		<div class="calendar-btn calendar-btn-accent-${calendarButton.color}" id="calendar-add-to-calendar" data-trigger="${calendarButton.trigger}">
+		<#if calendarButton.displayMode == 'buttons'>
+			<div class="calendar-btn-list calendar-btn-list-${calendarButton.buttonsLayout} btn-group" role="group" aria-label="${calendarButtonText}">
+				<#list calendarLinks as calendarOption, calendarUrl>
+					<@calendarLink option=calendarOption url=calendarUrl class=calendarStyleClass />
+				</#list>
+			</div>
+		<#elseif calendarButton.displayMode == 'calendar'>
+			<div class="calendar-btn-card">
+				<div class="calendar-btn-card-date" aria-hidden="true">
+					<span class="calendar-btn-card-day">${calendarEvent.day}</span>
+					<span class="calendar-btn-card-month">${calendarEvent.month}</span>
+				</div>
+				<div class="calendar-btn-card-body">
+					<div class="calendar-btn-card-title"><#outputformat "HTML">${calendarEvent.title}</#outputformat></div>
+					<#if calendarEvent.location?has_content><div class="calendar-btn-card-meta"><@calendarButtonIcon name='location' /><span><#outputformat "HTML">${calendarEvent.location}</#outputformat></span></div></#if>
+					<div class="calendar-btn-card-meta"><@calendarButtonIcon name='clock' /><span>${calendarEvent.date}<#if calendarEvent.time?has_content>, ${calendarEvent.time}</#if></span></div>
+				</div>
+				<#assign calendarPlusLabel><span class="calendar-btn-plus-tooltip" data-bs-toggle="tooltip" data-bs-placement="top" title="${calendarButtonText}"><@calendarButtonIcon name='plus' /><span class="visually-hidden">${calendarButtonText}</span></span></#assign>
+				<@calendarMenu toggleLabel=calendarPlusLabel toggleClass='link calendar-btn-plus' />
+			</div>
+		<#else>
+			<#assign calendarDropdownLabel><#if calendarButton.showButtonIcon><@calendarButtonIcon name='calendar' /></#if><span>${calendarButtonText}</span></#assign>
+			<@calendarMenu toggleLabel=calendarDropdownLabel toggleClass=(calendarButton.buttonStyle == 'bootstrap')?then(calendarButton.color, 'link ' + calendarStyleClass) />
+		</#if>
+		</div>
+	</@cCol>
+</@cRow>
+<#if calendarButton.displayMode != 'buttons'>
+<script>
+document.addEventListener( 'DOMContentLoaded', () => {
+	const container = document.getElementById( 'calendar-add-to-calendar' );
+	const dropdownElement = container ? container.querySelector( '.dropdown' ) : null;
+	if ( !dropdownElement || !window.bootstrap ) {
+		return;
+	}
+	const toggle = dropdownElement.querySelector( '[data-bs-toggle="dropdown"]' );
+	const dropdown = bootstrap.Dropdown.getOrCreateInstance( toggle );
+	const tooltipElement = dropdownElement.querySelector( '.calendar-btn-plus-tooltip' );
+	const tooltip = tooltipElement ? bootstrap.Tooltip.getOrCreateInstance( tooltipElement ) : null;
+	dropdownElement.addEventListener( 'show.bs.dropdown', () => tooltip && tooltip.hide( ) );
+	if ( container.dataset.trigger === 'hover' && window.matchMedia( '(hover: hover)' ).matches ) {
+		let hideTimer;
+		dropdownElement.addEventListener( 'mouseenter', () => {
+			clearTimeout( hideTimer );
+			dropdown.show( );
+		} );
+		dropdownElement.addEventListener( 'mouseleave', () => {
+			hideTimer = setTimeout( ( ) => dropdown.hide( ), 250 );
+		} );
+		toggle.addEventListener( 'click', ( event ) => {
+			if ( toggle.classList.contains( 'show' ) ) {
+				event.preventDefault( );
+				event.stopPropagation( );
+			}
+		} );
+	}
+} );
+</script>
+</#if>
+</#if>

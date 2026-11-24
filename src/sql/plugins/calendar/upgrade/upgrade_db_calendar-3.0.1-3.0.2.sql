@@ -1,3 +1,6 @@
+-- liquibase formatted sql
+-- changeset calendar:upgrade_db_calendar-3.0.1-3.0.2.sql
+-- preconditions onFail:MARK_RAN onError:WARN
 --
 -- Table structure for table calendar_events_users
 --

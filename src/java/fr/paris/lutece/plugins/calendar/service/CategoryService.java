@@ -33,6 +33,7 @@
  */
 package fr.paris.lutece.plugins.calendar.service;
 
+import fr.paris.lutece.api.user.User;
 import fr.paris.lutece.plugins.calendar.business.category.Category;
 import fr.paris.lutece.plugins.calendar.business.category.CategoryHome;
 import fr.paris.lutece.plugins.calendar.web.Constants;
@@ -46,6 +47,11 @@ import fr.paris.lutece.portal.service.workgroup.AdminWorkgroupService;
 import fr.paris.lutece.portal.web.constants.Parameters;
 import fr.paris.lutece.util.url.UrlItem;
 
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.Initialized;
+import jakarta.enterprise.event.Observes;
+import jakarta.servlet.ServletContext;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -56,31 +62,18 @@ import java.util.List;
  * This classe provide services for Category
  * 
  */
-public final class CategoryService implements ImageResourceProvider
+@ApplicationScoped
+public class CategoryService implements ImageResourceProvider
 {
-    private static CategoryService _singleton;
     private static final String IMAGE_RESOURCE_TYPE_ID = "icon_category";
 
     /**
-     * Creates a new instance of CategoryService
+     * Registers the provider of the category icons when the application starts
+     * @param context the servlet context
      */
-    private CategoryService( )
+    public void initializedService( @Observes @Initialized( ApplicationScoped.class ) ServletContext context )
     {
         ImageResourceManager.registerProvider( this );
-    }
-
-    /**
-     * Get the unique instance of the service
-     * 
-     * @return The unique instance
-     */
-    public static CategoryService getInstance( )
-    {
-        if ( _singleton == null )
-        {
-            _singleton = new CategoryService( );
-        }
-        return _singleton;
     }
 
     /**
@@ -123,13 +116,13 @@ public final class CategoryService implements ImageResourceProvider
     {
         Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
         Collection<Category> listCategory = CategoryHome.findAll( plugin );
-        listCategory = AdminWorkgroupService.getAuthorizedCollection( listCategory, user );
+        listCategory = AdminWorkgroupService.getAuthorizedCollection( listCategory, (User) user );
 
         Collection<CategoryDisplay> listCategoryDisplay = new ArrayList<CategoryDisplay>( );
 
         for ( Category category : listCategory )
         {
-            CategoryDisplay categoryDisplay = _singleton.new CategoryDisplay( );
+            CategoryDisplay categoryDisplay = new CategoryDisplay( );
             categoryDisplay.setCategory( category );
             categoryDisplay.setIconUrl( getResourceImageCategory( category.getId( ) ) );
             categoryDisplay.setCountLinkedDocuments( CategoryHome.findCountIdEvents( category.getId( ), plugin ) );
@@ -151,13 +144,13 @@ public final class CategoryService implements ImageResourceProvider
     {
         Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
         Collection<Category> listCategory = CategoryHome.findAll( plugin );
-        listCategory = AdminWorkgroupService.getAuthorizedCollection( listCategory, user );
+        listCategory = AdminWorkgroupService.getAuthorizedCollection( listCategory, (User) user );
 
         Collection<CategoryDisplay> listCategoryDisplay = new ArrayList<CategoryDisplay>( );
 
         for ( Category category : listCategory )
         {
-            CategoryDisplay categoryDisplay = _singleton.new CategoryDisplay( );
+            CategoryDisplay categoryDisplay = new CategoryDisplay( );
             categoryDisplay.setCategory( category );
             categoryDisplay.setIconUrl( getResourceImageCategory( category.getId( ) ) );
             categoryDisplay.setCountLinkedDocuments( CategoryHome.findCountIdEvents( category.getId( ), plugin ) );
@@ -205,7 +198,7 @@ public final class CategoryService implements ImageResourceProvider
     public static CategoryDisplay getCategoryDisplay( int nIdCategory )
     {
         Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
-        CategoryDisplay categoryDisplay = _singleton.new CategoryDisplay( );
+        CategoryDisplay categoryDisplay = new CategoryDisplay( );
 
         categoryDisplay.setCategory( CategoryHome.find( nIdCategory, plugin ) );
         categoryDisplay.setIconUrl( getResourceImageCategory( categoryDisplay.getCategory( ).getId( ) ) );
@@ -223,12 +216,12 @@ public final class CategoryService implements ImageResourceProvider
      */
     public static String getResourceImageCategory( int nCategoryId )
     {
-        String strResourceType = CategoryService.getInstance( ).getResourceTypeId( );
+        String strResourceType = IMAGE_RESOURCE_TYPE_ID;
         UrlItem url = new UrlItem( Parameters.IMAGE_SERVLET );
         url.addParameter( Parameters.RESOURCE_TYPE, strResourceType );
         url.addParameter( Parameters.RESOURCE_ID, Integer.toString( nCategoryId ) );
 
-        return url.getUrlWithEntity( );
+        return url.getUrl( );
     }
 
     /**
@@ -238,7 +231,7 @@ public final class CategoryService implements ImageResourceProvider
      * It provide the Category object and other informations.
      * 
      */
-    public class CategoryDisplay
+    public static class CategoryDisplay
     {
         private Category _category;
         private String _strIconUrl;

@@ -1,0 +1,1 @@
+<%@ page errorPage="../../ErrorPagePortal.jsp" trimDirectiveWhitespaces="true" %>${ calendarSiteJspBean.writeIcalFeed( pageContext.request, pageContext.response ) }

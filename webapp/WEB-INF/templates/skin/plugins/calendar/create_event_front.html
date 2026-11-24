@@ -1,81 +1,36 @@
-<#escape x as x?html>
-
-<div class="prepend-1 span-22 append-1 last">
-	<div class="portlet -lutece-border-radius append-bottom">
-		<fieldset>
-	<legend>#i18n{calendar.create_event_front.pageTitle}</legend>
-		<div style="margin-left:10px;">
-		    <form class="form-horizontal" action="jsp/site/Portal.jsp" method="post">
-		        <table class="table table-striped table-condensed">
-		            <tr>
-		                <td>
-		                    <div class="form-group">
-		<label class="control-label col-xs-12 col-sm-3 col-md-3" for="event_date">#i18n{calendar.create_event_front.date}  (dd/MM/yyyy) * :</label>
-		                </td>
-		                <td>
-		                    <div class="col-xs-12 col-sm-8 col-md-6">
-	<input type="text" class="form-control" id="event_date" name="event_date" tabindex="1" size="10" maxlength="10" />
-		<span class="help-block"></span>
-		</div>
-	</div>
-		                    <button class="btn btn-primary btn-sm" onclick="null" >...</button>
-	
-		                </td>
-		            </tr>
-		            <tr>
-		                <td>
-		                    <div class="form-group">
-		<label class="control-label col-xs-12 col-sm-3 col-md-3" for="event_time_start">#i18n{calendar.create_event_front.time_start} (hh:mm) :</label>
-		                </td>
-		                <td>
-		                    <div class="col-xs-12 col-sm-8 col-md-6">
-	<input type="text" class="form-control" id="event_time_start" name="event_time_start" tabindex="2" size="5" maxlength="5" />
-		<span class="help-block"></span>
-		</div>
-	</div>
-		                </td>
-		            </tr>
-		            <tr>
-		                <td>
-		                    <div class="form-group">
-		<label class="control-label col-xs-12 col-sm-3 col-md-3" for="event_time_end">#i18n{calendar.create_event_front.time_end}  (hh:mm) :</label>
-		                </td>
-		                <td>
-		                    <div class="col-xs-12 col-sm-8 col-md-6">
-	<input type="text" class="form-control" id="event_time_end" name="event_time_end" tabindex="3" size="5" maxlength="5" />
-		<span class="help-block"></span>
-		</div>
-	</div>
-		                </td>
-		            </tr>
-		            <tr>
-		                <td>
-		                    <div class="form-group">
-		<label class="control-label col-xs-12 col-sm-3 col-md-3" for="event_title">#i18n{calendar.create_event_front.title} * :</label>
-		                </td>
-		                <td>
-		                    <div class="col-xs-12 col-sm-8 col-md-6">
-	<input type="text" class="form-control" id="event_title" name="event_title" tabindex="4" size="60" maxlength="60" />
-		<span class="help-block"></span>
-		</div>
-	</div>
-		                </td>
-		            </tr>
-		            <tr>
-		                <td>
-		                    <input type="hidden" name="calendar_id" value="${calendar_id}" /> 
-		                    <input type="hidden" name="page" value="calendar" /> 
-		                    <input type="hidden" name="action" value="do_create_event" /> 
-		                    <button class="btn btn-primary btn-sm" type="submit" >#i18n{calendar.create_event_front.buttonLabelCreate}</button>
-		                    <button class="btn btn-primary btn-sm" onclick="javascript:history.go(-1)" >#i18n{portal.admin.message.buttonCancel}</button>
-	
-		                </td>
-		            </tr>
-		        </table>
-		    </fieldset>
-</form>
-		</div>
-	</div>
-</div>
-</#escape>
-<@setupCalendar field="event_date" button="button_date" />
+<@cContainer>
+<@cTitle level=2>#i18n{calendar.create_event_front.pageTitle}</@cTitle>
+<@cForm action='jsp/site/Portal.jsp'>
+	<@cInput type='hidden' name='calendar_id' value='${calendar_id}' />
+	<@cInput type='hidden' name='page' value='calendar' />
+	<@cInput type='hidden' name='action' value='do_create_event' />
+	<@cInput type='hidden' name='token' value='${token!}' />
+	<@cField label='#i18n{calendar.create_event_front.date}' for='event_date' required=true>
+		<@cInput type='date' name='event_date' id='event_date' required=true html5Required=true />
+	</@cField>
+	<@cField label='#i18n{calendar.create_event_front.time_start} (hh:mm)' for='event_time_start'>
+		<@cInput name='event_time_start' id='event_time_start' maxlength=5 />
+	</@cField>
+	<@cField label='#i18n{calendar.create_event_front.time_end} (hh:mm)' for='event_time_end'>
+		<@cInput name='event_time_end' id='event_time_end' maxlength=5 />
+	</@cField>
+	<@cField label='#i18n{calendar.create_event_front.title}' for='event_title' required=true>
+		<@cInput name='event_title' id='event_title' maxlength=60 required=true />
+	</@cField>
+	<#if (category_list![])?has_content>
+	<@cField label='#i18n{calendar.create_event_front.category}' for='category'>
+		<@cSelect name='category' id='category'>
+			<@cOption value='' label='#i18n{calendar.create_event_front.noCategory}' selected=true />
+			<#list category_list as category>
+			<@cOption value='${category.id}' label=category.name! />
+			</#list>
+		</@cSelect>
+	</@cField>
+	</#if>
+	<@cField label='#i18n{calendar.create_event_front.link}' for='event_link_url'>
+		<@cInput type='url' name='event_link_url' id='event_link_url' maxlength=130 placeholder='https://' />
+	</@cField>
+	<@cBtn label='#i18n{calendar.create_event_front.buttonLabelCreate}' />
+	<@cBtn label='#i18n{portal.util.labelCancel}' class='secondary' href='jsp/site/Portal.jsp?page=calendar&agenda=${calendar_id!}' />
+</@cForm>
+</@cContainer>

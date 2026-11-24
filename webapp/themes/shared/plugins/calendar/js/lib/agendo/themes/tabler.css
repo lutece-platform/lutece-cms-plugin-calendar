@@ -1,0 +1,47 @@
+/* Tabler theme for Agendo.
+ * Usage: load after agendo.css and create the calendar with { theme: 'tabler' }.
+ * Values come from Tabler's --tblr-* variables when @tabler/core is on the page
+ * (so data-bs-theme="dark" and Tabler's theme settings carry over), with Tabler's
+ * light defaults as fallbacks when it is not.
+ */
+.agendo.ago-theme-tabler {
+  --ago-font-family: var(--tblr-body-font-family, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif);
+  --ago-bg: var(--tblr-bg-surface, #fff);
+  --ago-surface: var(--tblr-bg-surface-secondary, oklch(98.51% 0 0deg));
+  --ago-border: var(--tblr-border-color, oklch(92.19% 0 0deg));
+  --ago-border-subtle: color-mix(in srgb, var(--ago-border) 50%, var(--ago-bg));
+  --ago-border-strong: color-mix(in srgb, var(--ago-text) 30%, var(--ago-bg));
+  --ago-text: var(--tblr-body-color, oklch(26.86% 0 0deg));
+  --ago-text-muted: var(--tblr-secondary-color, oklch(55.55% 0 0deg));
+  --ago-primary: var(--tblr-primary, oklch(54.6% 0.1724 254.2deg));
+  --ago-primary-hover: var(--tblr-primary-darken, oklch(48.6% 0.1724 254.2deg));
+  --ago-primary-light: color-mix(in srgb, var(--ago-primary) 10%, var(--ago-bg));
+  --ago-on-primary: #fff;
+  --ago-non-business-hour: var(--ago-surface);
+  --ago-current-time: var(--tblr-danger, oklch(58.29% 0.1941 25.59deg));
+  --ago-danger: var(--tblr-danger, oklch(58.29% 0.1941 25.59deg));
+  --ago-danger-hover: color-mix(in srgb, var(--ago-danger), black 12%);
+  --ago-event-bg: var(--ago-primary);
+  --ago-event-border-radius: var(--tblr-border-radius, 6px);
+  --ago-today-bg: color-mix(in srgb, var(--ago-primary) 6%, var(--ago-bg));
+
+  --ago-radius: var(--tblr-border-radius-lg, 8px);
+  --ago-btn-radius: var(--tblr-border-radius, 6px);
+  --ago-btn-padding: 0.375rem 0.875rem;
+  --ago-btn-font-weight: 500;
+  --ago-btn-bg: var(--ago-bg);
+  --ago-btn-hover-bg: var(--ago-surface);
+  --ago-btn-shadow: 0 1px 1px rgb(0 0 0 / 0.04);
+  --ago-menu-shadow: var(--tblr-box-shadow, 0 2px 4px -1px rgb(18 18 23 / 0.06), 0 4px 6px -1px rgb(18 18 23 / 0.08));
+  --ago-dialog-radius: var(--tblr-border-radius-lg, 8px);
+  --ago-dialog-shadow: var(--tblr-box-shadow, 0 2px 4px -1px rgb(18 18 23 / 0.06), 0 4px 6px -1px rgb(18 18 23 / 0.08));
+  --ago-focus-ring: color-mix(in srgb, var(--ago-primary) 25%, transparent);
+  --ago-title-font-size: 1.125rem;
+
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+}
+
+/* Tabler's uppercase, letter-spaced small headings */
+.ago-theme-tabler .ago-day-name,
+.ago-theme-tabler .ago-month-head,
+.ago-theme-tabler .ago-tl-corner { letter-spacing: 0.04em; font-size: 0.7rem; }

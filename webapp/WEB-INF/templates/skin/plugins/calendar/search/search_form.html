@@ -1,0 +1,78 @@
+<#-- The search form of the events, shared by the search page and the results page: the keywords, then the filters
+     (period and dates, calendars, categories, results per page) in a disclosure that is open when a filter is used.
+     Parameters: filtersOpen (true to open the filters), hiddenCalendarIds (the calendars searched when no choice is shown) -->
+<#macro calendarSearchForm filtersOpen=false hiddenCalendarIds=[]>
+<#assign currentPeriod=(period!'0')?has_content?then(period!'0', '0') />
+<@cForm name='search_event' id='searchForm' method='get' action='jsp/site/Portal.jsp' class='calendar-search-form'>
+	<@cInput type='hidden' name='page' value='calendar' />
+	<@cInput type='hidden' name='action' value='do_search' />
+	<#if !(calendar_list?has_content && calendar_list?size gt 1)><#list hiddenCalendarIds as agendaId><@cInput type='hidden' name='calendar_id' value=agendaId /></#list></#if>
+	<#if search_tag?has_content><@cInput type='hidden' name='tag' value=search_tag /></#if>
+	<@cField label='#i18n{calendar.search.event.label.search}' for='event_search'>
+		<@cInputGroup>
+			<@cInput type='search' name='query' id='event_search' value=query!'' maxlength=120 placeholder='#i18n{calendar.search.placeholder}' />
+			<@cBtn label='#i18n{calendar.search.event.button.search}' class='primary'><@cIcon name='search' /></@cBtn>
+		</@cInputGroup>
+	</@cField>
+	<details class="calendar-search-filters"<#if filtersOpen || search_filtered!false> open</#if>>
+		<summary><@cIcon name='adjustments-horizontal' class='me-1' />#i18n{calendar.search.filters}</summary>
+		<div class="calendar-search-grid">
+			<@cField label='#i18n{calendar.search.period}' for='period' class='calendar-search-cell'>
+				<@cSelect name='period' id='period' params={'data-calendar-search-period': true}>
+					<#list [ { 'value': '0', 'key': 'period_none' }, { 'value': '1', 'key': 'period_today' }, { 'value': '2', 'key': 'period_week' }, { 'value': '3', 'key': 'period_range' } ] as item>
+						<@cOption value=item.value label='#i18n{calendar.search.event.label.${item.key}}' selected=(currentPeriod == item.value) />
+					</#list>
+				</@cSelect>
+			</@cField>
+			<@cField label='#i18n{calendar.search.perPage}' for='items_per_page' class='calendar-search-cell'>
+				<@cSelect name='items_per_page' id='items_per_page'>
+					<#list [ "5", "10", "20", "50" ] as nb>
+						<@cOption value=nb label=nb selected=(nb == nb_items_per_page!'10') />
+					</#list>
+				</@cSelect>
+			</@cField>
+			<@cField label='#i18n{calendar.search.event.label.datebegin}' for='date_start' class='calendar-search-cell calendar-search-range'>
+				<@cInput type='date' name='date_start' id='date_start' value=date_start!'' disabled=(currentPeriod != '3') />
+			</@cField>
+			<@cField label='#i18n{calendar.search.event.label.dateend}' for='date_end' class='calendar-search-cell calendar-search-range'>
+				<@cInput type='date' name='date_end' id='date_end' value=date_end!'' disabled=(currentPeriod != '3') />
+			</@cField>
+		</div>
+		<#if calendar_list?has_content && calendar_list?size gt 1>
+		<fieldset class="calendar-search-chips">
+			<legend>#i18n{calendar.search.event.label.calendar_choice}</legend>
+			<#list calendar_list as agenda>
+				<@cCheckbox name='calendar_id' id='calendar_id_${agenda.code}' value='${agenda.code}' label=agenda.name! button=true class='calendar-search-chip-input' btnClass='calendar-search-chip' checked=agenda.isChecked( ) />
+			</#list>
+		</fieldset>
+		</#if>
+		<#if category_list?has_content>
+		<fieldset class="calendar-search-chips">
+			<legend>#i18n{calendar.create_event.category}</legend>
+			<#list category_list as category>
+				<@cCheckbox name='category' id='category_${category.code}' value='${category.code}' label=category.name! button=true class='calendar-search-chip-input' btnClass='calendar-search-chip' checked=category.isChecked( ) />
+			</#list>
+		</fieldset>
+		</#if>
+		<div class="calendar-search-buttons">
+			<@cBtn label='#i18n{calendar.search.apply}' class='primary'><@cIcon name='filter' /></@cBtn>
+			<@cLink href='jsp/site/Portal.jsp?page=calendar&action=do_search' label='#i18n{calendar.search.reset}' class='calendar-search-reset' />
+		</div>
+	</details>
+</@cForm>
+<script>
+document.addEventListener( 'DOMContentLoaded', ( ) => document.querySelectorAll( '[data-calendar-search-period]' ).forEach( select => {
+	const form = select.closest( 'form' );
+	const toggle = ( ) => {
+		const range = select.value === '3';
+		form.querySelectorAll( '.calendar-search-range' ).forEach( field => field.hidden = !range );
+		form.querySelectorAll( '.calendar-search-range input' ).forEach( input => {
+			input.disabled = !range;
+			input.required = range;
+		} );
+	};
+	select.addEventListener( 'change', toggle );
+	toggle( );
+} ) );
+</script>
+</#macro>

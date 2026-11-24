@@ -40,9 +40,8 @@ import fr.paris.lutece.plugins.calendar.business.OccurrenceEvent;
 import fr.paris.lutece.plugins.calendar.business.SimpleEvent;
 import fr.paris.lutece.plugins.calendar.business.category.Category;
 import fr.paris.lutece.plugins.calendar.service.AgendaResource;
-import fr.paris.lutece.plugins.calendar.service.CalendarPlugin;
-import fr.paris.lutece.plugins.calendar.service.Utils;
 import fr.paris.lutece.plugins.calendar.web.Constants;
+import fr.paris.lutece.plugins.calendar.service.Utils;
 import fr.paris.lutece.portal.service.content.XPageAppService;
 import fr.paris.lutece.portal.service.message.SiteMessageException;
 import fr.paris.lutece.portal.service.plugin.Plugin;
@@ -50,30 +49,22 @@ import fr.paris.lutece.portal.service.plugin.PluginService;
 import fr.paris.lutece.portal.service.search.IndexationService;
 import fr.paris.lutece.portal.service.search.SearchIndexer;
 import fr.paris.lutece.portal.service.search.SearchItem;
-import fr.paris.lutece.portal.service.util.AppException;
 import fr.paris.lutece.portal.service.util.AppPathService;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import fr.paris.lutece.util.url.UrlItem;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
+import org.jsoup.Jsoup;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
-import org.apache.tika.exception.TikaException;
-import org.apache.tika.metadata.Metadata;
-import org.apache.tika.parser.ParseContext;
-import org.apache.tika.parser.html.HtmlParser;
-import org.apache.tika.sax.BodyContentHandler;
-import org.xml.sax.ContentHandler;
-import org.xml.sax.SAXException;
 
 
 /**
@@ -136,7 +127,7 @@ public class CalendarIndexer implements SearchIndexer
             String strPortalUrl = AppPathService.getPortalUrl( );
 
             UrlItem urlEvent = new UrlItem( strPortalUrl );
-            urlEvent.addParameter( XPageAppService.PARAM_XPAGE_APP, CalendarPlugin.PLUGIN_NAME );
+            urlEvent.addParameter( XPageAppService.PARAM_XPAGE_APP, Constants.PLUGIN_NAME );
             urlEvent.addParameter( Constants.PARAMETER_ACTION, Constants.ACTION_SHOW_RESULT );
             urlEvent.addParameter( Constants.PARAMETER_EVENT_ID, occurrence.getEventId( ) );
             urlEvent.addParameter( Constants.PARAM_AGENDA, strAgenda );
@@ -171,9 +162,13 @@ public class CalendarIndexer implements SearchIndexer
     {
         List<org.apache.lucene.document.Document> listDocs = new ArrayList<org.apache.lucene.document.Document>( );
         String strPortalUrl = AppPathService.getPortalUrl( );
-        Plugin plugin = PluginService.getPlugin( CalendarPlugin.PLUGIN_NAME );
+        Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
 
         OccurrenceEvent occurrence = CalendarHome.findOccurrence( Integer.parseInt( strDocument ), plugin );
+        if ( occurrence == null )
+        {
+            return null;
+        }
         if ( !occurrence.getStatus( ).equals(
                 AppPropertiesService.getProperty( Constants.PROPERTY_EVENT_STATUS_CONFIRMED ) ) )
         {
@@ -189,7 +184,7 @@ public class CalendarIndexer implements SearchIndexer
         Agenda agenda = agendaResource.getAgenda( );
 
         UrlItem urlEvent = new UrlItem( strPortalUrl );
-        urlEvent.addParameter( XPageAppService.PARAM_XPAGE_APP, CalendarPlugin.PLUGIN_NAME );
+        urlEvent.addParameter( XPageAppService.PARAM_XPAGE_APP, Constants.PLUGIN_NAME );
         urlEvent.addParameter( Constants.PARAMETER_ACTION, Constants.ACTION_SHOW_RESULT );
         urlEvent.addParameter( Constants.PARAMETER_EVENT_ID, occurrence.getEventId( ) );
         urlEvent.addParameter( Constants.PARAM_AGENDA, agenda.getKeyName( ) );
@@ -263,26 +258,11 @@ public class CalendarIndexer implements SearchIndexer
         doc.add( new Field( SearchItem.FIELD_DATE, strDate, ft ) );
 
         String strContentToIndex = getContentToIndex( occurrence );
-        ContentHandler handler = new BodyContentHandler( );
-        Metadata metadata = new Metadata( );
-
-        try
-        {
-            new HtmlParser( ).parse( new ByteArrayInputStream( strContentToIndex.getBytes( ) ), handler, metadata,
-                    new ParseContext( ) );
-        }
-        catch ( SAXException e )
-        {
-            throw new AppException( "Error during page parsing." );
-        }
-        catch ( TikaException e )
-        {
-            throw new AppException( "Error during page parsing." );
-        }
+        String strParsedContent = Jsoup.parse( strContentToIndex ).text( );
 
         //the content of the article is recovered in the parser because this one
         //had replaced the encoded caracters (as &eacute;) by the corresponding special caracter (as ?)
-        StringBuilder sb = new StringBuilder( occurrence.getTitle( ) + " - " + handler.toString( ) );
+        StringBuilder sb = new StringBuilder( occurrence.getTitle( ) + " - " + strParsedContent );
 
         // Add the description as a summary field, so that index can be incrementally maintained.
         // This field is stored, but it is not indexed
@@ -305,7 +285,7 @@ public class CalendarIndexer implements SearchIndexer
         // separately.
         doc.add( new Field( SearchItem.FIELD_TITLE, occurrence.getTitle( ), TextField.TYPE_STORED ) );
 
-        doc.add( new Field( SearchItem.FIELD_TYPE, CalendarPlugin.PLUGIN_NAME, ft ) );
+        doc.add( new Field( SearchItem.FIELD_TYPE, Constants.PLUGIN_NAME, ft ) );
 
         // return the document
         return doc;
@@ -369,7 +349,7 @@ public class CalendarIndexer implements SearchIndexer
 
         if ( ( strEnable != null )
                 && ( strEnable.equalsIgnoreCase( Boolean.TRUE.toString( ) ) || strEnable.equals( ENABLE_VALUE_TRUE ) )
-                && PluginService.isPluginEnable( CalendarPlugin.PLUGIN_NAME ) )
+                && PluginService.isPluginEnable( Constants.PLUGIN_NAME ) )
         {
             bReturn = true;
         }
@@ -383,7 +363,7 @@ public class CalendarIndexer implements SearchIndexer
     public List<String> getListType( )
     {
         List<String> listType = new ArrayList<String>( );
-        listType.add( CalendarPlugin.PLUGIN_NAME );
+        listType.add( Constants.PLUGIN_NAME );
 
         return listType;
     }

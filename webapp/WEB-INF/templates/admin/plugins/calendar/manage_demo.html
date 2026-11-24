@@ -1,0 +1,39 @@
+<#include "/admin/plugins/calendar/macros_calendar_admin.html" />
+<#include "/admin/plugins/calendar/advanced_tabs.html" />
+<#-- The demonstration data: what it holds, a link to its page when it is installed, and the buttons to install or remove it -->
+<#assign pageTitle><@calendarPageTitle iconName='settings' label='#i18n{calendar.manage_calendars.labelAdvancedParameters}' /></#assign>
+<@pageContainer>
+	<@pageColumn>
+		<@pageHeader title=pageTitle>
+			<@aButton href='jsp/admin/plugins/calendar/ManageCalendars.jsp' title='#i18n{portal.util.labelBack}' buttonIcon='arrow-left' color='light' hideTitle=['xs'] />
+		</@pageHeader>
+		<@calendarAdvancedTabs active='demo'>
+		<@messages infos=infos![] errors=errors![] warnings=warnings![] />
+		<@p>#i18n{calendar.manage_demo.description}</@p>
+		<@ul class='mb-3'>
+			<@li>#i18n{calendar.manage_demo.contentCalendar}</@li>
+			<@li>#i18n{calendar.manage_demo.contentEvents}</@li>
+			<@li>#i18n{calendar.manage_demo.contentPage}</@li>
+		</@ul>
+		<#if demo_installed>
+			<@alert color='success' iconTitle='circle-check' title='#i18n{calendar.manage_demo.statusInstalled}'>
+				<#if (demo_page_id > 0)>
+					<@link href='jsp/site/Portal.jsp?page_id=${demo_page_id?c}' target='_blank'>#i18n{calendar.manage_demo.viewPage}</@link>
+					<@span class='mx-1'>·</@span>
+					<@link href='jsp/admin/site/AdminSite.jsp?page_id=${demo_page_id?c}'>#i18n{calendar.manage_demo.editPage}</@link>
+				</#if>
+			</@alert>
+		<#else>
+			<@alert color='info' iconTitle='info-circle' title='#i18n{calendar.manage_demo.statusNotInstalled}' />
+		</#if>
+		<@tform name='install_demo' action='jsp/admin/plugins/calendar/ManageCalendars.jsp'>
+			<@input type='hidden' name='action' value='installDemo' />
+			<#if demo_installed><@p class='text-secondary'>#i18n{calendar.manage_demo.reinstallHelp}</@p></#if>
+			<@button type='submit' buttonIcon='database-import' color='primary' title=demo_installed?then('#i18n{calendar.manage_demo.buttonReinstall}', '#i18n{calendar.manage_demo.buttonInstall}') />
+			<#if demo_installed>
+				<@aButton href='jsp/admin/plugins/calendar/ManageCalendars.jsp?view=confirmRemoveDemo' buttonIcon='trash' color='danger' title='#i18n{calendar.manage_demo.buttonRemove}' />
+			</#if>
+		</@tform>
+		</@calendarAdvancedTabs>
+	</@pageColumn>
+</@pageContainer>

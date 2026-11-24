@@ -1,0 +1,9 @@
+<p>#i18n{calendar.reminder.email.intro}</p>
+<p>
+	<strong>${occurrence.title!}</strong><br>
+	${occurrence_date}<#if time_start?has_content>, ${time_start}<#if time_end?has_content> - ${time_end}</#if></#if><br>
+	<#if location?has_content>${location}<br></#if>
+	<#if calendar_name?has_content>#i18n{calendar.reminder.email.calendar} ${calendar_name}<br></#if>
+</p>
+<p><a href="${event_url}">#i18n{calendar.email-friend.link_to_event}</a></p>
+<p style="font-size:small">#i18n{calendar.reminder.email.why} <a href="${unsubscribe_url}">#i18n{calendar.reminder.email.unsubscribe}</a></p>

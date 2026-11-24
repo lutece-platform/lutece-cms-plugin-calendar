@@ -1,32 +1,28 @@
-<div class="portlet">
-	<div class="portlet-header">#i18n{calendar.subscription.event.title}</div>
-    <form class="form-horizontal" action="${jsp_url}" method="post">
-    <input type="hidden" name="page" value="calendar" /> 
-	<input type="hidden" name="action" value="subscribe" /> 
-	<div class="form-group">
-	<label class="control-label col-xs-12 col-sm-3 col-md-3" for="agenda">#i18n{calendar.search.event.label.calendar_choice} * :</label>
-		<div class="col-xs-12 col-sm-8 col-md-6">
-			<@comboWithParams name="agenda" default_value="" additionalParameters=" class=\"form-control input-sm\"" items=calendar_list />
-		</div>
-	</div> 
-	<div class="form-group">
-	<label class="control-label col-xs-12 col-sm-3 col-md-3" for="subscriber_email">#i18n{calendar.subscription.subscriber.email} * :</label>
-		<div class="col-xs-12 col-sm-8 col-md-6">
-			<input type="text" class="form-control input-sm" id="subscriber_email" name="email" tabindex="1" size="20" maxlength="160" />
-		</div>
-	</div>
+<@cContainer>
+<@cTitle level=2>#i18n{calendar.subscription.event.title}</@cTitle>
+<@cForm action='${jsp_url}'>
+	<@cInput type='hidden' name='page' value='calendar' />
+	<@cInput type='hidden' name='action' value='subscribe' />
+	<#if subscription_agenda??>
+	<@cInput type='hidden' name='agenda' value='${subscription_agenda.code}' />
+	<p class="calendar-subscription-agenda">#i18n{calendar.subscription.calendar} <strong>${subscription_agenda.name!}</strong></p>
+	<#else>
+	<@cField label='#i18n{calendar.search.event.label.calendar_choice}' for='agenda' required=true>
+		<@cSelect name='agenda' id='agenda' required=true>
+			<#list calendar_list as calendar>
+				<@cOption value='${calendar.code}' label=calendar.name! />
+			</#list>
+		</@cSelect>
+	</@cField>
+	</#if>
+	<@cField label='#i18n{calendar.subscription.subscriber.email}' for='subscriber_email' required=true>
+		<@cInput type='email' name='email' id='subscriber_email' maxlength=160 required=true />
+	</@cField>
 	<#if is_active_captcha>
 		${captcha}
 	</#if>
-	<div class="form-group">
-		<div class="col-xs-12 col-sm-offset-3 col-sm-8 col-md-offset-3 col-md-8">
-			<button class="btn btn-primary btn-sm" type="submit">
-				<i class="glyphicon glyphicon-ok"></i>&nbsp;#i18n{calendar.subscription.buttonLabelSubscribe}
-			</button>
-			<button type="button" class="btn btn-default btn-sm" onclick="javascript:history.go(-1)" >
-				<i class="glyphicon glyphicon-remove-circle"></i>&nbsp;#i18n{portal.admin.message.buttonCancel}
-			</button>
-		</div>
-	</div>
-	</form>
-</div>
+	<@cBtn label='#i18n{calendar.subscription.buttonLabelSubscribe}' />
+	<#assign cancelUrl>jsp/site/Portal.jsp?page=calendar<#if subscription_agenda??>&agenda=${subscription_agenda.code}</#if></#assign><#assign cancelUrl = cancelUrl?markup_string />
+	<@cBtn label='#i18n{portal.util.labelCancel}' class='secondary' href=cancelUrl />
+</@cForm>
+</@cContainer>

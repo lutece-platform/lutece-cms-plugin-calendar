@@ -1,0 +1,127 @@
+<#-- Building blocks of the back office list rows of the calendar plugin, in the look of the forms list:
+     a status dot, the title and a meta line, a count badge, borderless icon actions and a "..." menu. -->
+<#--
+Macro: calendarPageTitle
+Description: page title preceded by a light coloured avatar holding an icon; capture it and pass it as the title of @pageHeader:
+    <#assign pageTitle><@calendarPageTitle iconName='calendar' label='#i18n{...}' /></#assign>
+Parameters:
+- iconName (string, required): Tabler icon name.
+- label (string, required): title text.
+- color (string, optional): Tabler colour of the avatar. Default: 'red'.
+-->
+<#macro calendarPageTitle iconName label color='red'>
+<@span class='avatar avatar-sm bg-${color}-lt me-2' params={'aria-hidden': 'true'}><@icon style=iconName /></@span>${label}<#t>
+</#macro>
+<#--
+Macro: calendarStatusDot
+Description: Tabler status dot with its label for screen readers.
+Parameters:
+- color (string, required): Tabler colour (green, red, yellow, orange, azure, blue, secondary...).
+- label (string, required): what the colour means.
+-->
+<#macro calendarStatusDot color label>
+<@span class='status-dot status-${color} flex-shrink-0' params={'title': label} /><@span class='visually-hidden'>${label}</@span>
+</#macro>
+<#--
+Macro: calendarRowTitle
+Description: main column of a row: the dot (nested), the title as a link and a meta line under it.
+Parameters:
+- href (string, optional): target of the title; no link when empty.
+- label (string, required): title text.
+- meta (markup, optional): meta line, items separated by &middot;.
+-->
+<#macro calendarRowTitle label href='' meta=''>
+<@manageFeatureItemColumn class='d-flex align-items-center gap-2 text-truncate'>
+	<#nested>
+	<@div class='text-truncate'>
+		<#if href?has_content>
+		<@link href=href class='text-reset fw-semibold searchable'>${label}</@link>
+		<#else>
+		<@span class='fw-semibold searchable'>${label}</@span>
+		</#if>
+		<#if meta?has_content><@div class='text-secondary small text-truncate'>${meta}</@div></#if>
+	</@div>
+</@manageFeatureItemColumn>
+</#macro>
+<#--
+Macro: calendarRowActions
+Description: right column of a row: optional badges, then the icon actions and the menu (nested).
+-->
+<#macro calendarRowActions badges=''>
+<@manageFeatureItemColumn auto=true align='end' class='d-flex align-items-center gap-2'>
+	${badges}
+	<@div class='btn-actions'>
+		<#nested>
+	</@div>
+</@manageFeatureItemColumn>
+</#macro>
+<#--
+Macro: calendarAction
+Description: borderless icon action of a row (Tabler btn-action), its label as tooltip and for screen readers.
+Parameters:
+- href (string, required): target URL.
+- iconName (string, required): Tabler icon name.
+- label (string, required): name of the action.
+- danger (boolean, optional): red icon for a destructive action.
+-->
+<#macro calendarAction href iconName label danger=false>
+<@link href=href class='btn-action${danger?then(" text-danger", "")}' title=label><@icon style=iconName /><@span class='visually-hidden'>${label}</@span></@link>
+</#macro>
+<#--
+Macro: calendarActionsMenu
+Description: "..." menu of a row; the nested content is a list of @calendarMenuItem and @calendarMenuDivider.
+Parameters:
+- label (string, optional): name of the row, added to the accessible name of the menu button.
+-->
+<#macro calendarActionsMenu label=''>
+<@div class='dropdown'>
+	<@link href='#' class='btn-action' title='#i18n{portal.util.labelActions}' params={'data-bs-toggle': 'dropdown', 'aria-haspopup': 'true', 'aria-expanded': 'false'}><@icon style='dots' /><@span class='visually-hidden'>#i18n{portal.util.labelActions} ${label}</@span></@link>
+	<@div class='dropdown-menu dropdown-menu-end'>
+		<#nested>
+	</@div>
+</@div>
+</#macro>
+<#--
+Macro: calendarMenuItem
+Description: entry of a @calendarActionsMenu.
+Parameters:
+- href (string, required): target URL.
+- iconName (string, required): Tabler icon name.
+- label (string, required): text of the entry.
+- danger (boolean, optional): red entry for a destructive action.
+- target (string, optional): link target ('_blank' for a front office page).
+-->
+<#macro calendarMenuItem href iconName label danger=false target=''>
+<@link href=href class='dropdown-item${danger?then(" text-danger", "")}' target=target><@icon style=iconName class='me-2' />${label}</@link>
+</#macro>
+<#macro calendarMenuDivider>
+<@div class='dropdown-divider' />
+</#macro>
+<#--
+Macro: calendarListFilter
+Description: filter field of a page header, an input group with a filter button, in the look of the forms list.
+Parameters:
+- action (string, required): URL of the GET form.
+- name (string, required): name of the text parameter.
+- value (string, optional): current value.
+- placeHolder (string, optional): placeholder and accessible name of the field.
+- resetUrl (string, optional): URL that clears the filter, shown while a value is set.
+- hidden (hash, optional): hidden parameters kept by the form, name to value.
+- formName (string, optional): name of the form.
+-->
+<#macro calendarListFilter action name value='' placeHolder='#i18n{portal.system.manage_plugins.buttonFilter}' resetUrl='' hidden={} formName=''>
+<@tform type='inline' method='get' action=action name=formName>
+	<#list hidden as hiddenName, hiddenValue>
+	<@input type='hidden' name=hiddenName value=hiddenValue />
+	</#list>
+	<@formGroup labelFor=name labelKey=placeHolder hideLabel=['all'] formStyle='inline'>
+		<@inputGroup>
+			<@input type='search' name=name id=name value=value placeHolder=placeHolder params={'autocomplete': 'off'} />
+			<#if value?has_content && resetUrl?has_content>
+			<@aButton href=resetUrl buttonIcon='x' title='#i18n{portal.util.labelReset}' hideTitle=['all'] color='light' />
+			</#if>
+			<@button type='submit' color='primary' title='#i18n{portal.system.manage_plugins.buttonFilter}' buttonIcon='filter' hideTitle=['all'] />
+		</@inputGroup>
+	</@formGroup>
+</@tform>
+</#macro>

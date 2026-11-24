@@ -1,19 +1,84 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document>
-	<properties>
-		<title>Introduction</title>
-	</properties>
-	<body>
-		<section name="Descriptif du plugin">
-		<p>Ce plugin permet de présenter des évènements sur un calendrier publié sur le portail Lutece.</p>
-		
-		<p>
-			Ce plugin peut s'utiliser conjointement avec 
-			<a href="../../module-calendar-document/fr/">module-calendar-document</a> 
-			ou 
-			<a href="../../module-documenttocalendar/fr/">module-documenttocalendar</a>
-		</p>		
-		
-		</section>
-	</body>
+    <properties>
+        <title>Introduction</title>
+    </properties>
+    <body>
+        <section name="Plugin calendar">
+            <subsection name="Descriptif du plugin">
+                <p>
+                    Ce plugin publie des évènements sur des calendriers (agendas) d'un site Lutece. Les webmestres créent les
+                    calendriers et leurs évènements en back office ; les internautes les consultent en front office par mois,
+                    semaine, jour ou en liste, les recherchent, s'y abonnent et les ajoutent à leur propre application d'agenda.
+                </p>
+                <p>
+                    Ce plugin peut s'utiliser conjointement avec
+                    <a href="../../module-calendar-document/fr/">module-calendar-document</a> ou
+                    <a href="../../module-documenttocalendar/fr/">module-documenttocalendar</a>.
+                </p>
+            </subsection>
+            <subsection name="Fonctionnalités">
+                <ul>
+                    <li>Calendriers avec nom, couleur, rôle et groupe de travail, notification par e-mail facultative et sa période.</li>
+                    <li>Évènements avec dates, heures, description, lieu, catégories, image, URL, statut (confirmé, provisoire, annulé) et occurrences (répétées par jour, semaine ou mois, avec jours exclus).</li>
+                    <li>Vues front office construites avec <a href="https://github.com/vkurko/calendar">EventCalendar</a> (MIT) : mois, semaine, jour et liste, filtres par calendrier et catégorie, adaptées aux petits écrans (vue liste). Sans JavaScript, une liste texte des évènements est affichée.</li>
+                    <li>Une vue calendrier en back office : un clic sur un jour crée un évènement ce jour-là, un évènement se déplace ou se redimensionne par glisser-déposer (une occurrence ou toute la série).</li>
+                    <li>Un bouton « Ajouter à l'agenda » sur la page d'un évènement (Google, Outlook.com, Microsoft 365, Teams, Yahoo, Apple, fichier iCal), réglé pour chaque calendrier en back office.</li>
+                    <li>Propositions d'évènements depuis le site, une option de chaque calendrier : les gestionnaires du calendrier (son rôle de gestionnaire) publient directement, les utilisateurs connectés proposent des évènements qui restent invisibles de toutes les vues publiques (vues calendrier, rubriques, exports, rappels, recherche) tant qu'un administrateur ne les a pas confirmés en changeant leur statut. La liste des calendriers indique les propositions en attente.</li>
+                    <li>Exports : iCalendar (.ics, aussi en lien d'abonnement pour les calendriers ouverts à tous), JSON, et un flux RSS 2.0 des évènements.</li>
+                    <li>Abonnement à un calendrier par e-mail, avec des rappels envoyés avant chaque occurrence par le démon calendarReminder.</li>
+                    <li>Deux portlets : un portlet calendrier listant les évènements des calendriers choisis, et un mini calendrier du mois.</li>
+                    <li>Recherche plein texte des évènements par l'indexeur Lucene du core, un service d'insertion pour placer un lien vers un évènement dans un éditeur de texte riche, et des widgets de tableau de bord en back office.</li>
+                </ul>
+            </subsection>
+        </section>
+        <section name="Configuration">
+            <subsection name="Droits">
+                <p>
+                    La fonctionnalité d'administration <code>CALENDAR_MANAGEMENT</code> (menu « Gestion des calendriers ») donne
+                    accès aux calendriers, à la vue calendrier, aux options du bouton « Ajouter à l'agenda » et aux catégories. Le
+                    script d'installation l'attribue à l'utilisateur <code>admin</code>. Les calendriers sont aussi des ressources
+                    RBAC (type <code>CALENDAR</code>, permission <code>MANAGE</code>) et sont filtrés par groupe de travail.
+                </p>
+            </subsection>
+            <subsection name="Exports">
+                <ul>
+                    <li><code>jsp/site/plugins/calendar/CalendarIcal.jsp?calendar_id=N</code> : flux iCalendar d'un calendrier (de <code>calendar.ical.feed.daysBefore</code> jours avant aujourd'hui à <code>calendar.ical.feed.daysAfter</code> jours après), ou d'une occurrence avec <code>occurrence_id=N</code>.</li>
+                    <li><code>jsp/site/plugins/calendar/GetCalendarFile.jsp?calendar_id=N&amp;format=json</code> : fichier JSON d'un calendrier.</li>
+                    <li><code>jsp/site/plugins/calendar/GetCalendarFile.jsp?action=rss&amp;calendar_id=N</code> : flux RSS 2.0 (au plus <code>calendar.rss.maxItems</code> éléments).</li>
+                </ul>
+                <p>Un calendrier réservé à un rôle n'est exporté qu'à un internaute connecté avec ce rôle. Les exports ne sont pas gérés en back office.</p>
+            </subsection>
+            <subsection name="Rappels">
+                <p>
+                    Le démon <code>calendarReminder</code> est arrêté par défaut : démarrez-le dans l'écran des démons du back office.
+                    Il envoie aux abonnés d'un calendrier un rappel de chaque occurrence qui commence dans les
+                    <code>calendar.reminder.hoursBefore</code> heures (24 par défaut), une fois par abonné. Les liens des e-mails
+                    utilisent <code>lutece.prod.url</code>, ou <code>lutece.base.url</code> : l'une des deux doit être renseignée.
+                </p>
+            </subsection>
+            <subsection name="Modèles des portlets">
+                <p>Les portlets sont rendus par des templates FreeMarker enregistrés dans les modèles de portlet du core, choisis dans le formulaire du portlet :</p>
+                <ul>
+                    <li><code>CALENDAR_PORTLET</code> : <code>skin/plugins/calendar/portlet/calendar_portlet.html</code> (par défaut) et <code>calendar_portlet_organized_events.html</code>.</li>
+                    <li><code>MINI_CALENDAR_PORTLET</code> : <code>skin/plugins/calendar/portlet/mini_calendar_portlet.html</code>.</li>
+                </ul>
+            </subsection>
+        </section>
+        <section name="Montée de version vers Lutece 8">
+            <p>La version 5.0.0 exige le core Lutece 8 (CDI, Jakarta EE, Liquibase). Le script <code>upgrade/update_db_calendar-4.9.9-5.0.0.sql</code> :</p>
+            <ul>
+                <li>remplace les styles XSL des portlets par les templates FreeMarker ci-dessus ;</li>
+                <li>convertit l'image de pastille de chaque calendrier en sa couleur (<code>.../dots/blue.png</code> devient <code>blue</code>) ;</li>
+                <li>supprime les feuilles de style d'export XSL (<code>calendar_export_stylesheets</code>) : les exports sont iCalendar, JSON et RSS ;</li>
+                <li>crée les tables des rappels et du bouton « Ajouter à l'agenda ».</li>
+            </ul>
+            <p>
+                Les scripts SQL v7 n'ont pas d'en-tête Liquibase : une base v7 n'enregistre donc aucune version pour le plugin. Le
+                site doit être repris en deux passes (version du plugin enregistrée d'abord, puis démarrage), sinon le plugin est
+                installé comme nouveau et le script de montée de version ne s'exécute pas. Les anciens liens d'export
+                (<code>GetCalendarFile.jsp</code>) restent valides : ils renvoient désormais le fichier iCalendar du calendrier, ou son flux RSS.
+            </p>
+        </section>
+    </body>
 </document>

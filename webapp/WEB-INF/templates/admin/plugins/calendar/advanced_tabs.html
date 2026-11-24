@@ -1,0 +1,14 @@
+<#-- The tabs of the calendar settings screens, wrapping the content of the screen. Parameter: the active tab (parameters, categories or demo).
+     Each tab is another page: the server marks the active one, so the tab state is not kept in the browser. -->
+<#macro calendarAdvancedTabs active>
+<@tabs id='calendar-settings-tabs' keepState=false>
+	<@tabList>
+		<@tabLink active=(active == 'parameters') href='jsp/admin/plugins/calendar/ManageCalendars.jsp?view=manageAdvancedParameters' title='#i18n{calendar.advanced_parameters.dashboard}' />
+		<@tabLink active=(active == 'categories') href='jsp/admin/plugins/calendar/ManageCalendarCategory.jsp' title='#i18n{calendar.adminFeature.category_management.description}' />
+		<@tabLink active=(active == 'demo') href='jsp/admin/plugins/calendar/ManageCalendars.jsp?view=manageDemo' title='#i18n{calendar.manage_demo.tab}' />
+	</@tabList>
+	<@tabContent>
+		<#nested>
+	</@tabContent>
+</@tabs>
+</#macro>

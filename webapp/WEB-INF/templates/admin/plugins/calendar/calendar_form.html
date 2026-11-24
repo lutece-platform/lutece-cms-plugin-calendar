@@ -1,0 +1,66 @@
+<#-- The form of a calendar, shared by its creation and its modification. Parameters: the i18n prefix of the labels, the calendar (or an empty hash) -->
+<#macro calendarForm prefix calendar={}>
+<@formGroup labelFor='calendar_name' labelKey='#i18n{calendar.${prefix}.name}' mandatory=true>
+	<@input type='text' name='calendar_name' id='calendar_name' value=calendar.name!'' maxlength=250 mandatory=true />
+</@formGroup>
+<#-- The colour of the calendar: a colour picker, suggesting the colours of the property calendar.dots.colors -->
+<#assign calendarColor=(calendar.eventColorCode)!((dots_list?first.code)!'#206bc4') />
+<@formGroup labelFor='calendar_image' labelKey='#i18n{calendar.${prefix}.image}' helpKey='#i18n{calendar.create_calendar.imageHelp}' mandatory=true>
+	<@div class='d-flex align-items-center gap-2'>
+		<@input type='color' name='calendar_image' id='calendar_image' value=calendarColor class='form-control-color' mandatory=true params={'list': 'calendar_image_presets', 'data-calendar-color-input': true} />
+		<datalist id="calendar_image_presets">
+		<#list dots_list as dot>
+			<@option value=dot.code label=dot.name />
+		</#list>
+		</datalist>
+		<span class="avatar calendar-avatar" aria-hidden="true" data-calendar-color-preview style="--calendar-dot-color:${calendarColor}"><@icon style='calendar-event' /></span>
+		<@span class='text-secondary font-monospace' params={'data-calendar-color-value': true}>${calendarColor}</@span>
+	</@div>
+</@formGroup>
+<script>
+document.querySelectorAll( '[data-calendar-color-input]' ).forEach( input => {
+	const group = input.closest( '.d-flex' );
+	const preview = group.querySelector( '[data-calendar-color-preview]' );
+	const value = group.querySelector( '[data-calendar-color-value]' );
+	input.addEventListener( 'input', ( ) => {
+		preview.style.setProperty( '--calendar-dot-color', input.value );
+		value.textContent = input.value;
+	} );
+} );
+</script>
+<@formGroup labelFor='calendar_prefix' labelKey='#i18n{calendar.${prefix}.prefix}'>
+	<@input type='text' name='calendar_prefix' id='calendar_prefix' value=calendar.eventPrefix!'' maxlength=250 />
+</@formGroup>
+<@formGroup labelFor='calendar_role' labelKey='#i18n{calendar.${prefix}.role}'>
+	<@select name='calendar_role' id='calendar_role' items=roles_list default_value=calendar.role!'' />
+</@formGroup>
+<@formGroup labelFor='calendar_role_manager' labelKey='#i18n{calendar.${prefix}.manager_role}'>
+	<@select name='calendar_role_manager' id='calendar_role_manager' items=roles_list default_value=calendar.roleManager!'' />
+</@formGroup>
+<@formGroup labelFor='workgroup' labelKey='#i18n{calendar.${prefix}.workgroup}'>
+	<@select name='workgroup' id='workgroup' items=workgroups_list default_value=calendar.workgroup!'' />
+</@formGroup>
+<@formGroup labelKey='#i18n{calendar.${prefix}.notification}'>
+	<@checkBox name='calendar_notification' id='calendar_notification' value='true' orientation='switch' labelKey='#i18n{calendar.${prefix}.notification.comment}' checked=calendar.notify!false />
+</@formGroup>
+<@formGroup labelFor='calendar_default_view' labelKey='#i18n{calendar.create_calendar.defaultView}' helpKey='#i18n{calendar.create_calendar.defaultView.help}'>
+	<@select name='calendar_default_view' id='calendar_default_view' items=default_view_list default_value=(calendar.defaultView)!'' />
+</@formGroup>
+<@formGroup labelKey='#i18n{calendar.create_calendar.frontProposals}' helpKey='#i18n{calendar.create_calendar.frontProposals.comment}'>
+	<@checkBox name='calendar_front_proposals' id='calendar_front_proposals' value='true' orientation='switch' labelKey='#i18n{calendar.create_calendar.frontProposals}' checked=calendar.frontProposals!false />
+</@formGroup>
+<#-- A calendar without notification stores -1: the hidden field still gets the default, or its required check would block the form -->
+<#assign periodValue><#if calendar.periodValidity?? && calendar.periodValidity != -1>${calendar.periodValidity}<#else>7</#if></#assign><#assign periodValue = periodValue?markup_string />
+<@formGroup id='notif' labelFor='calendar_period' labelKey='#i18n{calendar.${prefix}.periodValidity}' helpKey='#i18n{calendar.${prefix}.periodValidityUnit}' mandatory=true>
+	<@input type='text' name='calendar_period' id='calendar_period' value=periodValue maxlength=2 />
+</@formGroup>
+<script>
+document.addEventListener( 'DOMContentLoaded', ( ) => {
+	const notification = document.getElementById( 'calendar_notification' );
+	const period = document.getElementById( 'notif' );
+	const togglePeriod = ( ) => period.classList.toggle( 'd-none', !notification.checked );
+	notification.addEventListener( 'change', togglePeriod );
+	togglePeriod( );
+} );
+</script>
+</#macro>

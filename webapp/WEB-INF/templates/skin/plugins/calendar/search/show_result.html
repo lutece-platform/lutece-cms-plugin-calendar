@@ -1,74 +1,157 @@
-<div class="row">
-	<div class="col-xs-12 col-sm-9 col-md-9">
-		<#if is_authorized>
-			<div class="btn-group pull-right">
-				<a class="btn" href="${subscription_page}" title="#i18n{calendar.subscription.buttonLabelSubscribe}">
-					<i class="glyphicon glyphicon-star"></i>
-				</a>
-				<a class="btn"  href="${download_page}" title="#i18n{calendar.label.download}">
-					<i class="glyphicon glyphicon-download"></i>
-				</a>
-				<a class="btn" href="javascript:window.print();" title="#i18n{calendar.search.label.buttonPrint}">
-					<i class="glyphicon glyphicon-print"></i>
-				</a>
-				<a class="btn" href="${rss_page}" title="RSS">
-					<i class="glyphicon glyphicon-fire"></i>
-				</a>	
-				<a class="btn" href="${email_friend_page}&event_id=${event.id}&agenda=${agenda.id}" title="#i18n{calendar.email-friend.sendTofriend}">
-					<i class="glyphicon glyphicon-envelope"></i>
-				</a>
-			</div>
-			<div class="row">
-				<div class="col-xs-12 col-sm-12 col-md-12">
-				<h4>
-					<#if event.imageUrl?has_content>
-						<img class="thumbnails thumblist-medium" src=${event.imageUrl} title="${event.title}"/>
-					</#if>				
-					${event.title} <small> - ${agenda.name}</small>
-				</h4>	
-				<p>
-				<#if event.date?date?string == event.dateEnd?date?string >					
-					<i class="glyphicon glyphicon-calendar"></i>&nbsp;${event.date?date?string.short}
-				<#else>
-					#i18n{calendar.search_result.labelFrom} ${event.date?date?string.short} #i18n{calendar.search_result.labelTo} ${event.dateEnd?date?string.short}
-				</#if>
-				<#if event.location?has_content>
-					| <i class="glyphicon glyphicon-marker"></i>&nbsp;${event.location}
-				</#if>
-				<#if event.dateTimeStart?has_content>
-					| <i class="glyphicon glyphicon-time"></i>&nbsp;${event.dateTimeStart}
-					<#if event.dateTimeEnd?has_content>
-						- ${event.dateTimeEnd}
-					</#if>
-				</#if>
+<#-- The page of an event: its picture, its title, its calendar and categories, its status, its description and next dates,
+     and a card of practical information (dates, place, price, participation, organizer, accessibility, registration, links).
+     Every block is shown only when the event has the information. -->
+<#assign details=event_details!{} />
+<#assign status=event_status!'' />
+<#macro eventInfo icon label>
+<li class="calendar-event-info">
+	<@cIcon name=icon class='calendar-event-info-icon' />
+	<div>
+		<span class="calendar-event-info-label">${label}</span>
+		<#nested>
+	</div>
+</li>
+</#macro>
+<@cContainer>
+<#if is_authorized>
+<article class="calendar-event-page" style="--calendar-dot-color:${agenda.eventColorCode!}">
+	<p class="calendar-event-back"><@cLink href='jsp/site/Portal.jsp?page=calendar&agenda=${agenda.id!}' label='${agenda.name!}'><@cIcon name='arrow-left' class='me-1' /></@cLink></p>
+	<#if event_has_image!false>
+		<div class="calendar-event-hero">
+			<img src="${event.imageUrl}" alt="" class="calendar-event-hero-img">
+		</div>
+	</#if>
+	<@cRow class='g-4'>
+		<@cCol cols='12 col-lg-8'>
+			<header class="calendar-event-header">
+				<p class="calendar-event-when">
+					<@cIcon name='calendar-event' class='me-1' />
+					<span class="calendar-event-when-date"><#if event.date?date?string == event.dateEnd?date?string>${event.date?date?string.full}<#else>#i18n{calendar.search_result.labelFrom} ${event.date?date?string.long} #i18n{calendar.search_result.labelTo} ${event.dateEnd?date?string.long}</#if></span>
+					<#if event.dateTimeStart?has_content><span class="ms-2"><@cIcon name='clock' class='me-1' />${event.dateTimeStart}<#if event.dateTimeEnd?has_content> - ${event.dateTimeEnd}</#if></span></#if>
 				</p>
-				<#if event.description?has_content>
-					<p>${event.description}</p>
+				<@cTitle level=1 class='calendar-event-page-title'>${event.title!}</@cTitle>
+				<ul class="calendar-event-tags">
+					<li><span class="calendar-event-tag calendar-event-tag-agenda"><span class="calendar-dot" aria-hidden="true"></span>${agenda.name!}</span></li>
+					<#list event_categories![] as category>
+					<li><span class="calendar-event-tag">${category.name!}</span></li>
+					</#list>
+					<#if status?has_content && status != 'confirmed'>
+					<li><span class="calendar-event-tag calendar-event-tag-${status}">#i18n{calendar.event.status.${status}.value}</span></li>
+					</#if>
+				</ul>
+			</header>
+			<#if status == 'cancelled' || status == 'postponed' || status == 'movedOnline'>
+				<@cAlert type=((status == 'cancelled')?then('danger', 'warning')) title='#i18n{calendar.event.status.${status}.value}' />
+			</#if>
+			<#if event.description?has_content>
+			<section class="calendar-event-description">${event.description}</section>
+			</#if>
+			${document!}
+			<#if (event_next_occurrences![])?has_content>
+			<section class="calendar-event-section">
+				<@cTitle level=2 class='calendar-event-heading'>#i18n{calendar.event_page.nextDates}</@cTitle>
+				<ul class="calendar-event-dates">
+				<#list event_next_occurrences as occurrence>
+					<li<#if (occurrence.status!'') == 'cancelled'> class="calendar-event-date-cancelled"</#if>>
+						<span class="calendar-event-date-day">${occurrence.date?date?string.full}</span>
+						<span class="calendar-event-date-time"><#if occurrence.dateTimeStart?has_content>${occurrence.dateTimeStart}<#if occurrence.dateTimeEnd?has_content> - ${occurrence.dateTimeEnd}</#if><#else>#i18n{calendar.portlet.allDay}</#if></span>
+						<#if (occurrence.status!'')?has_content && occurrence.status != 'confirmed'><span class="calendar-event-tag calendar-event-tag-${occurrence.status}">#i18n{calendar.event.status.${occurrence.status}.value}</span></#if>
+					</li>
+				</#list>
+				</ul>
+				<#if (event_occurrences_count!0) gt event_next_occurrences?size>
+				<p class="text-secondary small">${event_occurrences_count} #i18n{calendar.event_page.datesInAll}</p>
 				</#if>
-				<#if event.locationAddress?has_content | event.locationZip?has_content | event.locationTown?has_content>
-					<p>#i18n{calendar.modify_event.location.address} : 
-						<#if event.locationAddress?has_content >${event.locationAddress}</#if> 
-						<#if event.locationZip?has_content >${event.locationZip}</#if> 
-						<#if event.locationTown?has_content >${event.locationTown}</#if> 
-					</p> 
+			</section>
+			</#if>
+			<#if event.listTags?has_content>
+			<section class="calendar-event-section">
+				<@cTitle level=2 class='calendar-event-heading'>#i18n{calendar.modify_event.tags}</@cTitle>
+				<ul class="calendar-event-tags">
+				<#list event.listTags?split(' ') as tag><#if tag?has_content><li><a class="calendar-event-tag calendar-event-tag-link" href="jsp/site/Portal.jsp?page=calendar&amp;action=do_search&amp;tag=${tag?url('UTF-8')}" title="#i18n{calendar.search.tagSearch} #${tag}">#${tag}</a></li></#if></#list>
+				</ul>
+			</section>
+			</#if>
+			<section class="calendar-event-section calendar-event-actions">
+				<#include "/skin/plugins/calendar/calendar_button.html" />
+				<@cBtn href=subscription_page label='#i18n{calendar.subscription.buttonLabelSubscribe}' class='secondary calendar-event-action' size='sm'><@cIcon name='star' /></@cBtn>
+				<@cBtn href='${email_friend_page}&event_id=${event.id}&agenda=${agenda.id}' label='#i18n{calendar.email-friend.sendTofriend}' class='secondary calendar-event-action' size='sm'><@cIcon name='mail' /></@cBtn>
+				<@cBtn href='javascript:window.print();' label='#i18n{calendar.search.label.buttonPrint}' class='secondary calendar-event-action' size='sm'><@cIcon name='printer' /></@cBtn>
+			</section>
+		</@cCol>
+		<@cCol cols='12' class='col-lg-4'>
+			<aside class="calendar-event-aside">
+				<@cTitle level=2 class='calendar-event-heading'>#i18n{calendar.event_page.practical}</@cTitle>
+				<ul class="calendar-event-infos">
+					<@eventInfo icon='calendar' label='#i18n{calendar.event_page.when}'>
+						<#if event.date?date?string == event.dateEnd?date?string>
+							${event.date?date?string.long}
+						<#else>
+							#i18n{calendar.search_result.labelFrom} ${event.date?date?string.long} #i18n{calendar.search_result.labelTo} ${event.dateEnd?date?string.long}
+						</#if>
+						<br><#if event.dateTimeStart?has_content>${event.dateTimeStart}<#if event.dateTimeEnd?has_content> - ${event.dateTimeEnd}</#if><#else>#i18n{calendar.portlet.allDay}</#if>
+					</@eventInfo>
+					<#if event.location?has_content || event.locationAddress?has_content || event.locationZip?has_content || event.locationTown?has_content>
+					<@eventInfo icon='map-pin' label='#i18n{calendar.event_page.where}'>
+						<#if event.location?has_content><strong>${event.location}</strong><br></#if>
+						<#if event.locationAddress?has_content>${event.locationAddress}<br></#if>
+						<#if event.locationZip?has_content || event.locationTown?has_content>${event.locationZip!} ${event.locationTown!}</#if>
+						<#if event_map_url?has_content>
+							<#if (event_map_tiles![])?has_content>
+							<#-- A static preview of the place above the label of the link: OpenStreetMap tiles placed by the server, a pin at the centre -->
+							<a class="calendar-event-map" href="${event_map_url}" target="_blank" rel="noopener">
+								<span class="calendar-event-map-preview" aria-hidden="true">
+									<#list event_map_tiles as tile><img src="${tile.url}" alt="" loading="lazy" width="256" height="256" style="left:${tile.left?c}px;top:${tile.top?c}px"></#list>
+									<svg class="calendar-event-map-pin" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M18.364 4.636a9 9 0 0 1 .203 12.519l-.203 .21l-4.243 4.242a3 3 0 0 1 -4.097 .135l-.144 -.135l-4.244 -4.243a9 9 0 0 1 12.728 -12.728zm-6.364 3.364a3 3 0 1 0 0 6a3 3 0 0 0 0 -6" /></svg>
+								</span>
+								<span class="calendar-event-map-label"><i class="ti ti-map-2" aria-hidden="true"></i> #i18n{calendar.event_page.viewMap}</span>
+							</a>
+							<span class="calendar-event-map-credit">&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></span>
+							<#else>
+							<br><@cLink href=event_map_url label='#i18n{calendar.event_page.viewMap}' target='_blank' />
+							</#if>
+						</#if>
+					</@eventInfo>
+					</#if>
+					<#if details.priceType?has_content>
+					<@eventInfo icon='ticket' label='#i18n{calendar.event_form.priceType}'>
+						<#if details.priceType == 'free'>#i18n{calendar.event_form.priceFree}<#else>${details.price!'#i18n{calendar.event_form.pricePaid}'}</#if>
+					</@eventInfo>
+					</#if>
+					<#if details.attendanceMode?has_content>
+					<@eventInfo icon=(details.attendanceMode == 'offline')?then('users', 'world') label='#i18n{calendar.event_form.attendanceMode}'>
+						#i18n{calendar.event_form.attendance${details.attendanceMode?cap_first}}
+						<#if details.onlineUrl?has_content && details.attendanceMode != 'offline'><br><@cLink href=details.onlineUrl label='#i18n{calendar.event_form.onlineUrl}' target='_blank' /></#if>
+					</@eventInfo>
+					</#if>
+					<#if details.organizerName?has_content || details.organizerEmail?has_content || details.organizerPhone?has_content>
+					<@eventInfo icon='building-community' label='#i18n{calendar.event_form.organizerName}'>
+						<#if details.organizerName?has_content><#if details.organizerUrl?has_content><@cLink href=details.organizerUrl label=details.organizerName target='_blank' /><#else>${details.organizerName}</#if></#if>
+						<#if details.organizerEmail?has_content><br><a href="mailto:${details.organizerEmail}">${details.organizerEmail}</a></#if>
+						<#if details.organizerPhone?has_content><br><a href="tel:${details.organizerPhone?replace(' ', '')}">${details.organizerPhone}</a></#if>
+					</@eventInfo>
+					</#if>
+					<#if details.accessibility?has_content>
+					<@eventInfo icon='wheelchair' label='#i18n{calendar.event_form.accessibility}'>${details.accessibility}</@eventInfo>
+					</#if>
+					<#if event.linkUrl?has_content || event.pageUrl?has_content>
+					<@eventInfo icon='link' label='#i18n{calendar.event_page.links}'>
+						<#if event.linkUrl?has_content><@cLink href=event.linkUrl label='#i18n{calendar.modify_event.linkurl}' target='_blank' /></#if>
+						<#if event.pageUrl?has_content><#if event.linkUrl?has_content><br></#if><@cLink href=event.pageUrl label='#i18n{calendar.modify_event.pageurl}' /></#if>
+					</@eventInfo>
+					</#if>
+				</ul>
+				<#if details.registrationUrl?has_content && status != 'cancelled'>
+				<@cBtn href=details.registrationUrl label='#i18n{calendar.event_page.register}' class='primary w-100' type='button'><@cIcon name='pencil-check' /></@cBtn>
 				</#if>
-				<#if event.mapUrl?has_content >
-					<p> <i class="glyphicon glyphicon-map-marker"></i>&nbsp;#i18n{calendar.modify_event.map} : ${event.mapUrl}</p>
-				</#if>
-				<#if event.linkUrl?has_content >
-					<p>#i18n{calendar.modify_event.linkurl} : <a href="${event.linkUrl}" target="_blank">${event.linkUrl}</a></p>
-				</#if>
-				<#if event.listTags?has_content >
-					<p>#i18n{calendar.modify_event.tags} : ${event.listTags}</p>
-				</#if>
-				${document}
-				</div>
-			</div>
-		<#else>
-			<div class="alert alert-danger">#i18n{calendar.message.event.unauthorized}</div>
-		</#if>
-	</div>
-	<div class="col-xs-12 col-sm-2 col-md-2">
-		${small_month_calendar}
-	</div>
-</div>
+			</aside>
+			<div class="calendar-event-minical">${small_month_calendar}</div>
+		</@cCol>
+	</@cRow>
+	<#if event_json_ld?has_content><script type="application/ld+json">${event_json_ld}</script></#if>
+</article>
+<#else>
+	<@cAlert type='danger' title='#i18n{calendar.message.event.unauthorized}' />
+	${small_month_calendar}
+</#if>
+</@cContainer>

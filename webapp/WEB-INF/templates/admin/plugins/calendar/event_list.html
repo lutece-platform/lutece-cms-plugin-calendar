@@ -1,103 +1,110 @@
-<div class="row">
-	<div class="col-xs-12 col-sm-12 col-md-12">
-		<div class="box box-primary">
-			<div class="box-header">
-				<h3 class="box-title">   #i18n{calendar.modify_calendar.titleEventsList}</h3>
-				<div class="box-tools pull-right">
-					<form class="form-inline" method="post"  action="jsp/admin/plugins/calendar/CreateEvent.jsp">
-						<input type="hidden" name="calendar_id" value="${calendar.id}"> 
-						<input type="hidden" name="plugin_name" value="calendar">   
-						<button class="btn btn-primary btn-xs btn-flat" type="submit" >
-							<i class="fa fa-plus"></i>
-							<span class="hidden-phone">#i18n{calendar.modify_calendar.buttonCreate}</span>
-						</button>
-					</form> 
-				</div>
-            </div>
-            <div class="box-body table-responsive">
-				<@paginationAdmin paginator=paginator combo=1 />
-				<table class="table table-hover table-condensed">
-					<tr>
-						 <th>
-							#i18n{calendar.modify_calendar.columnEventTitle}
-							<@sort jsp_url="jsp/admin/plugins/calendar/EventList.jsp" attribute="title&calendar_id=${calendar_id}" />
-						</th>
-						<th>
-							#i18n{calendar.modify_calendar.columnEventDate}
-							<@sort jsp_url="jsp/admin/plugins/calendar/EventList.jsp" attribute="date&calendar_id=${calendar_id}" />
-						</th>
-						<th>
-							#i18n{calendar.modify_calendar.columnEventTimeStart}
-							<@sort jsp_url="jsp/admin/plugins/calendar/EventList.jsp" attribute="dateTimeStart&calendar_id=${calendar_id}" />
-						</th>
-						<th>
-							#i18n{calendar.modify_calendar.columnEventTimeEnd}
-							<@sort jsp_url="jsp/admin/plugins/calendar/EventList.jsp" attribute="dateTimeEnd&calendar_id=${calendar_id}" />
-						</th>
-					   
-						<th>
-							#i18n{calendar.modify_calendar.columnEventPeriodicity}
-							<@sort jsp_url="jsp/admin/plugins/calendar/EventList.jsp" attribute="periodicity&calendar_id=${calendar_id}" />
-						</th>
-						<th>
-							#i18n{calendar.modify_calendar.columnEventOccurrence}
-							<@sort jsp_url="jsp/admin/plugins/calendar/EventList.jsp" attribute="occurrence&calendar_id=${calendar_id}" />
-						</th>
-						<th>#i18n{calendar.modify_calendar.columnEventActions}</th>
-					</tr>                
-					<#list event_list as event >
-					<tr>
-						<td>
-						   <strong>${event.title}</strong>
-						</td>
-						<td>	
-							<i class="fa fa-calendar"></i>&nbsp;${event.date?date}
-						</td>
-						<td>					
-							<#if event.dateTimeStart?exists>
-							<i class="fa fa-time"></i>&nbsp;${event.dateTimeStart}
-							</#if>
-						</td>
-						<td>
-							<#if event.dateTimeEnd?exists>
-							${event.dateTimeEnd}
-							</#if>
-						</td>
-					   
-						<td>                  
-							<#switch event.periodicity>
-							<#case 1>
-							#i18n{calendar.interval.periodicity.day.description}
-							<#break>
-							<#case 7>
-							#i18n{calendar.interval.periodicity.week.description}
-							<#break>				  
-							<#case 30>
-							#i18n{calendar.interval.periodicity.month.description}
-							<#break>
-							<#default>
-							#i18n{calendar.interval.periodicity.day.description}				  
-							</#switch>                
-						</td>
-						<td>
-							${event.occurrence}
-						</td>
-						<td>
-							<a class="btn btn-primary btn-xs btn-flat" href="jsp/admin/plugins/calendar/ModifyEvent.jsp?plugin_name=calendar&calendar_id=${calendar.id}&event_id=${event.id}"  title="#i18n{portal.util.labelModify}" >
-								<i class="fa fa-pencil"></i>
-							</a>
-							<a class="btn btn-primary btn-xs btn-flat" href="jsp/admin/plugins/calendar/OccurrenceList.jsp?plugin_name=calendar&calendar_id=${calendar_id}&event_id=${event.id}"  title="#i18n{calendar.modify_calendar.actionOccurenceList}" >
-								<i class="fa fa-calendar"></i>
-							</a>
-							<a class="btn btn-danger btn-xs btn-flat" href="jsp/admin/plugins/calendar/RemoveEvent.jsp?plugin_name=calendar&calendar_id=${calendar_id}&event_id=${event.id}"  title="#i18n{calendar.modify_calendar.actionDeleteEvent}" >
-								<i class="fa fa-trash"></i>
-							</a>
-						</td>
-					</tr>
-					</#list>
-				</table>
-				<@paginationAdmin paginator=paginator />
-			</div>
-		</div>
-    </div>
-</div>
+<#include "/admin/plugins/calendar/macros_calendar_admin.html" />
+<#assign manageUrl = 'jsp/admin/plugins/calendar/ManageCalendars.jsp' />
+<#assign listUrl = '${manageUrl}?view=eventList&calendar_id=${calendar_id}' />
+<#assign statusColors = { 'confirmed': 'green', 'tentative': 'yellow', 'cancelled': 'red', 'postponed': 'orange', 'movedOnline': 'blue', 'proposed': 'azure' } />
+<#assign today = .now?string('yyyyMMdd')?number />
+<#assign pageTitle><@calendarPageTitle iconName='calendar-event' label='${calendar.name!}' /></#assign>
+<@pageContainer>
+	<@pageColumn>
+		<@pageHeader title=pageTitle description='#i18n{calendar.modify_calendar.titleEventsList}'>
+			<#if events_total gt 0>
+			<#-- The keyword in the header; the other filters, kept as hidden fields, are set in the modal -->
+			<@calendarListFilter action=manageUrl name='filter_keyword' value=filter_keyword placeHolder='#i18n{calendar.event_list.filter.keywordPlaceholder}' resetUrl=listUrl
+				hidden={ 'view': 'eventList', 'calendar_id': '${calendar_id}', 'filter_category': '${filter_category}', 'filter_period': filter_period, 'filter_sort': filter_sort } formName='filter_events' />
+			<@button type='button' buttonIcon='adjustments-horizontal' color=filter_active?then('primary', '') title='#i18n{calendar.event_list.filter.apply}' hideTitle=['xs','sm','md'] class='ms-1' params={'data-bs-toggle': 'modal', 'data-bs-target': '#event-filter'} />
+			</#if>
+			<@aButton href='${manageUrl}?view=createEvent&plugin_name=calendar&calendar_id=${calendar.id}' buttonIcon='plus' color='primary' title='#i18n{calendar.modify_calendar.buttonCreate}' hideTitle=['xs','sm','md'] class='ms-1' />
+			<@aButton href='${manageUrl}?view=modifyCalendar&calendar_id=${calendar.id}' buttonIcon='settings' title='#i18n{calendar.modify_calendar.pageTitle}' hideTitle=['all'] class='ms-1' />
+			<@aButton href=manageUrl buttonIcon='arrow-left' color='light' title='#i18n{portal.util.labelBack}' hideTitle=['xs','sm','md'] class='ms-1' />
+		</@pageHeader>
+		<#if events_total gt 0>
+		<@modal id='event-filter'>
+			<@modalHeader modalTitle='#i18n{calendar.event_list.filter.apply}' />
+			<@modalBody>
+				<@tform id='form-event-filter' method='get' action=manageUrl>
+					<@input type='hidden' name='view' value='eventList' />
+					<@input type='hidden' name='calendar_id' value='${calendar_id}' />
+					<@input type='hidden' name='filter_keyword' value=filter_keyword />
+					<@formGroup labelFor='filter_category' labelKey='#i18n{calendar.event_list.filter.category}' rows=2>
+						<@select name='filter_category' id='filter_category' items=filter_category_list default_value='${filter_category}' />
+					</@formGroup>
+					<@formGroup labelFor='filter_period' labelKey='#i18n{calendar.event_list.filter.period}' rows=2>
+						<@select name='filter_period' id='filter_period' items=filter_period_list default_value=filter_period />
+					</@formGroup>
+					<@formGroup labelFor='filter_sort' labelKey='#i18n{calendar.event_list.filter.sort}' rows=2>
+						<@select name='filter_sort' id='filter_sort' items=filter_sort_list default_value=filter_sort />
+					</@formGroup>
+				</@tform>
+			</@modalBody>
+			<@modalFooter>
+				<#if filter_active>
+				<@aButton href=listUrl buttonIcon='filter-off' color='light' title='#i18n{calendar.event_list.filter.reset}' />
+				</#if>
+				<@button type='submit' formId='form-event-filter' buttonIcon='filter' color='primary' title='#i18n{calendar.event_list.filter.apply}' />
+			</@modalFooter>
+		</@modal>
+		</#if>
+		<@messages infos=infos![] errors=errors![] warnings=warnings![] />
+		<#if filter_active>
+		<@alert color='info' iconTitle='filter' class='d-flex align-items-center justify-content-between'>
+			<@span>${paginator.itemsCount} / ${events_total} #i18n{calendar.event_list.filter.count}</@span>
+			<@aButton href=listUrl color='light' size='sm' buttonIcon='filter-off' title='#i18n{calendar.event_list.filter.reset}' />
+		</@alert>
+		</#if>
+		<#if event_list?has_content>
+			<@manageFeature id='events-list' layout='list'>
+				<#list event_list as event>
+				<#assign isPast = (event.dateEnd!event.date)?date?string('yyyyMMdd')?number lt today />
+				<#assign status = event.status!'confirmed' />
+				<#assign statusLabel>#i18n{calendar.event.status.${status}.value}</#assign><#assign statusLabel = statusLabel?markup_string />
+				<#assign meta>
+					<#if event.dateEnd?? && event.date?date?string != event.dateEnd?date?string>
+					#i18n{calendar.search_result.labelFrom} ${event.date?date} #i18n{calendar.search_result.labelTo} ${event.dateEnd?date}
+					<#else>
+					${event.date?date}
+					</#if>
+					<#if event.dateTimeStart?has_content>&middot; ${event.dateTimeStart}<#if event.dateTimeEnd?has_content> - ${event.dateTimeEnd}</#if></#if>
+					&middot; ${statusLabel}
+					<span class="d-none d-lg-inline">&middot;
+					<#switch event.periodicity>
+						<#case 0>#i18n{calendar.event_list.periodicity.consecutive}<#break>
+						<#case 7>#i18n{calendar.interval.periodicity.week.description}<#break>
+						<#case 30>#i18n{calendar.interval.periodicity.month.description}<#break>
+						<#default>#i18n{calendar.interval.periodicity.day.description}
+					</#switch>
+					<#if event.location?has_content>&middot; <@icon style='map-pin' /> ${event.location}</#if>
+					</span>
+				</#assign>
+				<#assign badges>
+					<#if isPast><@tag color='' class='bg-secondary-lt'>#i18n{calendar.occurrence_list.past}</@tag></#if>
+					<@link href='${manageUrl}?view=occurrenceList&plugin_name=calendar&calendar_id=${calendar_id}&event_id=${event.id}' class='badge bg-primary-lt' title='#i18n{calendar.modify_calendar.actionOccurenceList}'>${event.occurrence}<@span class='visually-hidden'> #i18n{calendar.occurrence_list.occurrences}</@span></@link>
+				</#assign>
+				<@manageFeatureItem id='event_${event.id}'>
+					<@calendarRowTitle href='${manageUrl}?view=modifyEvent&plugin_name=calendar&calendar_id=${calendar_id}&event_id=${event.id}' label=event.title! meta=meta>
+						<@calendarStatusDot color=isPast?then('secondary', statusColors[status]!'secondary') label=statusLabel />
+					</@calendarRowTitle>
+					<@calendarRowActions badges=badges>
+						<@calendarAction href='${manageUrl}?view=occurrenceList&plugin_name=calendar&calendar_id=${calendar_id}&event_id=${event.id}' iconName='calendar-repeat' label='#i18n{calendar.modify_calendar.actionOccurenceList}' />
+						<@calendarActionsMenu label=event.title!>
+							<@calendarMenuItem href='${manageUrl}?view=occurrenceList&plugin_name=calendar&calendar_id=${calendar_id}&event_id=${event.id}' iconName='calendar-repeat' label='#i18n{calendar.modify_calendar.actionOccurenceList}' />
+							<@calendarMenuDivider />
+							<@calendarMenuItem href='${manageUrl}?view=confirmRemoveEvent&plugin_name=calendar&calendar_id=${calendar_id}&event_id=${event.id}' iconName='trash' label='#i18n{calendar.modify_calendar.actionDeleteEvent}' danger=true />
+						</@calendarActionsMenu>
+					</@calendarRowActions>
+				</@manageFeatureItem>
+				</#list>
+			</@manageFeature>
+			<#if ( paginator.itemsCount > paginator.pageItems?size ) || ( paginator.itemsCount >= 10 )>
+			<@paginationAdmin paginator=paginator combo=1 showcount=0 />
+			</#if>
+		<#elseif events_total gt 0>
+			<@card>
+				<@empty title='#i18n{calendar.event_list.filter.noMatch}' subtitle=' ' iconName='filter-off' actionTitle='#i18n{calendar.event_list.filter.reset}' actionIcon='filter-off' actionUrl=listUrl />
+			</@card>
+		<#else>
+			<@card>
+				<@empty title='#i18n{calendar.selector.event.noEvent}' subtitle=' ' iconName='calendar-off' actionTitle='#i18n{calendar.modify_calendar.buttonCreate}' actionUrl='${manageUrl}?view=createEvent&plugin_name=calendar&calendar_id=${calendar.id}' />
+			</@card>
+		</#if>
+	</@pageColumn>
+</@pageContainer>

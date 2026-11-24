@@ -1,10 +1,9 @@
 <%@ page errorPage="../../ErrorPage.jsp" %>
 
+${ pageContext.setAttribute( 'strContent', calendarJspBean.processController( pageContext.request , pageContext.response ) ) }
+
 <jsp:include page="../../AdminHeader.jsp" />
 
-<jsp:useBean id="calendar" scope="session" class="fr.paris.lutece.plugins.calendar.web.CalendarJspBean" />
-
-<% calendar.init( request, fr.paris.lutece.plugins.calendar.web.CalendarJspBean.RIGHT_MANAGE_CALENDAR ); %>
-<%= calendar.getManageCalendars ( request ) %>
+${ pageContext.getAttribute( 'strContent' ) }
 
 <%@ include file="../../AdminFooter.jsp" %>

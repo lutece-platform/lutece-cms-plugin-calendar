@@ -33,13 +33,14 @@
  */
 package fr.paris.lutece.plugins.calendar.business;
 
+import jakarta.enterprise.inject.spi.CDI;
 import fr.paris.lutece.plugins.calendar.service.AgendaResource;
 import fr.paris.lutece.portal.service.image.ImageResource;
 import fr.paris.lutece.portal.service.plugin.Plugin;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
 import fr.paris.lutece.portal.service.util.AppException;
 
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -51,7 +52,7 @@ import java.util.List;
 public final class CalendarHome
 {
     // Static variable pointed at the DAO instance
-    private static ICalendarDAO _dao = SpringContextService.getBean( "calendar.calendarDAO" );
+    private static ICalendarDAO _dao = CDI.current( ).select( ICalendarDAO.class ).get( );
 
     /**
      * Create a new CalendarHome
@@ -293,6 +294,29 @@ public final class CalendarHome
     }
 
     /**
+     * Tells whether an event has a picture, without loading it
+     * @param nEventId the identifier of the event
+     * @param plugin the plugin
+     * @return true when a non empty picture is stored for the event
+     */
+    public static boolean hasImage( int nEventId, Plugin plugin )
+    {
+        return _dao.hasImage( nEventId, plugin );
+    }
+
+    /**
+     * Returns the events of a calendar all of whose occurrences have a status: the proposals waiting for confirmation
+     * @param nAgendaId the identifier of the calendar
+     * @param strStatus the status
+     * @param plugin the plugin
+     * @return the identifiers of the events
+     */
+    public static java.util.Set<Integer> findEventIdsWithOnlyStatus( int nAgendaId, String strStatus, Plugin plugin )
+    {
+        return _dao.selectEventIdsWithOnlyStatus( nAgendaId, strStatus, plugin );
+    }
+
+    /**
      * Load the list of Events
      * 
      * @return The Collection of the Events
@@ -346,5 +370,25 @@ public final class CalendarHome
     public static List<Integer> findCalendarIds( Plugin plugin )
     {
         return _dao.selectCalendarIds( plugin );
+    }
+    /**
+     * Returns the occurrences of the given calendars that take place in a date range, with the location of their event
+     *
+     * @param listAgendaIds
+     *            the calendars
+     * @param dateStart
+     *            the first day of the range
+     * @param dateEnd
+     *            the day after the range (excluded)
+     * @param listCategoryIds
+     *            the categories the event must belong to (one of them), or an empty collection for every event
+     * @param plugin
+     *            the plugin
+     * @return the occurrences, ordered by date then start time
+     */
+    public static List<OccurrenceEvent> findOccurrencesByDateRange( Collection<Integer> listAgendaIds, java.time.LocalDate dateStart,
+            java.time.LocalDate dateEnd, Collection<Integer> listCategoryIds, Plugin plugin )
+    {
+        return _dao.selectOccurrencesByDateRange( listAgendaIds, dateStart, dateEnd, listCategoryIds, plugin );
     }
 }

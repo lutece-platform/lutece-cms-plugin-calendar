@@ -1,0 +1,67 @@
+<#include "/admin/plugins/calendar/macros_calendar_admin.html" />
+<#if (calendar_library!'event-calendar') == 'agendo'>
+<link rel="stylesheet" href="themes/shared/plugins/calendar/js/lib/agendo/agendo.css">
+<link rel="stylesheet" href="themes/shared/plugins/calendar/js/lib/agendo/themes/tabler.css">
+<#else>
+<link rel="stylesheet" href="themes/shared/plugins/calendar/js/lib/event-calendar/event-calendar.min.css">
+</#if>
+<#assign pageTitle><@calendarPageTitle iconName='calendar-month' label='#i18n{calendar.view.pageTitle}' /></#assign>
+<@pageContainer>
+	<@pageColumn>
+		<@pageHeader title=pageTitle>
+			<@aButton href='jsp/admin/plugins/calendar/ManageCalendars.jsp' title='#i18n{calendar.manage_calendars.tableLabel}' buttonIcon='list' color='light' hideTitle=['xs'] />
+		</@pageHeader>
+		<@row>
+			<@columns sm=12 lg=2>
+				<@fieldSet legend='#i18n{calendar.view.calendars}'>
+					<#list calendar_list as calendar>
+						<#assign dotLabel><span class="calendar-dot me-1" style="--calendar-dot-color:${calendar.eventColorCode!}" aria-hidden="true"></span>${calendar.name!}</#assign>
+						<@checkBox name='calendar_filter' id='calendar_filter_${calendar?index}' value='${calendar.id}' labelKey=dotLabel orientation='switch' checked=(!selected_calendar_id?? || selected_calendar_id == calendar.id) params={'data-calendar-filter': 'calendar-admin-view'} />
+					</#list>
+				</@fieldSet>
+				<#if (category_items?size gt 1)>
+				<@formGroup labelFor='calendar_category_filter' labelKey='#i18n{calendar.view.category}' formStyle='vertical'>
+					<@select name='category_filter' id='calendar_category_filter' items=category_items default_value='' params={'data-category-filter': 'calendar-admin-view'} />
+				</@formGroup>
+				</#if>
+				<#if calendar_items?has_content>
+				<@formGroup labelFor='calendar_create_target' labelKey='#i18n{calendar.view.createIn}' formStyle='vertical'>
+					<@select name='create_calendar' id='calendar_create_target' items=calendar_items default_value=selected_calendar_id!'' params={'data-create-calendar': 'calendar-admin-view'} />
+				</@formGroup>
+				</#if>
+				<@p class='text-secondary small'>#i18n{calendar.view.createHelp}</@p>
+			</@columns>
+			<@columns sm=12 lg=10>
+				<div id="calendar-admin-view" class="calendar-view" data-calendar-view
+					data-feed="jsp/admin/plugins/calendar/CalendarEvents.jsp?view=eventsFeed"
+					data-move-url="jsp/admin/plugins/calendar/CalendarEvents.jsp" data-move-token="${move_token!}"
+					data-create-url="jsp/admin/plugins/calendar/ManageCalendars.jsp?view=createEvent"
+					data-view="month" data-locale="${locale!}" data-theme="tabler"
+					data-label-today="#i18n{calendar.view.today}" data-label-day="#i18n{calendar.view.day}" data-label-all-day="#i18n{calendar.view.allDay}" data-label-all-day="#i18n{calendar.view.allDay}"
+					data-label-week="#i18n{calendar.view.week}" data-label-month="#i18n{calendar.view.month}"
+					data-label-list="#i18n{calendar.view.list}" data-label-previous="#i18n{calendar.view.previous}"
+					data-label-next="#i18n{calendar.view.next}" data-label-no-events="#i18n{calendar.view.noEvents}"
+					data-label-moved="#i18n{calendar.view.moved}" data-label-error="#i18n{calendar.view.moveError}"></div>
+				<p class="mt-2 mb-0" role="status" aria-live="polite" data-calendar-status="calendar-admin-view"></p>
+			</@columns>
+		</@row>
+	</@pageColumn>
+</@pageContainer>
+<@modal id='calendar-scope-modal' params={'data-calendar-scope': 'calendar-admin-view', 'tabindex': '-1', 'aria-labelledby': 'calendar-scope-title'}>
+	<@modalHeader modalTitle='#i18n{calendar.view.scope.title}' id='calendar-scope-title' />
+	<@modalBody>
+		<p class="mb-0">#i18n{calendar.view.scope.question}</p>
+	</@modalBody>
+	<@modalFooter>
+		<@button type='button' title='#i18n{portal.util.labelCancel}' color='light' params={'data-bs-dismiss': 'modal', 'data-scope': 'cancel'} />
+		<@button type='button' title='#i18n{calendar.view.scope.series}' color='light' params={'data-scope': 'series'} />
+		<@button type='button' title='#i18n{calendar.view.scope.occurrence}' color='primary' params={'data-scope': 'occurrence'} />
+	</@modalFooter>
+</@modal>
+<#if (calendar_library!'event-calendar') == 'agendo'>
+<script src="themes/shared/plugins/calendar/js/lib/agendo/agendo.js"></script>
+<script src="themes/shared/plugins/calendar/js/calendar-view-agendo.js"></script>
+<#else>
+<script src="themes/shared/plugins/calendar/js/lib/event-calendar/event-calendar.min.js"></script>
+<script src="themes/shared/plugins/calendar/js/calendar-view.js"></script>
+</#if>

@@ -54,7 +54,7 @@ public final class Constants
     public static final String MARK_EVENT_SHORT_TITLE = "short_event_title";
     public static final String MARK_EVENT_DESCRIPTION = "event_description";
     public static final String MARK_EVENT_LOCATION = "event_location";
-    public static final String MARK_EVENT_IMAGE = "event_image";
+    public static final String MARK_EVENT_COLOR = "event_color";
     public static final String MARK_EVENT_URL = "event_url";
     public static final String MARK_EVENT_ID = "event_id";
     public static final String MARK_DAY_LINK = "day_link";
@@ -90,7 +90,6 @@ public final class Constants
 
     // Properties
     public static final String PLUGIN_NAME = "calendar";
-    public static final String PLUGIN_JCAPTCHA = "jcaptcha";
     public static final String PROPERTY_TITLE = "calendar.title";
     public static final String PROPERTY_PATH = "calendar.path";
     public static final String PROPERTY_SHORTLABEL_MONDAY = "calendar.shortlabel.monday";
@@ -142,6 +141,7 @@ public final class Constants
     public static final String PROPERTY_FRIEND_MAIL_TITLE = "calendar.email-friend.mail.title";
     public static final String PROPERTY_EVENT_STATUS_CONFIRMED = "calendar.event.status.confirmed";
     public static final String PROPERTY_EVENT_STATUS_TENTATIVE = "calendar.event.status.tentative";
+    public static final String PROPERTY_EVENT_STATUS_PROPOSED = "calendar.event.status.proposed";
     public static final String PROPERTY_EVENT_STATUS_LIST = "calendar.event.status.list";
     public static final String PROPERTY_EVENT_STATUS_DEFAULT = "calendar.event.status.default";
     public static final String PROPERTY_CONFIRM_UNSUBSCRIPTION_ALERT_MESSAGE = "calendar.siteMessage.unsubscription.message";
@@ -161,16 +161,16 @@ public final class Constants
     public static final String PROPERTY_PAGE_DOWNLOAND_TITLE = "calendar.download.agenda.title";
     public static final String PROPERTY_PAGE_EMAIL_FRIEND_TITLE = "calendar.email-friend.event.title";
     public static final String PROPERTY_PAGE_TITLE_MANAGE_SUBSCRIBERS = "calendar.manage.subscribers.calendar.pageTitle";
-    public static final String PROPERTY_CALENDAR_DOTS_PATH = "calendar.dots.path";
+    public static final String PROPERTY_CALENDAR_DOTS_COLORS = "calendar.dots.colors";
     public static final String PROPERTY_MESSAGE_DATEFORMAT = "calendar.message.dateFormat";
     public static final String PROPERTY_MESSAGE_DATE_END_BEFORE = "calendar.message.dateend.before";
     public static final String PROPERTY_MESSAGE_TIMEFORMAT = "calendar.message.timeFormat";
-    public static final String PROPERTY_MESSAGE_EXIST = "calendar.message.exist";
     public static final String PROPERTY_MESSAGE_CANNOT_DELETE_ALL_OCC = "calendar.message.occurrence.cannot_delete_all";
     public static final String PROPERTY_EVENTS_PER_PAGE = "calendar.eventsPerPage";
     public static final String PROPERTY_SORT_EVENTS = "calendar.modify_calendar.sortEvents";
     public static final String PROPERTY_PAGE_RSS_TITLE = "calendar.rss.title";
     public static final String PROPERTY_WEBMASTER_EMAIL = "email.webmaster";
+    public static final String DATASTORE_KEY_WEBMASTER_EMAIL = "portal.site.site_property.email";
 
     //Parameters for Back Office
     public static final String PARAMETER_PLUGIN_NAME = "plugin_name";
@@ -236,7 +236,6 @@ public final class Constants
     public static final String PARAMETER_EVENT_STATUS = "event_status";
     public static final String PARAMETER_EVENT_MAP_URL = "event_map_url";
     public static final String PARAMETER_EXPORT_EXTENSION = "export_extension";
-    public static final String PARAMETER_STYLESHEET_ID = "stylesheet_id";
     public static final String PARAMETER_EMAIL = "email";
     public static final String PARAMETER_DATE = "date";
     public static final String PARAMETER_NOTIFY = "notify";
@@ -269,7 +268,6 @@ public final class Constants
     public static final String MARK_SUBSCRIBERS_LIST = "subscribers_list";
     public static final String MARK_SEARCH_STRING = "search_string";
     public static final String MARK_DOCUMENT = "document";
-    public static final String MARK_EXPORT_STYLESHEET_LIST = "stylesheet_list";
 
     //Bookmarks used in front
     public static final String MARK_PREVIOUS = "previous";
@@ -304,8 +302,6 @@ public final class Constants
     public static final String EQUAL = "=";
     public static final String INTERROGATION_MARK = "?";
     public static final String INDENT = "-";
-    public static final String BEAN_CALENDAR_CALENDARSERVICE = "calendar.calendarService";
-    public static final String BEAN_CALENDAR_EVENTLISTSERVICE = "calendar.eventListService";
     public static final int SORT_ASC = 1;
     public static final int SORT_DESC = 0;
 

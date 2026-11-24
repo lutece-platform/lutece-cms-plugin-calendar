@@ -1,15 +1,49 @@
-<h3>#i18n{calendar.label.legend}</h3>
-<ul class="list-unstyled">
-	<#list agenda_resource_list as agendaResource >
-		<li>
-            <img src="${agendaResource.eventImage}" />
-			<#if agendaResource.resourceType="READ_WRITE">
-				<a href="jsp/site/Portal.jsp?page=calendar&action=manage_events&calendar_id=${agendaResource.id}"  title="null" >
-					<i class="glyphicon glyphicon-edit"></i>&nbsp;${agendaResource.name}
-				</a>
-			<#else>
-                <i class="glyphicon glyphicon-lock"></i>&nbsp;${agendaResource.name}
-            </#if>
-		</li>  
-    </#list>
-</ul>     
+<#-- The side column of the calendar page: the calendars shown (each one a filter of the view, with its colour, an edit link
+     for its managers and a proposal link when it accepts proposals from the site), the category filter and the subscription links. The data-calendar-filter and data-category-filter attributes drive the
+     EventCalendar view (calendar-view.js). -->
+<section class="calendar-side-card">
+	<@cFieldset legend='#i18n{calendar.view.calendars}' class='calendar-legend'>
+	<#list agenda_resource_list as agendaResource>
+		<#assign dotLabel><span class="calendar-dot me-1" style="--calendar-dot-color:${agendaResource.eventColorCode!}" aria-hidden="true"></span>${agendaResource.name!}</#assign>
+		<div class="calendar-legend-item">
+			<@cCheckbox name='calendar_filter' id='calendar_filter_${agendaResource?index}' value='${agendaResource.id!}' label=dotLabel checked=true params={'data-calendar-filter': 'calendar-view'} />
+		<#if (managed_calendar_ids![])?seq_contains(agendaResource.id!'')>
+			<a href="jsp/site/Portal.jsp?page=calendar&amp;action=manage_events&amp;calendar_id=${agendaResource.id}" title="#i18n{calendar.calendar_manage_events.title} ${agendaResource.name!}"><i class="ti ti-edit" aria-hidden="true"></i><span class="visually-hidden">#i18n{calendar.calendar_manage_events.title} ${agendaResource.name!}</span></a>
+		<#elseif (proposal_calendar_ids![])?seq_contains(agendaResource.id!'')>
+			<a href="jsp/site/Portal.jsp?page=calendar&amp;action=add_event&amp;calendar_id=${agendaResource.id}" title="#i18n{calendar.event_proposal.link} - ${agendaResource.name!}"><i class="ti ti-calendar-plus" aria-hidden="true"></i><span class="visually-hidden">#i18n{calendar.event_proposal.link} - ${agendaResource.name!}</span></a>
+		</#if>
+		</div>
+	</#list>
+	</@cFieldset>
+</section>
+<#if (category_list![])?has_content>
+<section class="calendar-side-card">
+	<@cField label='#i18n{calendar.view.category}' for='calendar_category_filter'>
+		<@cSelect name='category_filter' id='calendar_category_filter' params={'data-category-filter': 'calendar-view'}>
+			<@cOption label='#i18n{calendar.view.allCategories}' value='' selected=true />
+			<#list category_list as category>
+			<@cOption label=category.name! value='${category.id}' />
+			</#list>
+		</@cSelect>
+	</@cField>
+</section>
+</#if>
+<#if (ical_list![])?has_content>
+<section class="calendar-side-card">
+	<@cFieldset legend='#i18n{calendar.view.subscribe}' class='calendar-ical'>
+		<p class="calendar-side-help">#i18n{calendar.view.subscribeHelp}</p>
+		<ul class="calendar-side-exports">
+		<#list ical_list as ical>
+			<li style="--calendar-dot-color:${ical.color!}">
+				<span class="calendar-side-export-name"><span class="calendar-dot" aria-hidden="true"></span>${ical.name!}</span>
+				<span class="calendar-side-export-links">
+					<a class="calendar-side-export" href="${ical.url}"><i class="ti ti-calendar-share" aria-hidden="true"></i> iCal<span class="visually-hidden"> - ${ical.name!}</span></a>
+					<a class="calendar-side-export" href="${ical.json}"><i class="ti ti-braces" aria-hidden="true"></i> JSON<span class="visually-hidden"> - ${ical.name!}</span></a>
+					<a class="calendar-side-export" href="${ical.rss}"><i class="ti ti-rss" aria-hidden="true"></i> RSS<span class="visually-hidden"> - ${ical.name!}</span></a>
+				</span>
+			</li>
+		</#list>
+		</ul>
+	</@cFieldset>
+</section>
+</#if>

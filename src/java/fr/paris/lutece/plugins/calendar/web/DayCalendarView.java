@@ -33,12 +33,13 @@
  */
 package fr.paris.lutece.plugins.calendar.web;
 
+import jakarta.enterprise.inject.spi.CDI;
 import fr.paris.lutece.plugins.calendar.business.Event;
 import fr.paris.lutece.plugins.calendar.business.MultiAgenda;
 import fr.paris.lutece.plugins.calendar.business.MultiAgendaEvent;
-import fr.paris.lutece.plugins.calendar.service.CalendarPlugin;
 import fr.paris.lutece.plugins.calendar.service.Utils;
 import fr.paris.lutece.plugins.calendar.service.search.CalendarSearchService;
+import fr.paris.lutece.portal.service.template.HtmlMarkup;
 import fr.paris.lutece.portal.service.plugin.Plugin;
 import fr.paris.lutece.portal.service.plugin.PluginService;
 import fr.paris.lutece.portal.service.template.AppTemplateService;
@@ -49,7 +50,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 
 /**
@@ -79,8 +80,8 @@ public class DayCalendarView implements CalendarView
         if ( agenda.hasEvents( strDate ) )
         {
             Date date = Utils.getDate( strDate );
-            Plugin plugin = PluginService.getPlugin( CalendarPlugin.PLUGIN_NAME );
-            List<Event> listIndexedEvents = CalendarSearchService.getInstance( ).getSearchResults(
+            Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
+            List<Event> listIndexedEvents = CDI.current( ).select( CalendarSearchService.class ).get( ).getSearchResults(
                     agenda.getAgendaIds( ), null, "", date, date, plugin );
 
             for ( Event event : listIndexedEvents )
@@ -96,7 +97,7 @@ public class DayCalendarView implements CalendarView
             }
         }
 
-        dayModel.put( Constants.MARK_EVENTS, sbEvents.toString( ) );
+        dayModel.put( Constants.MARK_EVENTS, HtmlMarkup.of( sbEvents.toString( ) ) );
 
         HtmlTemplate tDay = AppTemplateService.getTemplate( TEMPLATE_VIEW_DAY, options.getLocale( ), dayModel );
 

@@ -33,33 +33,29 @@
  */
 package fr.paris.lutece.plugins.calendar.business.portlet;
 
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.spi.CDI;
 import fr.paris.lutece.portal.business.portlet.IPortletInterfaceDAO;
 import fr.paris.lutece.portal.business.portlet.PortletHome;
 import fr.paris.lutece.portal.business.portlet.PortletTypeHome;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
 
 
 /**
  * This class provides instances management methods for Mini CalendarPortlet
  * objects
  */
+@ApplicationScoped
 public class MiniCalendarPortletHome extends PortletHome
 {
-    // This class implements the Singleton design pattern.
-    private static MiniCalendarPortletHome _singleton;
-
     // Static variable pointed at the DAO instance
-    private static IMiniCalendarPortletDAO _dao = SpringContextService.getBean( "calendar.miniCalendarPortletDAO" );
+    private static IMiniCalendarPortletDAO _dao = CDI.current( ).select( IMiniCalendarPortletDAO.class ).get( );
 
     /**
      * Constructor
      */
     public MiniCalendarPortletHome( )
     {
-        if ( _singleton == null )
-        {
-            _singleton = this;
-        }
+        // Instantiated by CDI, and by the core through reflection
     }
 
     /**
@@ -73,21 +69,6 @@ public class MiniCalendarPortletHome extends PortletHome
         String strPortletTypeId = PortletTypeHome.getPortletTypeId( strCurrentClassName );
 
         return strPortletTypeId;
-    }
-
-    /**
-     * Returns the instance of NewsLetterArchive Portlet
-     * 
-     * @return the Archive Portlet instance
-     */
-    public static PortletHome getInstance( )
-    {
-        if ( _singleton == null )
-        {
-            _singleton = new MiniCalendarPortletHome( );
-        }
-
-        return _singleton;
     }
 
     /**

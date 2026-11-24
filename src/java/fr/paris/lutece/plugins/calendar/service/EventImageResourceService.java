@@ -43,31 +43,27 @@ import fr.paris.lutece.portal.service.plugin.PluginService;
 import fr.paris.lutece.portal.web.constants.Parameters;
 import fr.paris.lutece.util.url.UrlItem;
 
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.Initialized;
+import jakarta.enterprise.event.Observes;
+import jakarta.servlet.ServletContext;
+
 
 /**
  * EventImageResourceService
  */
+@ApplicationScoped
 public class EventImageResourceService implements ImageResourceProvider
 {
-    private static EventImageResourceService _singleton = new EventImageResourceService( );
     private static final String IMAGE_RESOURCE_TYPE_ID = "image_event";
 
     /**
-     * Creates a new instance of CategoryService
+     * Registers the provider of the event images when the application starts
+     * @param context the servlet context
      */
-    EventImageResourceService( )
+    public void initializedService( @Observes @Initialized( ApplicationScoped.class ) ServletContext context )
     {
         ImageResourceManager.registerProvider( this );
-    }
-
-    /**
-     * Get the unique instance of the service
-     * 
-     * @return The unique instance
-     */
-    public static EventImageResourceService getInstance( )
-    {
-        return _singleton;
     }
 
     /**
@@ -95,9 +91,9 @@ public class EventImageResourceService implements ImageResourceProvider
      * @param nEventId The event identifier
      * @return The url of the resource
      */
-    public String getResourceImageEvent( int nEventId )
+    public static String getResourceImageEvent( int nEventId )
     {
-        String strResourceType = EventImageResourceService.getInstance( ).getResourceTypeId( );
+        String strResourceType = IMAGE_RESOURCE_TYPE_ID;
         UrlItem url = new UrlItem( Parameters.IMAGE_SERVLET );
         url.addParameter( Parameters.RESOURCE_TYPE, strResourceType );
         url.addParameter( Parameters.RESOURCE_ID, Integer.toString( nEventId ) );

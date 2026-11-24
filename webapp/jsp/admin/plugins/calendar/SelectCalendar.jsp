@@ -1,5 +1,7 @@
+<%@ page errorPage="../../ErrorPage.jsp" %>
+
+${ pageContext.setAttribute( 'strContent', calendarServiceJspBean.processController( pageContext.request , pageContext.response ) ) }
+
 <jsp:include page="../../insert/InsertServiceHeader.jsp" />
 
-<jsp:useBean id="calendarServiceJspBean" scope="session" class="fr.paris.lutece.plugins.calendar.web.CalendarServiceJspBean" />
-
-<%= calendarServiceJspBean.getSelectCalendar( request ) %>
+${ pageContext.getAttribute( 'strContent' ) }

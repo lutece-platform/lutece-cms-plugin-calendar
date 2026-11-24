@@ -1,0 +1,20 @@
+<#include "/skin/plugins/calendar/portlet/calendar_portlet_macros.html" />
+<#-- Carousel: three cards per view, the date over the picture, prev / next buttons -->
+<@pfFrame style='carousel'>
+	<div class="calendar-pf-track" data-calendar-pf-track tabindex="0" aria-label="${portlet_name!}">
+	<#list events as event>
+		<article class="calendar-pf-card calendar-pf-accent-bottom" style="--calendar-dot-color:${event.color!}">
+			<@pfMedia event=event>
+				<div class="calendar-pf-date-overlay"><span class="calendar-pf-day">${event.day}</span>${event.monthYear}<br><small>${event.weekday}</small></div>
+			</@pfMedia>
+			<div class="calendar-pf-body">
+				<@pfTitle event=event />
+				<@pfStatus event=event />
+				<@pfMeta event=event />
+				<@pfActions event=event />
+			</div>
+		</article>
+	</#list>
+	</div>
+	<#if events?size gt 1><@pfNav /></#if>
+</@pfFrame>

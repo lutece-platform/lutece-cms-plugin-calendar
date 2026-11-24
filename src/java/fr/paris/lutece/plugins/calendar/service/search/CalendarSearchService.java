@@ -41,8 +41,10 @@ import fr.paris.lutece.plugins.calendar.service.EventComparator;
 import fr.paris.lutece.plugins.calendar.service.EventImageResourceService;
 import fr.paris.lutece.plugins.calendar.web.Constants;
 import fr.paris.lutece.portal.service.plugin.Plugin;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
 import fr.paris.lutece.portal.service.util.AppLogService;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,30 +57,15 @@ import java.util.List;
 /**
  * DocumentSearchService
  */
+@ApplicationScoped
 public class CalendarSearchService
 {
-    private static final String BEAN_SEARCH_ENGINE = "calendar.calendarLuceneSearchEngine";
     private static final String REGEX_ID_EVENT = "^[\\d]+_" + Constants.CALENDAR_SHORT_NAME + "$";
     private static final String REGEX_ID_DOCUMENT = "^[\\d]+_" + Constants.DOCUMENT_SHORT_NAME + "$";
     private static final String UNDERSCORE = "_";
 
-    // Constants corresponding to the variables defined in the lutece.properties file
-    private static CalendarSearchService _singleton;
-
-    /**
-     * Get the HelpdeskSearchService instance
-     * 
-     * @return The {@link CalendarSearchService}
-     */
-    public static CalendarSearchService getInstance( )
-    {
-        if ( _singleton == null )
-        {
-            _singleton = new CalendarSearchService( );
-        }
-
-        return _singleton;
-    }
+    @Inject
+    private CalendarSearchEngine _engine;
 
     /**
      * Return search results
@@ -95,8 +82,7 @@ public class CalendarSearchService
     {
         List<Event> listEvent = new ArrayList<Event>( );
         HashMap<String, Event> hmListEvent = new HashMap<String, Event>( );
-        CalendarSearchEngine engine = SpringContextService.getBean( BEAN_SEARCH_ENGINE );
-        List<CalendarSearchResult> listResults = engine.getSearchResults( arrayAgendaIds, arrayCategory, strQuery,
+        List<CalendarSearchResult> listResults = _engine.getSearchResults( arrayAgendaIds, arrayCategory, strQuery,
                 dateBegin, dateEnd );
 
         for ( CalendarSearchResult searchResult : listResults )
@@ -111,12 +97,17 @@ public class CalendarSearchService
                             Integer.parseInt( searchResult.getId( ).substring( 0,
                                     searchResult.getId( ).indexOf( UNDERSCORE ) ) ), plugin );
 
+                    if ( ( occurence == null ) || hmListEvent.containsKey( Integer.toString( occurence.getEventId( ) ) ) )
+                    {
+                        continue;
+                    }
+
                     //Retrieve the event related to the occurence
                     SimpleEvent event = CalendarHome.findEvent( occurence.getEventId( ), plugin );
                    
                     event.setUrl( searchResult.getUrl( ) );
                     event.setType( searchResult.getType( ) );
-                    event.setImageUrl( EventImageResourceService.getInstance( ).getResourceImageEvent( event.getId( ) ) );
+                    event.setImageUrl( EventImageResourceService.getResourceImageEvent( event.getId( ) ) );
 
                     event.setDescription( searchResult.getHtmlSummary( ) );
 

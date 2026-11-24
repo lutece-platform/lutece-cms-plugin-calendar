@@ -1,0 +1,22 @@
+<#include "/skin/plugins/calendar/portlet/calendar_portlet_macros.html" />
+<#-- Slider: one event per view, its text beside its picture, prev / next buttons -->
+<@pfFrame style='slider'>
+	<div class="calendar-pf-track" data-calendar-pf-track tabindex="0" aria-label="${portlet_name!}">
+	<#list events as event>
+		<article class="calendar-pf-card calendar-pf-slide calendar-pf-accent-start" style="--calendar-dot-color:${event.color!}">
+			<div class="calendar-pf-body p-4">
+				<div class="calendar-pf-bigdate">
+					<i class="ti ti-calendar-event fs-1 text-primary" aria-hidden="true"></i>
+					<div><span class="calendar-pf-day">${event.day}</span> ${event.monthYear}<small>${event.weekday}</small></div>
+				</div>
+				<@pfTitle event=event class='mt-2' />
+				<@pfStatus event=event />
+				<@pfMeta event=event />
+				<@pfActions event=event />
+			</div>
+			<@pfMedia event=event />
+		</article>
+	</#list>
+	</div>
+	<#if events?size gt 1><@pfNav /></#if>
+</@pfFrame>

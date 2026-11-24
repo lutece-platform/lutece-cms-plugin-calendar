@@ -1,0 +1,73 @@
+<#-- Options of the "add to calendar" button shown on the page of an event -->
+<#macro calendarButtonText name value>
+	<#local escapedValue><#outputformat "HTML">${value!}</#outputformat></#local><#local escapedValue = escapedValue?markup_string />
+	<@formGroup labelFor='calendar_button_${name}' labelKey='#i18n{calendar.calendarButton.${name}}' helpKey='#i18n{calendar.calendarButton.${name}.help}'>
+		<@input type='text' name='calendar_button_${name}' id='calendar_button_${name}' value=escapedValue maxlength=255 />
+	</@formGroup>
+</#macro>
+<#macro calendarButtonRadio name value choices hasHelp=false>
+	<@formGroup labelKey='#i18n{calendar.calendarButton.${name}}' helpKey=hasHelp?then('#i18n{calendar.calendarButton.${name}.help}','')>
+		<#list choices as choice>
+			<@radioButton orientation='inline' name='calendar_button_${name}' id='calendar_button_${name}_${choice}' value=choice labelKey='#i18n{calendar.calendarButton.${name}.${choice}}' checked=(value == choice) />
+		</#list>
+	</@formGroup>
+</#macro>
+<#macro calendarButtonSelect name value choices hasHelp=false>
+	<@formGroup labelFor='calendar_button_${name}' labelKey='#i18n{calendar.calendarButton.${name}}' helpKey=hasHelp?then('#i18n{calendar.calendarButton.${name}.help}','')>
+		<@select name='calendar_button_${name}' id='calendar_button_${name}'>
+			<#list choices as choice><@option value=choice label='#i18n{calendar.calendarButton.${name}.${choice}}' selected=(value == choice) /></#list>
+		</@select>
+	</@formGroup>
+</#macro>
+<#macro calendarButtonOptions config choices>
+<#-- The card of the "add to calendar" button of a calendar, in the form of its modification: a switch, then its options,
+     shown while the switch is on -->
+<@box>
+	<@boxHeader title='#i18n{calendar.calendarButton.title}' />
+	<@boxBody>
+		<@formGroup labelFor='calendar_button_enabled' hideLabel=['all']>
+			<@checkBox orientation='switch' labelKey='#i18n{calendar.calendarButton.enabled}' name='calendar_button_enabled' id='calendar_button_enabled' value='true' checked=config.enabled />
+		</@formGroup>
+		<@div id='calendar-button-options' class=config.enabled?then('', 'd-none')>
+		<@row>
+			<@columns xs=12 md=6>
+				<@formGroup labelKey='#i18n{calendar.calendarButton.options}' helpKey='#i18n{calendar.calendarButton.options.help}'>
+					<#list choices.options as choice>
+						<@checkBox orientation='switch' labelKey='#i18n{calendar.calendarButton.options.${choice}}' name='calendar_button_options' id='calendar_button_options_${choice}' value=choice checked=config.options?seq_contains(choice) />
+					</#list>
+				</@formGroup>
+				<@calendarButtonRadio name='displayMode' value=config.displayMode choices=choices.displayMode hasHelp=true />
+				<@calendarButtonRadio name='trigger' value=config.trigger choices=choices.trigger hasHelp=true />
+				<@calendarButtonRadio name='buttonsLayout' value=config.buttonsLayout choices=choices.buttonsLayout hasHelp=true />
+				<@calendarButtonText name='label' value=config.label />
+				<#list ['showButtonIcon', 'showLinkIcons'] as switchName>
+					<@formGroup labelFor='calendar_button_${switchName}' hideLabel=['all']>
+						<@checkBox orientation='switch' labelKey='#i18n{calendar.calendarButton.${switchName}}' name='calendar_button_${switchName}' id='calendar_button_${switchName}' value='true' checked=config[switchName] />
+					</@formGroup>
+				</#list>
+			</@columns>
+			<@columns xs=12 md=6>
+				<@calendarButtonSelect name='buttonStyle' value=config.buttonStyle choices=choices.buttonStyle hasHelp=true />
+				<@calendarButtonSelect name='color' value=config.color choices=choices.color hasHelp=true />
+				<@calendarButtonText name='location' value=config.location />
+				<@formGroup labelKey='#i18n{calendar.calendarButton.availability}' helpKey='#i18n{calendar.calendarButton.availability.help}'>
+					<@radioButton orientation='inline' name='calendar_button_availability' id='calendar_button_availability_default' value='' labelKey='#i18n{calendar.calendarButton.availability.default}' checked=(config.availability == '') />
+					<#list choices.availability as choice>
+						<@radioButton orientation='inline' name='calendar_button_availability' id='calendar_button_availability_${choice}' value=choice labelKey='#i18n{calendar.calendarButton.availability.${choice}}' checked=(config.availability == choice) />
+					</#list>
+				</@formGroup>
+			</@columns>
+		</@row>
+		</@div>
+	</@boxBody>
+</@box>
+<script>
+document.addEventListener( 'DOMContentLoaded', ( ) => {
+	const enabled = document.getElementById( 'calendar_button_enabled' );
+	const options = document.getElementById( 'calendar-button-options' );
+	if ( enabled && options ) {
+		enabled.addEventListener( 'change', ( ) => options.classList.toggle( 'd-none', !enabled.checked ) );
+	}
+} );
+</script>
+</#macro>

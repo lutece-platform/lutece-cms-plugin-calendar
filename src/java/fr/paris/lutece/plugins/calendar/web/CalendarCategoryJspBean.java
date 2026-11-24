@@ -33,11 +33,11 @@
  */
 package fr.paris.lutece.plugins.calendar.web;
 
+import fr.paris.lutece.api.user.User;
 import fr.paris.lutece.plugins.calendar.business.category.Category;
 import fr.paris.lutece.plugins.calendar.business.category.CategoryHome;
 import fr.paris.lutece.plugins.calendar.service.CalendarResourceIdService;
 import fr.paris.lutece.plugins.calendar.service.CategoryService;
-import fr.paris.lutece.plugins.calendar.service.CategoryService.CategoryDisplay;
 import fr.paris.lutece.portal.business.rbac.RBAC;
 import fr.paris.lutece.portal.business.user.AdminUser;
 import fr.paris.lutece.portal.service.admin.AccessDeniedException;
@@ -46,40 +46,52 @@ import fr.paris.lutece.portal.service.message.AdminMessageService;
 import fr.paris.lutece.portal.service.plugin.Plugin;
 import fr.paris.lutece.portal.service.plugin.PluginService;
 import fr.paris.lutece.portal.service.rbac.RBACService;
-import fr.paris.lutece.portal.service.template.AppTemplateService;
-import fr.paris.lutece.portal.service.util.AppPathService;
+import fr.paris.lutece.portal.service.upload.MultipartItem;
 import fr.paris.lutece.portal.service.workgroup.AdminWorkgroupService;
-import fr.paris.lutece.portal.web.admin.AdminFeaturesPageJspBean;
+import fr.paris.lutece.portal.util.mvc.admin.MVCAdminJspBean;
+import fr.paris.lutece.portal.util.mvc.admin.annotations.Controller;
+import fr.paris.lutece.portal.util.mvc.commons.annotations.Action;
+import fr.paris.lutece.portal.util.mvc.commons.annotations.View;
+import fr.paris.lutece.portal.web.cdi.mvc.Models;
 import fr.paris.lutece.portal.web.constants.Messages;
 import fr.paris.lutece.portal.web.upload.MultipartHttpServletRequest;
 import fr.paris.lutece.util.ReferenceList;
-import fr.paris.lutece.util.html.HtmlTemplate;
 import fr.paris.lutece.util.url.UrlItem;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
-
-import org.apache.commons.fileupload.FileItem;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Named;
+import jakarta.servlet.http.HttpServletRequest;
 
 
 /**
- * This class provides the user interface to manage Lutece group features (
- * manage, create, modify, remove )
+ * This class provides the user interface to manage calendar categories
  */
-public class CalendarCategoryJspBean extends AdminFeaturesPageJspBean
+@RequestScoped
+@Named
+@Controller( controllerJsp = "ManageCalendarCategory.jsp", controllerPath = "jsp/admin/plugins/calendar/", right = CalendarCategoryJspBean.RIGHT_CATEGORY_MANAGEMENT, securityTokenEnabled = true )
+public class CalendarCategoryJspBean extends MVCAdminJspBean
 {
     // Right
     public static final String RIGHT_CATEGORY_MANAGEMENT = "CALENDAR_MANAGEMENT";
+    private static final long serialVersionUID = 6326580154716939427L;
 
     //Constants
     private static final String REGEX_ID = "^[\\d]+$";
     private static final int ERROR_ID_CATEGORY = -1;
+    private static final String MESSAGE_ACCESS_DENIED = "Access denied";
 
-    // JSP
-    private static final String JSP_URL_REMOVE_CATEGORY = "jsp/admin/plugins/calendar/DoRemoveCategory.jsp";
+    // Views
+    private static final String VIEW_MANAGE_CATEGORY = "manageCategory";
+    private static final String VIEW_CREATE_CATEGORY = "createCategory";
+    private static final String VIEW_MODIFY_CATEGORY = "modifyCategory";
+    private static final String VIEW_CONFIRM_REMOVE_CATEGORY = "confirmRemoveCategory";
+
+    // Actions
+    private static final String ACTION_CREATE_CATEGORY = "createCategory";
+    private static final String ACTION_MODIFY_CATEGORY = "modifyCategory";
+    private static final String ACTION_REMOVE_CATEGORY = "removeCategory";
 
     //Markers
     private static final String MARK_CATEGORY_LIST = "category_list";
@@ -95,15 +107,13 @@ public class CalendarCategoryJspBean extends AdminFeaturesPageJspBean
     private static final String PARAMETER_IMAGE_CONTENT = "category_icon";
     private static final String PARAMETER_WORKGROUP_KEY = "workgroup_key";
 
-    // JSP
-    private static final String JSP_URL_CATEGORY_LIST = "jsp/admin/plugins/calendar/ManageCalendarCategory.jsp";
-
     // Templates
     private static final String TEMPLATE_MANAGE_CATEGORY = "admin/plugins/calendar/category/manage_category.html";
     private static final String TEMPLATE_CREATE_CATEGORY = "admin/plugins/calendar/category/create_category.html";
     private static final String TEMPLATE_MODIFY_CATEGORY = "admin/plugins/calendar/category/modify_category.html";
 
     // Properties
+    private static final String PROPERTY_PAGE_TITLE_MANAGE_CATEGORY = "calendar.manage_category.pageTitle";
     private static final String PROPERTY_PAGE_TITLE_CREATE_CATEGORY = "calendar.create_category.pageTitle";
     private static final String PROPERTY_PAGE_TITLE_MODIFY_CATEGORY = "calendar.modify_category.pageTitle";
 
@@ -114,57 +124,35 @@ public class CalendarCategoryJspBean extends AdminFeaturesPageJspBean
     private static final String MESSAGE_CONFIRM_REMOVE_CATEGORY = "calendar.message.confirmRemoveCategory";
 
     /**
-     * Creates a new CategoryJspBean object.
-     */
-    public CalendarCategoryJspBean( )
-    {
-    }
-
-    /**
-     * Returns Category management form
+     * Returns the category list management page
+     * @param model the model
      * @param request The Http request
-     * @return Html form
-     * @throws AccessDeniedException If the user is not allowed to access this
-     *             feature
+     * @return Html page
+     * @throws AccessDeniedException If the user is not allowed to manage the calendars
      */
-    public String getManageCategory( HttpServletRequest request ) throws AccessDeniedException
+    @View( value = VIEW_MANAGE_CATEGORY, defaultView = true )
+    public String getManageCategory( Models model, HttpServletRequest request ) throws AccessDeniedException
     {
-        if ( !RBACService.isAuthorized( CalendarResourceIdService.RESOURCE_TYPE, RBAC.WILDCARD_RESOURCES_ID,
-                CalendarResourceIdService.PERMISSION_MANAGE, getUser( ) ) )
-        {
-            throw new AccessDeniedException( );
-        }
-        setPageTitleProperty( null );
+        checkPermission( );
+        model.put( MARK_CATEGORY_LIST, CategoryService.getAllCategoriesDisplay( getUser( ) ) );
 
-        AdminUser user = getUser( );
-
-        HashMap<String, Collection<CategoryDisplay>> model = new HashMap<String, Collection<CategoryDisplay>>( );
-        model.put( MARK_CATEGORY_LIST, CategoryService.getAllCategoriesDisplay( user ) );
-
-        HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_MANAGE_CATEGORY, getLocale( ), model );
-
-        return getAdminPage( template.getHtml( ) );
+        return getPage( PROPERTY_PAGE_TITLE_MANAGE_CATEGORY, TEMPLATE_MANAGE_CATEGORY );
     }
 
     /**
-     * Insert a new Category
-     * @param request The HTTP request
-     * @return String The html code page
-     * @throws AccessDeniedException If the user is not allowed to access this
-     *             feature
+     * Returns the category creation page
+     * @param model the model
+     * @param request The Http request
+     * @return Html page
+     * @throws AccessDeniedException If the user is not allowed to manage the calendars
      */
-    public String getCreateCategory( HttpServletRequest request ) throws AccessDeniedException
+    @View( VIEW_CREATE_CATEGORY )
+    public String getCreateCategory( Models model, HttpServletRequest request ) throws AccessDeniedException
     {
-        if ( !RBACService.isAuthorized( CalendarResourceIdService.RESOURCE_TYPE, RBAC.WILDCARD_RESOURCES_ID,
-                CalendarResourceIdService.PERMISSION_MANAGE, getUser( ) ) )
-        {
-            throw new AccessDeniedException( );
-        }
-        setPageTitleProperty( PROPERTY_PAGE_TITLE_CREATE_CATEGORY );
+        checkPermission( );
 
         AdminUser user = getUser( );
         ReferenceList refListWorkGroups = AdminWorkgroupService.getUserWorkgroups( user, getLocale( ) );
-        Map<String, Object> model = new HashMap<String, Object>( );
         model.put( MARK_USER_WORKGROUP_LIST, refListWorkGroups );
 
         //LUTECE-890 : the first workgroup will be selected by default
@@ -173,126 +161,119 @@ public class CalendarCategoryJspBean extends AdminFeaturesPageJspBean
             model.put( MARK_WORKGROUP_SELECTED, refListWorkGroups.get( 0 ).getCode( ) );
         }
 
-        HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_CREATE_CATEGORY, getLocale( ), model );
-
-        return getAdminPage( template.getHtml( ) );
+        return getPage( PROPERTY_PAGE_TITLE_CREATE_CATEGORY, TEMPLATE_CREATE_CATEGORY );
     }
 
     /**
-     * Create Category
-     * @param request The HTTP request
-     * @return String The url page
-     * @throws AccessDeniedException If the user is not allowed to access this
-     *             feature
+     * Creates a category
+     * @param request The Http request
+     * @return The redirection
+     * @throws AccessDeniedException If the user is not allowed to manage the calendars
      */
+    @Action( ACTION_CREATE_CATEGORY )
     public String doCreateCategory( HttpServletRequest request ) throws AccessDeniedException
     {
-        if ( !RBACService.isAuthorized( CalendarResourceIdService.RESOURCE_TYPE, RBAC.WILDCARD_RESOURCES_ID,
-                CalendarResourceIdService.PERMISSION_MANAGE, getUser( ) ) )
-        {
-            throw new AccessDeniedException( );
-        }
+        checkPermission( );
+
         Category category = new Category( );
         String strCategoryName = request.getParameter( PARAMETER_CATEGORY_NAME );
         String strCategoryDescription = request.getParameter( PARAMETER_CATEGORY_DESCRIPTION );
         String strWorkgroup = request.getParameter( PARAMETER_WORKGROUP_KEY );
 
         MultipartHttpServletRequest mRequest = (MultipartHttpServletRequest) request;
-        FileItem item = mRequest.getFile( PARAMETER_IMAGE_CONTENT );
+        MultipartItem item = mRequest.getFile( PARAMETER_IMAGE_CONTENT );
 
         // Mandatory field
-        if ( strCategoryName.length( ) == 0 )
+        if ( ( strCategoryName == null ) || ( strCategoryName.length( ) == 0 ) )
         {
-            return AdminMessageService.getMessageUrl( request, Messages.MANDATORY_FIELDS, AdminMessage.TYPE_STOP );
+            return redirect( request,
+                    AdminMessageService.getMessageUrl( request, Messages.MANDATORY_FIELDS, AdminMessage.TYPE_STOP ) );
         }
 
         Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
 
         // check if category exist
-        if ( CategoryHome.findByName( strCategoryName, plugin ).size( ) > 0 )
+        if ( !CategoryHome.findByName( strCategoryName, plugin ).isEmpty( ) )
         {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_CATEGORY_EXIST, AdminMessage.TYPE_STOP );
+            return redirect( request,
+                    AdminMessageService.getMessageUrl( request, MESSAGE_CATEGORY_EXIST, AdminMessage.TYPE_STOP ) );
         }
 
         category.setName( strCategoryName );
         category.setDescription( strCategoryDescription );
 
-        byte[] bytes = item.get( );
+        if ( item != null )
+        {
+            category.setIconContent( item.get( ) );
+            category.setIconMimeType( item.getContentType( ) );
+        }
 
-        category.setIconContent( bytes );
-        category.setIconMimeType( item.getContentType( ) );
         category.setWorkgroup( strWorkgroup );
         CategoryHome.create( category, plugin );
 
-        return AppPathService.getBaseUrl( request ) + JSP_URL_CATEGORY_LIST;
+        return redirectView( request, VIEW_MANAGE_CATEGORY );
     }
 
     /**
-     * Returns Category modification form
-     * @param request The HTTP request
-     * @return String The html code page
-     * @throws AccessDeniedException If the user is not allowed to access this
-     *             feature
+     * Returns the category modification page
+     * @param model the model
+     * @param request The Http request
+     * @return Html page
+     * @throws AccessDeniedException If the user is not allowed to manage the calendars
      */
-    public String getModifyCategory( HttpServletRequest request ) throws AccessDeniedException
+    @View( VIEW_MODIFY_CATEGORY )
+    public String getModifyCategory( Models model, HttpServletRequest request ) throws AccessDeniedException
     {
-        if ( !RBACService.isAuthorized( CalendarResourceIdService.RESOURCE_TYPE, RBAC.WILDCARD_RESOURCES_ID,
-                CalendarResourceIdService.PERMISSION_MANAGE, getUser( ) ) )
-        {
-            throw new AccessDeniedException( );
-        }
-        setPageTitleProperty( PROPERTY_PAGE_TITLE_MODIFY_CATEGORY );
+        checkPermission( );
 
-        AdminUser user = getUser( );
-        ReferenceList refListWorkGroups = AdminWorkgroupService.getUserWorkgroups( user, getLocale( ) );
         int nIdCategory = checkCategoryId( request );
 
         if ( nIdCategory == ERROR_ID_CATEGORY )
         {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_CATEGORY_ERROR, AdminMessage.TYPE_ERROR );
+            return redirect( request,
+                    AdminMessageService.getMessageUrl( request, MESSAGE_CATEGORY_ERROR, AdminMessage.TYPE_ERROR ) );
         }
 
-        Map<String, Object> model = new HashMap<String, Object>( );
+        checkWorkgroup( nIdCategory );
 
+        AdminUser user = getUser( );
+        ReferenceList refListWorkGroups = AdminWorkgroupService.getUserWorkgroups( user, getLocale( ) );
         model.put( MARK_CATEGORY_DISPLAY, CategoryService.getCategoryDisplay( nIdCategory ) );
         model.put( MARK_USER_WORKGROUP_LIST, refListWorkGroups );
 
-        HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_MODIFY_CATEGORY, getLocale( ), model );
-
-        return getAdminPage( template.getHtml( ) );
+        return getPage( PROPERTY_PAGE_TITLE_MODIFY_CATEGORY, TEMPLATE_MODIFY_CATEGORY );
     }
 
     /**
-     * Modify Category
-     * @param request The HTTP request
-     * @return String The url page
-     * @throws AccessDeniedException If the user is not allowed to access this
-     *             feature
+     * Modifies a category
+     * @param request The Http request
+     * @return The redirection
+     * @throws AccessDeniedException If the user is not allowed to manage the calendars
      */
+    @Action( ACTION_MODIFY_CATEGORY )
     public String doModifyCategory( HttpServletRequest request ) throws AccessDeniedException
     {
-        if ( !RBACService.isAuthorized( CalendarResourceIdService.RESOURCE_TYPE, RBAC.WILDCARD_RESOURCES_ID,
-                CalendarResourceIdService.PERMISSION_MANAGE, getUser( ) ) )
-        {
-            throw new AccessDeniedException( );
-        }
-        Category category = null;
+        checkPermission( );
+
         String strCategoryName = request.getParameter( PARAMETER_CATEGORY_NAME );
         String strCategoryDescription = request.getParameter( PARAMETER_CATEGORY_DESCRIPTION );
         String strCategoryUpdateIcon = request.getParameter( PARAMETER_CATEGORY_UPDATE_ICON );
         String strWorkgroup = request.getParameter( PARAMETER_WORKGROUP_KEY );
-
         int nIdCategory = checkCategoryId( request );
 
         if ( nIdCategory == ERROR_ID_CATEGORY )
         {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_CATEGORY_ERROR, AdminMessage.TYPE_ERROR );
+            return redirect( request,
+                    AdminMessageService.getMessageUrl( request, MESSAGE_CATEGORY_ERROR, AdminMessage.TYPE_ERROR ) );
         }
 
+        checkWorkgroup( nIdCategory );
+
         // Mandatory field
-        if ( strCategoryName.length( ) == 0 )
+        if ( ( strCategoryName == null ) || ( strCategoryName.length( ) == 0 ) )
         {
-            return AdminMessageService.getMessageUrl( request, Messages.MANDATORY_FIELDS, AdminMessage.TYPE_STOP );
+            return redirect( request,
+                    AdminMessageService.getMessageUrl( request, Messages.MANDATORY_FIELDS, AdminMessage.TYPE_STOP ) );
         }
 
         Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
@@ -302,105 +283,136 @@ public class CalendarCategoryJspBean extends AdminFeaturesPageJspBean
 
         if ( !categoriesList.isEmpty( ) && ( categoriesList.iterator( ).next( ).getId( ) != nIdCategory ) )
         {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_CATEGORY_EXIST, AdminMessage.TYPE_STOP );
+            return redirect( request,
+                    AdminMessageService.getMessageUrl( request, MESSAGE_CATEGORY_EXIST, AdminMessage.TYPE_STOP ) );
         }
 
-        category = CategoryHome.find( nIdCategory, plugin );
+        Category category = CategoryHome.find( nIdCategory, plugin );
         category.setName( strCategoryName );
         category.setDescription( strCategoryDescription );
 
         if ( strCategoryUpdateIcon != null )
         {
             MultipartHttpServletRequest mRequest = (MultipartHttpServletRequest) request;
-            FileItem item = mRequest.getFile( PARAMETER_IMAGE_CONTENT );
+            MultipartItem item = mRequest.getFile( PARAMETER_IMAGE_CONTENT );
 
-            byte[] bytes = item.get( );
-            category.setIconContent( bytes );
-            category.setIconMimeType( item.getContentType( ) );
+            if ( item != null )
+            {
+                category.setIconContent( item.get( ) );
+                category.setIconMimeType( item.getContentType( ) );
+            }
         }
 
         category.setWorkgroup( strWorkgroup );
-
         CategoryHome.update( category, plugin );
 
-        return AppPathService.getBaseUrl( request ) + JSP_URL_CATEGORY_LIST;
+        return redirectView( request, VIEW_MANAGE_CATEGORY );
     }
 
     /**
-     * Returns the page of confirmation for deleting a workgroup
-     * 
-     * @param request The Http Request
-     * @return the confirmation url
-     * @throws AccessDeniedException If the user is not allowed to access this
-     *             feature
+     * Returns the confirmation to remove a category
+     * @param request The Http request
+     * @return The confirmation message
+     * @throws AccessDeniedException If the user is not allowed to manage the calendars
      */
+    @View( value = VIEW_CONFIRM_REMOVE_CATEGORY, securityTokenAction = ACTION_REMOVE_CATEGORY )
     public String getConfirmRemoveCategory( HttpServletRequest request ) throws AccessDeniedException
     {
-        if ( !RBACService.isAuthorized( CalendarResourceIdService.RESOURCE_TYPE, RBAC.WILDCARD_RESOURCES_ID,
-                CalendarResourceIdService.PERMISSION_MANAGE, getUser( ) ) )
-        {
-            throw new AccessDeniedException( );
-        }
+        checkPermission( );
+
         int nIdCategory = checkCategoryId( request );
 
         if ( nIdCategory == ERROR_ID_CATEGORY )
         {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_CATEGORY_ERROR, AdminMessage.TYPE_ERROR );
+            return redirect( request,
+                    AdminMessageService.getMessageUrl( request, MESSAGE_CATEGORY_ERROR, AdminMessage.TYPE_ERROR ) );
         }
+
+        checkWorkgroup( nIdCategory );
 
         Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
 
         // Test if the category is assigned
         if ( CategoryHome.findCountIdEvents( nIdCategory, plugin ) > 0 )
         {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_CATEGORY_IS_LINKED, AdminMessage.TYPE_STOP );
+            return redirect( request,
+                    AdminMessageService.getMessageUrl( request, MESSAGE_CATEGORY_IS_LINKED, AdminMessage.TYPE_STOP ) );
         }
 
-        UrlItem url = new UrlItem( JSP_URL_REMOVE_CATEGORY );
+        UrlItem url = new UrlItem( getActionUrl( ACTION_REMOVE_CATEGORY ) );
         url.addParameter( PARAMETER_CATEGORY_ID, Integer.toString( nIdCategory ) );
 
-        return AdminMessageService.getMessageUrl( request, MESSAGE_CONFIRM_REMOVE_CATEGORY, url.getUrl( ),
-                AdminMessage.TYPE_CONFIRMATION );
+        return redirect( request, AdminMessageService.getMessageUrl( request, MESSAGE_CONFIRM_REMOVE_CATEGORY,
+                url.getUrl( ), AdminMessage.TYPE_CONFIRMATION ) );
     }
 
     /**
-     * Perform the deletion
-     * @param request The HTTP request
-     * @return The URL to go after performing the action
-     * @throws AccessDeniedException If the user is not allowed to access this
-     *             feature
+     * Removes a category
+     * @param request The Http request
+     * @return The redirection
+     * @throws AccessDeniedException If the user is not allowed to manage the calendars
      */
+    @Action( ACTION_REMOVE_CATEGORY )
     public String doRemoveCategory( HttpServletRequest request ) throws AccessDeniedException
     {
-        if ( !RBACService.isAuthorized( CalendarResourceIdService.RESOURCE_TYPE, RBAC.WILDCARD_RESOURCES_ID,
-                CalendarResourceIdService.PERMISSION_MANAGE, getUser( ) ) )
-        {
-            throw new AccessDeniedException( );
-        }
+        checkPermission( );
+
         int nIdCategory = checkCategoryId( request );
 
         if ( nIdCategory == ERROR_ID_CATEGORY )
         {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_CATEGORY_ERROR, AdminMessage.TYPE_ERROR );
+            return redirect( request,
+                    AdminMessageService.getMessageUrl( request, MESSAGE_CATEGORY_ERROR, AdminMessage.TYPE_ERROR ) );
         }
+
+        checkWorkgroup( nIdCategory );
 
         Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
 
         // Test if the category is assigned
         if ( CategoryHome.findCountIdEvents( nIdCategory, plugin ) > 0 )
         {
-            return AdminMessageService.getMessageUrl( request, MESSAGE_CATEGORY_IS_LINKED, AdminMessage.TYPE_STOP );
+            return redirect( request,
+                    AdminMessageService.getMessageUrl( request, MESSAGE_CATEGORY_IS_LINKED, AdminMessage.TYPE_STOP ) );
         }
 
         CategoryHome.remove( nIdCategory, plugin );
 
-        return AppPathService.getBaseUrl( request ) + JSP_URL_CATEGORY_LIST;
+        return redirectView( request, VIEW_MANAGE_CATEGORY );
     }
 
     /**
-     * 
-     * @param request The http request
-     * @return id of category, ERROR_ID_CATEGORY else
+     * Checks the RBAC permission to manage the calendars
+     * @throws AccessDeniedException If the user is not allowed to manage the calendars
+     */
+    private void checkPermission( ) throws AccessDeniedException
+    {
+        if ( !RBACService.isAuthorized( CalendarResourceIdService.RESOURCE_TYPE, RBAC.WILDCARD_RESOURCES_ID,
+                CalendarResourceIdService.PERMISSION_MANAGE, (User) getUser( ) ) )
+        {
+            throw new AccessDeniedException( MESSAGE_ACCESS_DENIED );
+        }
+    }
+
+    /**
+     * Checks the workgroup of a category against the user
+     * @param nIdCategory the category id
+     * @throws AccessDeniedException If the category belongs to a workgroup of another user
+     */
+    private void checkWorkgroup( int nIdCategory ) throws AccessDeniedException
+    {
+        Category category = CategoryHome.find( nIdCategory, PluginService.getPlugin( Constants.PLUGIN_NAME ) );
+
+        if ( ( category != null ) && !AdminWorkgroupService.isAuthorized( category, (User) getUser( ) ) )
+        {
+            throw new AccessDeniedException( MESSAGE_ACCESS_DENIED );
+        }
+    }
+
+    /**
+     * Check if the id of the category is valid
+     * @param request The HTTP request
+     * @return the id of the category, or -1 when it is not valid
      */
     private int checkCategoryId( HttpServletRequest request )
     {
@@ -411,6 +423,13 @@ public class CalendarCategoryJspBean extends AdminFeaturesPageJspBean
             return ERROR_ID_CATEGORY;
         }
 
-        return Integer.parseInt( strCategoryId );
+        int nIdCategory = Integer.parseInt( strCategoryId );
+
+        if ( CategoryHome.find( nIdCategory, PluginService.getPlugin( Constants.PLUGIN_NAME ) ) == null )
+        {
+            return ERROR_ID_CATEGORY;
+        }
+
+        return nIdCategory;
     }
 }

@@ -1,29 +1,28 @@
-<#escape x as x?html>
-<div class="portlet">
-	<div class="portlet-header">#i18n{calendar.download.agenda.title}</div>
-    <form class="form-horizontal" action="jsp/site/plugins/calendar/GetCalendarFile.jsp" method="post">
-		<div class="form-group">
-		<label class="control-label col-xs-12 col-sm-3 col-md-3" for="agenda">#i18n{calendar.search.event.label.calendar_choice} * :</label>
-			<div class="col-xs-12 col-sm-8 col-md-6">
-				<@comboWithParams name="agenda" default_value="" additionalParameters="class=\"form-control input-sm\"" items=calendar_list />
-		</div>
-	</div> 
-	<div class="form-group">
-		<label class="control-label col-xs-12 col-sm-3 col-md-3" for="export_sheet">#i18n{calendar.search.event.label.stylesheet_choice} * :</label>
-           <div class="col-xs-12 col-sm-8 col-md-6">
-			<@comboWithParams name="stylesheet_id" default_value="" additionalParameters="class=\"form-control input-sm\"" items=stylesheet_list />
-		</div>
-	</div> 
-	<div class="form-group">
-		<div class="col-xs-12 col-sm-offset-3 col-sm-9 col-md-offset-3 col-md-9">
-			<button class="btn btn-primary btn-sm" type="submit">
-				<i class="glyphicon glyphicon-download"></i>&nbsp;#i18n{calendar.label.download}
-			</button>
-			<a href="#" class="btn btn-default btn-sm" onclick="javascript:history.go(-1)" >
-				<i class="glyphicon glyphicon-remove-circle"></i>&nbsp;#i18n{portal.admin.message.buttonCancel}
-			</a>
-		</div>
-	</div>
-	</form>
-</div>
-</#escape>
+<@cContainer>
+<@cTitle level=2>#i18n{calendar.download.agenda.title}</@cTitle>
+<p>#i18n{calendar.download.help}</p>
+<#if export_list?has_content>
+<@cTable caption='#i18n{calendar.download.agenda.title}' class='calendar-exports' id=''>
+	<thead>
+		<tr>
+			<th scope="col">#i18n{calendar.view.calendars}</th>
+			<th scope="col">#i18n{calendar.download.formats}</th>
+		</tr>
+	</thead>
+	<tbody>
+	<#list export_list as export>
+		<tr class="align-middle">
+			<th scope="row"><span class="calendar-dot me-1" style="--calendar-dot-color:${export.color!}" aria-hidden="true"></span>${export.name!}</th>
+			<td>
+				<a class="me-3" href="${export.ical}"><i class="ti ti-calendar-down" aria-hidden="true"></i> iCalendar (.ics)<span class="visually-hidden"> ${export.name!}</span></a>
+				<a class="me-3" href="${export.json}"><i class="ti ti-braces" aria-hidden="true"></i> JSON<span class="visually-hidden"> ${export.name!}</span></a>
+				<a href="${export.rss}"><i class="ti ti-rss" aria-hidden="true"></i> RSS<span class="visually-hidden"> ${export.name!}</span></a>
+			</td>
+		</tr>
+	</#list>
+	</tbody>
+</@cTable>
+<#else>
+<p>#i18n{calendar.view.noEvents}</p>
+</#if>
+</@cContainer>

@@ -33,8 +33,8 @@
  */
 package fr.paris.lutece.plugins.calendar.business;
 
+import jakarta.enterprise.inject.spi.CDI;
 import fr.paris.lutece.portal.service.plugin.Plugin;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -49,8 +49,7 @@ public final class CalendarSubscriberHome
     private static final String CONSTANT_EMPTY_STRING = "";
 
     // Static variable pointed at the DAO instance
-    private static ICalendarSubscriberDAO _dao = (ICalendarSubscriberDAO) SpringContextService.getPluginBean( "calendar",
-            "calendar.calendarSubscriberDAO" );
+    private static ICalendarSubscriberDAO _dao = CDI.current( ).select( ICalendarSubscriberDAO.class ).get( );
 
     /**
      * Private constructor - this class need not be instantiated

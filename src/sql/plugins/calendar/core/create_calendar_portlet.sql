@@ -1,3 +1,7 @@
+-- liquibase formatted sql
+-- changeset calendar:create_calendar_portlet.sql
+-- preconditions onFail:MARK_RAN onError:WARN
+-- precondition-sql-check expectedResult:1 SELECT COUNT(*) FROM calendar_portlet WHERE 1 = 0
 --
 -- Table structure for table calendar_portlet
 --

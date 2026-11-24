@@ -1,0 +1,1010 @@
+/* Agendo
+ * Every colour, radius and shadow is a --ago-* custom property on .agendo.
+ * Override them to theme the calendar; see themes/ for Tabler, Bootstrap and Bulma.
+ */
+
+.agendo {
+  --ago-rem: 1rem;          /* every font size scales from this; themes for sites with a 62.5% root override it */
+  --ago-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --ago-bg: #fff;
+  --ago-surface: #f8fafc;
+  --ago-border: #e2e8f0;
+  --ago-border-strong: #94a3b8;
+  --ago-border-subtle: #f1f5f9;
+  --ago-text: #1e293b;
+  --ago-text-muted: #64748b;
+  --ago-primary: #3b82f6;
+  --ago-primary-hover: #2563eb;
+  --ago-primary-light: #eff6ff;
+  --ago-non-business-hour: #f8fafc;
+  --ago-current-time: #ef4444;
+  --ago-time-col-width: 65px;
+  --ago-event-bg: #3b82f6;
+  --ago-event-color: #fff;
+  --ago-event-border-radius: 6px;
+  --ago-on-primary: #fff;
+  --ago-danger: #ef4444;
+  --ago-danger-hover: #dc2626;
+  --ago-on-danger: #fff;
+  --ago-radius: 8px;
+  --ago-btn-radius: 6px;
+  --ago-btn-padding: 6px 14px;
+  --ago-btn-font-size: calc(0.875 * var(--ago-rem));
+  --ago-btn-font-weight: 500;
+  --ago-btn-bg: var(--ago-bg);
+  --ago-btn-hover-bg: var(--ago-surface);
+  --ago-btn-shadow: none;
+  --ago-menu-shadow: 0 10px 15px rgb(0 0 0 / 0.12);
+  --ago-dialog-radius: 12px;
+  --ago-dialog-shadow: 0 20px 25px rgb(0 0 0 / 0.2);
+  --ago-focus-ring: color-mix(in srgb, var(--ago-primary) 20%, transparent);
+  --ago-title-font-size: calc(1.15 * var(--ago-rem));
+
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family: var(--ago-font-family);
+  color: var(--ago-text);
+  background: var(--ago-bg);
+  border: 1px solid var(--ago-border);
+  border-radius: var(--ago-radius);
+  overflow: hidden;
+  user-select: none;
+}
+
+.agendo *,
+.agendo *::before,
+.agendo *::after { box-sizing: border-box; }
+
+.agendo [hidden] { display: none; }
+
+/* --- Dark colours (colorScheme: 'dark', or 'auto' with a dark OS setting) --- */
+.agendo.ago-light { color-scheme: light; }
+.agendo.ago-dark {
+  color-scheme: dark;
+  --ago-bg: #0f172a;
+  --ago-surface: #1e293b;
+  --ago-border: #334155;
+  --ago-border-strong: #64748b;
+  --ago-border-subtle: #1b2537;
+  --ago-text: #e2e8f0;
+  --ago-text-muted: #94a3b8;
+  --ago-primary: #3b82f6;
+  --ago-primary-hover: #60a5fa;
+  --ago-primary-light: rgb(59 130 246 / 0.18);
+  --ago-non-business-hour: #131d31;
+  --ago-current-time: #f87171;
+  --ago-event-bg: #2563eb;
+  --ago-event-color: #fff;
+  --ago-on-primary: #fff;
+  --ago-danger: #dc2626;
+  --ago-danger-hover: #ef4444;
+  --ago-btn-hover-bg: #273449;
+  --ago-menu-shadow: 0 10px 20px rgb(0 0 0 / 0.5);
+  --ago-dialog-shadow: 0 20px 30px rgb(0 0 0 / 0.6);
+  --ago-focus-ring: rgb(96 165 250 / 0.35);
+  --ago-today-bg: rgb(250 204 21 / 0.08);
+}
+/* The timeline's today band multiplies on light backgrounds; on dark ones it is a plain tint. */
+.agendo.ago-dark .ago-tl-today { mix-blend-mode: normal; }
+.agendo.ago-dark .ago-dialog::backdrop { background: rgb(0 0 0 / 0.6); }
+
+/* --- Toolbar --- */
+.ago-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ago-border);
+}
+
+.ago-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.ago-views { display: flex; flex-wrap: wrap; gap: 12px; }
+.ago-group { display: flex; flex-wrap: wrap; gap: 6px; }
+.ago-title { font-size: var(--ago-title-font-size); font-weight: 600; }
+
+.ago-btn {
+  padding: var(--ago-btn-padding);
+  font: inherit;
+  font-size: var(--ago-btn-font-size);
+  font-weight: var(--ago-btn-font-weight);
+  line-height: 1.5;
+  color: var(--ago-text);
+  background: var(--ago-btn-bg);
+  border: 1px solid var(--ago-border);
+  border-radius: var(--ago-btn-radius);
+  box-shadow: var(--ago-btn-shadow);
+  cursor: pointer;
+}
+.ago-btn:hover { background: var(--ago-btn-hover-bg); }
+.ago-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ago-focus-ring); }
+.ago-btn.active,
+.ago-btn-primary { background: var(--ago-primary); border-color: var(--ago-primary); color: var(--ago-on-primary); }
+.ago-btn.active:hover,
+.ago-btn-primary:hover { background: var(--ago-primary-hover); border-color: var(--ago-primary-hover); }
+.ago-btn-danger { background: var(--ago-danger); border-color: var(--ago-danger); color: var(--ago-on-danger); margin-right: auto; }
+.ago-btn-danger:hover { background: var(--ago-danger-hover); border-color: var(--ago-danger-hover); }
+
+/* --- View dropdowns --- */
+.ago-dropdown { position: relative; }
+.ago-dropdown summary { display: block; list-style: none; }
+.ago-dropdown summary::-webkit-details-marker { display: none; }
+.ago-dropdown summary::after {
+  content: '';
+  display: inline-block;
+  margin-left: 8px;
+  vertical-align: 0.15em;
+  border: 4px solid transparent;
+  border-top-color: currentColor;
+  border-bottom-width: 0;
+}
+.ago-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 100%;
+  padding: 4px;
+  background: var(--ago-bg);
+  border: 1px solid var(--ago-border);
+  border-radius: var(--ago-btn-radius);
+  box-shadow: var(--ago-menu-shadow);
+}
+.ago-menu button {
+  padding: 6px 12px;
+  font: inherit;
+  font-size: calc(0.875 * var(--ago-rem));
+  text-align: left;
+  white-space: nowrap;
+  color: var(--ago-text);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.ago-menu button:hover { background: var(--ago-surface); }
+.ago-menu button.active { font-weight: 600; color: var(--ago-primary); background: var(--ago-primary-light); }
+
+/* Filter menu: checkboxes per calendar and category */
+.ago-filter .ago-menu { gap: 8px; padding: 8px; }
+.ago-filter fieldset { display: flex; flex-direction: column; min-width: 0; margin: 0; padding: 0; border: 0; }
+.ago-filter legend {
+  padding: 2px 8px 4px;
+  font-size: calc(0.75 * var(--ago-rem));
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ago-text-muted);
+}
+.ago-filter label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  font-size: calc(0.875 * var(--ago-rem));
+  white-space: nowrap;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.ago-filter label:hover { background: var(--ago-surface); }
+.ago-filter input { margin: 0; accent-color: var(--ago-primary); }
+.ago-filter .ago-res-dot { margin-right: 0; background: var(--ago-event-bg); }
+.ago-filter label:has(input:not(:checked)) { color: var(--ago-text-muted); }
+
+/* --- Grid: one scroller, sticky header row --- */
+.ago-grid {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: var(--ago-time-col-width) repeat(var(--ago-days), minmax(var(--ago-col-min, 0px), 1fr));
+}
+
+/* Header row(s): one sticky subgrid so day and resource heads line up with the columns */
+.ago-head {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--ago-surface);
+}
+
+.ago-corner,
+.ago-day-head,
+.ago-res-head {
+  background: var(--ago-surface);
+  border-bottom: 1px solid var(--ago-border);
+}
+.ago-corner { position: sticky; left: 0; z-index: 1; }
+
+.ago-day-head {
+  padding: 10px 4px;
+  text-align: center;
+  border-left: 1px solid var(--ago-border);
+}
+.ago-day-head.ago-today { background: var(--ago-primary-light); }
+
+.ago-day-name {
+  font-size: calc(0.75 * var(--ago-rem));
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ago-text-muted);
+}
+.ago-day-num {
+  width: 32px;
+  margin: 2px auto 0;
+  font-size: calc(1.15 * var(--ago-rem));
+  font-weight: 700;
+  line-height: 32px;
+  border-radius: 50%;
+}
+.ago-today .ago-day-name { color: var(--ago-primary); }
+.ago-today .ago-day-num { background: var(--ago-primary); color: var(--ago-on-primary); }
+
+/* Resource heads */
+.ago-res-head {
+  min-width: 0;
+  padding: 8px 4px;
+  overflow: hidden;
+  font-size: calc(0.8 * var(--ago-rem));
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  border-left: 1px solid var(--ago-border);
+}
+.ago-res-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  vertical-align: middle;
+  border-radius: 50%;
+}
+/* Stronger line between dates when each date holds several resource columns */
+.ago-day-head.ago-date-start,
+.ago-res-head.ago-date-start,
+.ago-col.ago-date-start { border-left: 2px solid var(--ago-border-strong); }
+
+/* Hour labels (stay visible when resource columns scroll horizontally) */
+.ago-gutter { position: sticky; left: 0; z-index: 25; background: var(--ago-surface); }
+.ago-gutter > div { position: relative; height: var(--ago-hour-h); }
+.ago-gutter span {
+  position: absolute;
+  top: -0.5em;
+  right: 8px;
+  font-size: calc(0.725 * var(--ago-rem));
+  font-weight: 500;
+  color: var(--ago-text-muted);
+}
+
+/* Day columns: hour lines, slot lines and business hours are all background gradients */
+.ago-col {
+  position: relative;
+  height: calc(var(--ago-hours) * var(--ago-hour-h));
+  border-left: 1px solid var(--ago-border);
+  background:
+    repeating-linear-gradient(var(--ago-border) 0 1px, transparent 1px var(--ago-hour-h)),
+    repeating-linear-gradient(var(--ago-border-subtle) 0 1px, transparent 1px var(--ago-slot-h)),
+    linear-gradient(var(--ago-non-business-hour) var(--ago-biz-top), var(--ago-bg) 0 var(--ago-biz-bottom), var(--ago-non-business-hour) 0);
+}
+.ago-layer { position: absolute; inset: 0; }
+
+.ago-now {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--ago-current-time);
+  z-index: 5;
+  pointer-events: none;
+}
+.ago-now::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: inherit;
+}
+
+.ago-preview {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  background: color-mix(in srgb, var(--ago-primary) 25%, transparent);
+  border: 1px dashed var(--ago-primary);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* --- Events --- */
+.ago-event {
+  position: absolute;
+  z-index: 4;
+  padding: 4px 8px;
+  overflow: hidden;
+  font-size: calc(0.8 * var(--ago-rem));
+  color: var(--ago-event-color);
+  background: var(--ago-ev, var(--ago-event-bg));
+  border-radius: var(--ago-event-border-radius);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  cursor: pointer;
+  touch-action: none;
+}
+.ago-event:hover { z-index: 8; box-shadow: 0 4px 6px rgb(0 0 0 / 0.15); }
+.ago-event.is-dragging { z-index: 20; opacity: 0.8; cursor: grabbing; box-shadow: 0 10px 15px rgb(0 0 0 / 0.2); }
+
+.ago-event-time,
+.ago-event-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ago-event-time { font-size: calc(0.7 * var(--ago-rem)); opacity: 0.9; }
+.ago-event-title { font-weight: 600; margin-top: 2px; }
+
+.ago-handle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: ns-resize;
+}
+.ago-handle[data-edge="top"] { top: 0; }
+.ago-handle[data-edge="bottom"] { bottom: 0; }
+.ago-handle:hover { background: rgb(255 255 255 / 0.4); }
+
+/* --- Dialog --- */
+.ago-dialog {
+  width: min(90vw, 420px);
+  padding: 0;
+  border: none;
+  border-radius: var(--ago-dialog-radius);
+  box-shadow: var(--ago-dialog-shadow);
+  font-family: var(--ago-font-family);
+  color: var(--ago-text);
+  background: var(--ago-bg);
+}
+.ago-dialog::backdrop { background: rgb(15 23 42 / 0.45); }
+
+.ago-dialog { max-height: calc(100vh - 32px); }
+.ago-dialog form { display: flex; flex-direction: column; gap: 14px; }
+
+/* Checkbox and radio rows, repeat options, scope choice */
+.ago-dialog label.ago-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: var(--ago-text);
+}
+.ago-dialog input[type="checkbox"],
+.ago-dialog input[type="radio"] { width: auto; margin: 0; padding: 0; accent-color: var(--ago-primary); }
+.ago-dialog .ago-check input[type="date"],
+.ago-dialog .ago-check input[type="number"] { padding: 4px 8px; }
+.ago-dialog input[type="number"] { width: 5.5em; }
+.ago-repeat { display: flex; flex-direction: column; gap: 14px; }
+.ago-dialog fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  margin: 0 20px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--ago-border);
+  border-radius: var(--ago-btn-radius);
+}
+.ago-dialog fieldset[hidden] { display: none; }
+.ago-dialog legend {
+  padding: 0 4px;
+  font-size: calc(0.8 * var(--ago-rem));
+  font-weight: 600;
+  color: var(--ago-text-muted);
+}
+.ago-dialog fieldset label { margin: 0; }
+.ago-inline { display: flex; align-items: center; gap: 8px; }
+.ago-weekdays { display: flex; flex-wrap: wrap; gap: 6px; }
+.ago-dialog .ago-weekdays label { position: relative; margin: 0; }
+.ago-weekdays input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.ago-weekdays span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  font-size: calc(0.8 * var(--ago-rem));
+  font-weight: 600;
+  color: var(--ago-text);
+  border: 1px solid var(--ago-border);
+  border-radius: 50%;
+}
+.ago-weekdays input:checked + span { color: var(--ago-on-primary); background: var(--ago-primary); border-color: var(--ago-primary); }
+.ago-weekdays input:focus-visible + span { box-shadow: 0 0 0 3px var(--ago-focus-ring); }
+.ago-scope { width: min(90vw, 340px); }
+.ago-scope-list { display: flex; flex-direction: column; gap: 12px; }
+.ago-dialog header,
+.ago-dialog footer { display: flex; align-items: center; gap: 8px; padding: 14px 20px; }
+.ago-dialog header {
+  justify-content: space-between;
+  font-size: calc(1.1 * var(--ago-rem));
+  font-weight: 600;
+  border-bottom: 1px solid var(--ago-border);
+}
+.ago-dialog header button {
+  border: none;
+  background: none;
+  font-size: calc(1.25 * var(--ago-rem));
+  color: var(--ago-text-muted);
+  cursor: pointer;
+}
+.ago-dialog footer {
+  justify-content: flex-end;
+  background: var(--ago-surface);
+  border-top: 1px solid var(--ago-border);
+}
+
+.ago-dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 20px;
+  font-size: calc(0.8 * var(--ago-rem));
+  font-weight: 600;
+  color: var(--ago-text-muted);
+}
+.ago-dialog input,
+.ago-dialog select {
+  padding: 8px 12px;
+  font: inherit;
+  font-size: calc(0.9 * var(--ago-rem));
+  color: var(--ago-text);
+  background: var(--ago-bg);
+  border: 1px solid var(--ago-border);
+  border-radius: var(--ago-btn-radius);
+}
+.ago-dialog input:focus,
+.ago-dialog select:focus {
+  outline: none;
+  border-color: var(--ago-primary);
+  box-shadow: 0 0 0 3px var(--ago-focus-ring);
+}
+
+/* --- All-day row (under the day headers) --- */
+.ago-allday-label {
+  grid-column: 1;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 4px 8px;
+  font-size: calc(0.7 * var(--ago-rem));
+  font-weight: 500;
+  color: var(--ago-text-muted);
+  background: var(--ago-surface);
+  border-bottom: 2px solid var(--ago-border);
+}
+.ago-allday {
+  --ago-ad-lane-h: 24px;
+  grid-column: 2 / -1;
+  position: relative;
+  min-height: calc(var(--ago-ad-lanes, 1) * var(--ago-ad-lane-h) + 6px);
+  background:
+    repeating-linear-gradient(to right, var(--ago-border) 0 1px, transparent 1px calc(100% / var(--ago-days))),
+    var(--ago-bg);
+  border-bottom: 2px solid var(--ago-border);
+}
+.ago-ad-event {
+  display: flex;
+  align-items: center;
+  height: calc(var(--ago-ad-lane-h) - 3px);
+  padding: 0 8px;
+  white-space: nowrap;
+}
+.ago-ad-event .ago-event-title { min-width: 0; margin-top: 0; }
+.ago-ad-preview { height: calc(var(--ago-ad-lane-h) - 3px); }
+.ago-ad-more {
+  position: absolute;
+  height: calc(var(--ago-ad-lane-h) - 3px);
+  padding: 0 6px;
+  font: inherit;
+  font-size: calc(0.75 * var(--ago-rem));
+  font-weight: 600;
+  text-align: left;
+  color: var(--ago-text-muted);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.ago-ad-more:hover { color: var(--ago-primary); background: var(--ago-surface); }
+
+/* Background events: shaded areas behind the events; clicks go through to the grid */
+.agendo {
+  --ago-bgevent-color: #8fdf82;
+  --ago-bgevent-alpha: 30%;
+}
+.ago-bgevent {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ago-ev, var(--ago-bgevent-color)) var(--ago-bgevent-alpha), transparent);
+  pointer-events: none;
+}
+.ago-allday .ago-bgevent,
+.ago-tl-row .ago-bgevent { top: 0; bottom: 0; right: auto; }
+.ago-bgevent-title {
+  padding: 2px 6px;
+  overflow: hidden;
+  font-size: calc(0.7 * var(--ago-rem));
+  font-style: italic;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ago-text);
+  opacity: 0.75;
+}
+/* Month: the shade sits behind the day number and the events */
+.ago-cell { position: relative; isolation: isolate; }
+.ago-cell-bg { position: absolute; inset: 0; z-index: -1; }
+.ago-cell-bg .ago-bgevent { inset: 0; display: flex; align-items: flex-end; }
+
+/* Short timed events: one line, title first; the time gives way first */
+.ago-event.ago-compact { display: flex; align-items: baseline; gap: 6px; padding-top: 2px; padding-bottom: 0; }
+.ago-compact .ago-event-title { order: -1; flex: 0 1 auto; min-width: 0; margin-top: 0; }
+.ago-compact .ago-event-time { flex: 0 1000 auto; min-width: 0; }
+.ago-event.ago-tiny { padding-top: 0; font-size: calc(0.72 * var(--ago-rem)); line-height: 1.25; }
+
+/* Hover popover with the event's details (top layer through the Popover API) */
+.ago-pop {
+  position: fixed;
+  inset: auto;
+  z-index: 1000;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 16px));
+  margin: 0;
+  padding: 10px 14px 12px;
+  overflow: visible;
+  font-family: var(--ago-font-family);
+  font-size: calc(0.8 * var(--ago-rem));
+  line-height: 1.45;
+  color: var(--ago-text);
+  background: var(--ago-bg);
+  border: 1px solid var(--ago-border);
+  border-left: 4px solid var(--ago-ev, var(--ago-event-bg));
+  border-radius: var(--ago-btn-radius);
+  box-shadow: var(--ago-menu-shadow);
+  pointer-events: none;
+}
+.ago-pop-title { margin-bottom: 4px; font-size: calc(0.95 * var(--ago-rem)); font-weight: 600; overflow-wrap: anywhere; }
+.ago-pop-rule { margin-top: 4px; color: var(--ago-text-muted); }
+.ago-pop dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 8px 0 0; }
+.ago-pop dt { color: var(--ago-text-muted); }
+.ago-pop dd { margin: 0; overflow-wrap: anywhere; }
+.ago-pop-desc { margin-top: 8px; padding-top: 8px; white-space: pre-line; border-top: 1px solid var(--ago-border-subtle); overflow-wrap: anywhere; }
+
+/* Recurring events: ↻ before the title */
+.ago-rec { margin-right: 4px; font-weight: 400; opacity: 0.85; }
+
+/* --- Month view --- */
+.ago-grid.ago-month {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: auto repeat(var(--ago-weeks), minmax(110px, 1fr));
+}
+
+.ago-month-head {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding: 10px 4px;
+  font-size: calc(0.75 * var(--ago-rem));
+  font-weight: 600;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--ago-text-muted);
+  background: var(--ago-surface);
+  border-bottom: 1px solid var(--ago-border);
+  border-left: 1px solid var(--ago-border);
+}
+
+.ago-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  min-height: 0;
+  padding: 4px;
+  border-left: 1px solid var(--ago-border);
+  border-bottom: 1px solid var(--ago-border);
+}
+.ago-month-head.ago-col0,
+.ago-cell.ago-col0 { border-left: 0; }
+
+/* --- Week numbers --- */
+.ago-weeknum {
+  font-size: calc(0.7 * var(--ago-rem));
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ago-text-muted);
+}
+.ago-corner { display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px; }
+.ago-tl-corner { flex-direction: column; align-items: flex-end; justify-content: space-between; gap: 2px; }
+.ago-tl-corner .ago-weeknum { align-self: flex-start; }
+.ago-tl-corner > span:last-child { margin-top: auto; }
+.ago-tl-date .ago-weeknum { margin-left: 6px; }
+.ago-tl-daycell .ago-weeknum { display: block; font-size: calc(0.62 * var(--ago-rem)); line-height: 1.2; }
+.ago-list-day { display: flex; align-items: baseline; gap: 10px; }
+.ago-grid.ago-month.ago-has-wk { grid-template-columns: 2.2em repeat(7, minmax(0, 1fr)); }
+.ago-wk-cell {
+  padding: 8px 0 0;
+  font: inherit;
+  font-size: calc(0.7 * var(--ago-rem));
+  font-weight: 600;
+  color: var(--ago-text-muted);
+  background: var(--ago-surface);
+  border: 0;
+  border-bottom: 1px solid var(--ago-border);
+  cursor: pointer;
+}
+.ago-wk-cell:hover { color: var(--ago-primary); }
+.ago-wk-cell:focus-visible,
+.ago-ywk:focus-visible { outline: 2px solid var(--ago-primary); outline-offset: -2px; }
+.ago-ygrid.ago-has-wk { grid-template-columns: 1.7em repeat(7, minmax(0, 1fr)); }
+.ago-ywk {
+  align-self: start;
+  padding: 4px 0;
+  font: inherit;
+  font-size: calc(0.62 * var(--ago-rem));
+  color: var(--ago-text-muted);
+  background: none;
+  border: 0;
+  border-right: 1px solid var(--ago-border-subtle);
+  cursor: pointer;
+}
+.ago-ywk:hover { color: var(--ago-primary); }
+.ago-cell.ago-other { background: var(--ago-surface); }
+.ago-cell.ago-drop {
+  background: var(--ago-primary-light);
+  outline: 2px dashed var(--ago-primary);
+  outline-offset: -2px;
+}
+
+.ago-cell-num {
+  align-self: flex-start;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font: inherit;
+  font-size: calc(0.85 * var(--ago-rem));
+  font-weight: 600;
+  color: var(--ago-text);
+  background: none;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.ago-cell-num:hover { background: var(--ago-border-subtle); }
+.ago-other .ago-cell-num { color: var(--ago-text-muted); }
+.ago-cell.ago-today .ago-cell-num { background: var(--ago-primary); color: var(--ago-on-primary); }
+
+.ago-cell-events {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ago-mevent {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  overflow: hidden;
+  font-size: calc(0.75 * var(--ago-rem));
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ago-event-color);
+  background: var(--ago-ev, var(--ago-event-bg));
+  border-radius: 4px;
+  cursor: pointer;
+  touch-action: none;
+}
+.ago-mevent:hover { box-shadow: 0 2px 4px rgb(0 0 0 / 0.15); }
+.ago-mevent.is-dragging { opacity: 0.5; cursor: grabbing; }
+.ago-mevent-time { margin-right: 4px; font-size: calc(0.7 * var(--ago-rem)); opacity: 0.9; }
+.ago-mevent-title { font-weight: 600; }
+
+.ago-more {
+  align-self: flex-start;
+  padding: 0 4px;
+  font: inherit;
+  font-size: calc(0.75 * var(--ago-rem));
+  font-weight: 600;
+  color: var(--ago-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.ago-more:hover { color: var(--ago-primary); }
+
+/* --- Resource timeline: resources as rows, time left to right --- */
+.agendo {
+  --ago-resource-col-width: 160px;
+  --ago-today-bg: #fefce8;
+}
+
+.ago-grid.ago-tl {
+  --ago-lane-h: 26px;
+  grid-template-columns: var(--ago-resource-col-width) minmax(calc(var(--ago-tl-slots) * var(--ago-tl-slot-w)), 1fr);
+  align-content: start;
+}
+
+.ago-tl-corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 6px 12px;
+  font-size: calc(0.75 * var(--ago-rem));
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ago-text-muted);
+  background: var(--ago-surface);
+  border-right: 1px solid var(--ago-border);
+  border-bottom: 1px solid var(--ago-border);
+}
+
+.ago-tl-head {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(var(--ago-tl-slots), minmax(0, 1fr));
+  background: var(--ago-surface);
+  border-bottom: 1px solid var(--ago-border);
+}
+.ago-tl-date,
+.ago-tl-slot {
+  min-width: 0;
+  overflow: clip;
+  white-space: nowrap;
+  text-align: center;
+  border-left: 1px solid var(--ago-border);
+}
+.ago-tl-date {
+  padding: 6px 4px;
+  font-size: calc(0.8 * var(--ago-rem));
+  font-weight: 600;
+  border-left-color: var(--ago-border-strong);
+  border-bottom: 1px solid var(--ago-border);
+}
+.ago-tl-slot {
+  padding: 3px 0;
+  font-size: calc(0.7 * var(--ago-rem));
+  font-weight: 500;
+  color: var(--ago-text-muted);
+  text-overflow: ellipsis;
+}
+.ago-tl-slot.ago-tl-daystart { border-left-color: var(--ago-border-strong); }
+.ago-tl-date:first-child,
+.ago-tl-slot:first-child { border-left-color: transparent; }
+.ago-tl-daycell { padding: 4px 0; font-size: calc(0.85 * var(--ago-rem)); font-weight: 600; color: var(--ago-text); }
+.ago-tl-date.ago-today,
+.ago-tl-daycell.ago-today { background: var(--ago-today-bg); }
+
+/* Day labels and event labels stay visible next to the resource column while scrolling */
+.ago-tl-pin {
+  position: sticky;
+  left: calc(var(--ago-resource-col-width) + 4px);
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.ago-tl-res {
+  position: sticky;
+  left: 0;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  padding: 6px 12px;
+  overflow: hidden;
+  font-size: calc(0.85 * var(--ago-rem));
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: var(--ago-bg);
+  border-right: 1px solid var(--ago-border);
+  border-bottom: 1px solid var(--ago-border);
+}
+
+/* Strong day lines, solid lines at each time label, faint lines at each slot */
+.ago-tl-row {
+  position: relative;
+  min-height: calc(var(--ago-lanes, 1) * var(--ago-lane-h) + 6px);
+  border-bottom: 1px solid var(--ago-border);
+  background:
+    repeating-linear-gradient(to right, var(--ago-border-strong) 0 1px, transparent 1px calc(100% * var(--ago-tl-per-day) / var(--ago-tl-slots))),
+    repeating-linear-gradient(to right, var(--ago-border) 0 1px, transparent 1px calc(100% * var(--ago-tl-per-label) / var(--ago-tl-slots))),
+    repeating-linear-gradient(to right, var(--ago-border-subtle) 0 1px, transparent 1px calc(100% / var(--ago-tl-slots)));
+}
+
+.ago-tl-today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--ago-today-bg);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.ago-tl-event {
+  display: flex;
+  align-items: center;
+  height: calc(var(--ago-lane-h) - 3px);
+  min-width: 4px;
+  padding: 2px 4px;
+  overflow: clip;
+  font-size: calc(0.8 * var(--ago-rem));
+  line-height: 1.5;
+  border-radius: 3px;
+  box-shadow: 0 0 1px rgb(0 0 0 / 0.4);
+}
+.ago-tl-event.ago-clip-start,
+.ago-ad-event.ago-clip-start { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.ago-tl-event.ago-clip-end,
+.ago-ad-event.ago-clip-end { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.ago-tl-event .ago-event-time { flex-shrink: 0; margin-right: 4px; font-size: calc(0.75 * var(--ago-rem)); }
+.ago-tl-event .ago-event-title { min-width: 0; margin-top: 0; }
+.ago-tl-event .ago-handle,
+.ago-ad-event .ago-handle { top: 0; bottom: 0; z-index: 1; width: 6px; height: auto; cursor: ew-resize; }
+.ago-tl-event .ago-handle[data-edge="start"],
+.ago-ad-event .ago-handle[data-edge="start"] { left: 0; right: auto; }
+.ago-tl-event .ago-handle[data-edge="end"],
+.ago-ad-event .ago-handle[data-edge="end"] { left: auto; right: 0; }
+
+.ago-tl-preview { top: 3px; bottom: 3px; right: auto; }
+
+.ago-tl-now { top: 0; bottom: 0; right: auto; width: 2px; height: auto; }
+.ago-tl-now::before { display: none; }
+.ago-tl-now-dot {
+  position: absolute;
+  bottom: -6px;
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: var(--ago-current-time);
+  pointer-events: none;
+}
+
+/* --- List view: events grouped by day --- */
+.ago-grid.ago-list { display: block; }
+
+.ago-list-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  font-size: calc(0.875 * var(--ago-rem));
+  font-weight: 600;
+  background: var(--ago-surface);
+  border-bottom: 1px solid var(--ago-border);
+}
+.ago-list-item + .ago-list-head { border-top: 1px solid var(--ago-border); }
+.ago-list-head.ago-today { background: var(--ago-primary-light); }
+
+.ago-list-goto {
+  padding: 0;
+  font: inherit;
+  color: var(--ago-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.ago-list-goto:hover { color: var(--ago-primary); text-decoration: underline; }
+
+.ago-list-item {
+  display: grid;
+  grid-template-columns: 11em 10px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 10px 16px;
+  font: inherit;
+  font-size: calc(0.875 * var(--ago-rem));
+  text-align: left;
+  color: var(--ago-text);
+  background: var(--ago-bg);
+  border: none;
+  border-bottom: 1px solid var(--ago-border-subtle);
+  cursor: pointer;
+}
+.ago-list-item:hover { background: var(--ago-surface); }
+.ago-list-item:focus-visible { outline: 2px solid var(--ago-primary); outline-offset: -2px; }
+.ago-list-time { color: var(--ago-text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ago-list-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ago-ev, var(--ago-event-bg)); }
+.ago-list-title { overflow: hidden; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; }
+.ago-list-res { margin-left: 8px; font-size: calc(0.8 * var(--ago-rem)); font-weight: 400; color: var(--ago-text-muted); }
+.ago-list-empty { padding: 48px 16px; text-align: center; color: var(--ago-text-muted); }
+
+@media (max-width: 600px) {
+  .ago-list-item { grid-template-columns: 10px minmax(0, 1fr); row-gap: 2px; }
+  .ago-list-time { grid-column: 2; grid-row: 2; }
+  .ago-list-dot { grid-row: 1; }
+}
+
+/* --- Year view: twelve mini months --- */
+.ago-grid.ago-yearview { display: block; }
+
+.ago-year {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px 20px;
+  padding: 16px 20px;
+}
+
+.ago-ymonth-name {
+  margin-bottom: 8px;
+  padding: 0;
+  font: inherit;
+  font-size: calc(0.95 * var(--ago-rem));
+  font-weight: 600;
+  color: var(--ago-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.ago-ymonth-name:hover { color: var(--ago-primary); text-decoration: underline; }
+
+.ago-ygrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  text-align: center;
+}
+.ago-yhead {
+  padding: 2px 0;
+  font-size: calc(0.7 * var(--ago-rem));
+  font-weight: 600;
+  color: var(--ago-text-muted);
+}
+
+.ago-yday {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 0 4px;
+  font: inherit;
+  font-size: calc(0.8 * var(--ago-rem));
+  color: var(--ago-text);
+  background: none;
+  border: none;
+  border-radius: var(--ago-btn-radius);
+  cursor: pointer;
+}
+.ago-yday:hover { background: var(--ago-surface); }
+.ago-yday:focus-visible { outline: 2px solid var(--ago-primary); outline-offset: -2px; }
+.ago-yday-num { min-width: 1.9em; line-height: 1.9em; border-radius: 50%; }
+.ago-yday.has-events .ago-yday-num { font-weight: 700; }
+.ago-yday.ago-today .ago-yday-num { color: var(--ago-on-primary); background: var(--ago-primary); }
+.ago-ydots { display: flex; gap: 2px; height: 5px; }
+.ago-ydots i { width: 5px; height: 5px; border-radius: 50%; background: var(--ago-ev, var(--ago-event-bg)); }

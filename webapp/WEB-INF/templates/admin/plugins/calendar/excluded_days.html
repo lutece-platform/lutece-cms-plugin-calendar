@@ -1,0 +1,6 @@
+<#-- The week days an event skips. Parameter: the excluded days (codes 1 = sunday .. 7 = saturday), or an empty sequence -->
+<#macro excludedDays excluded=[]>
+<#list [ { 'code': '2', 'key': 'monday' }, { 'code': '3', 'key': 'tuesday' }, { 'code': '4', 'key': 'wednesday' }, { 'code': '5', 'key': 'thursday' }, { 'code': '6', 'key': 'friday' }, { 'code': '7', 'key': 'saturday' }, { 'code': '1', 'key': 'sunday' } ] as day>
+	<@checkBox name='excluded_days' id='excluded_days_${day.code}' value=day.code orientation='switch' labelKey='#i18n{calendar.label.${day.key}}' checked=(excluded?seq_contains( day.code )) />
+</#list>
+</#macro>

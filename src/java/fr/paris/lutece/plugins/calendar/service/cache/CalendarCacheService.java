@@ -34,65 +34,47 @@
 package fr.paris.lutece.plugins.calendar.service.cache;
 
 import fr.paris.lutece.portal.service.cache.AbstractCacheableService;
-import fr.paris.lutece.portal.service.util.AppLogService;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.Initialized;
+import jakarta.enterprise.event.Observes;
+import jakarta.servlet.ServletContext;
 
 
 /**
  * CalendarCacheService
  */
-public final class CalendarCacheService extends AbstractCacheableService
+@ApplicationScoped
+public class CalendarCacheService extends AbstractCacheableService<String, Object>
 {
-	// CONSTANTS
-	private static final String SERVICE_NAME = "Calendar Cache Service";
-    
-    // VARIABLES
-    private static CalendarCacheService _singleton;
+    // CONSTANTS
+    private static final String SERVICE_NAME = "Calendar Cache Service";
 
     /**
-     * Private constructor
+     * Initialize the cache
      */
-    private CalendarCacheService(  )
+    @PostConstruct
+    public void init( )
     {
+        initCache( SERVICE_NAME, String.class, Object.class );
     }
-    
+
     /**
-     * Get the instance of CalendarCacheService
-     * @return an instance of CalendarCacheService
+     * Creates the cache at startup, so that the back office lists it before its first use
+     * @param context the servlet context
      */
-    public static CalendarCacheService getInstance(  )
+    public void initializedService( @Observes @Initialized( ApplicationScoped.class ) ServletContext context )
     {
-    	if ( _singleton == null )
-    	{
-    		_singleton = new CalendarCacheService(  );
-    	}
-    	return _singleton;
+        // Intentionally empty: observing the startup instantiates the bean
     }
-    
+
     /**
-     * Get the service name
-     * @return the service name
+     * {@inheritDoc}
      */
-    public String getName(  )
+    @Override
+    public String getName( )
     {
         return SERVICE_NAME;
-    }
-    
-    /**
-     * Remove the cache by a key
-     * @param strKey the cache key
-     */
-    public void removeCache( String strKey )
-    {
-        try
-        {
-            if ( isCacheEnable(  ) && ( getCache(  ) != null ) )
-            {
-                getCache(  ).remove( strKey );
-            }
-        }
-        catch ( IllegalStateException e )
-        {
-            AppLogService.error( e.getMessage(  ), e );
-        }
     }
 }

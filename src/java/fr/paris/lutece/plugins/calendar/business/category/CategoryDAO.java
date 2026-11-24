@@ -33,6 +33,7 @@
  */
 package fr.paris.lutece.plugins.calendar.business.category;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import fr.paris.lutece.portal.service.image.ImageResource;
 import fr.paris.lutece.portal.service.plugin.Plugin;
 import fr.paris.lutece.util.sql.DAOUtil;
@@ -44,6 +45,7 @@ import java.util.Collection;
 /**
  * This class provides Data Access methods for Category objects
  */
+@ApplicationScoped
 public final class CategoryDAO implements ICategoryDAO
 {
     // Constants
@@ -77,25 +79,26 @@ public final class CategoryDAO implements ICategoryDAO
     {
         int nParam;
         Collection<Category> listCategory = new ArrayList<Category>(  );
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECTALL, plugin );
-        daoUtil.executeQuery(  );
-
-        while ( daoUtil.next(  ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECTALL, plugin ) )
         {
-            nParam = 0;
+            daoUtil.executeQuery(  );
 
-            Category category = new Category(  );
-            category.setId( daoUtil.getInt( ++nParam ) );
-            category.setName( daoUtil.getString( ++nParam ) );
-            category.setDescription( daoUtil.getString( ++nParam ) );
-            category.setIconContent( daoUtil.getBytes( ++nParam ) );
-            category.setIconMimeType( daoUtil.getString( ++nParam ) );
-            category.setWorkgroup( daoUtil.getString( ++nParam ) );
+            while ( daoUtil.next(  ) )
+            {
+                nParam = 0;
 
-            listCategory.add( category );
+                Category category = new Category(  );
+                category.setId( daoUtil.getInt( ++nParam ) );
+                category.setName( daoUtil.getString( ++nParam ) );
+                category.setDescription( daoUtil.getString( ++nParam ) );
+                category.setIconContent( daoUtil.getBytes( ++nParam ) );
+                category.setIconMimeType( daoUtil.getString( ++nParam ) );
+                category.setWorkgroup( daoUtil.getString( ++nParam ) );
+
+                listCategory.add( category );
+            }
+
         }
-
-        daoUtil.free(  );
 
         return listCategory;
     }
@@ -108,17 +111,19 @@ public final class CategoryDAO implements ICategoryDAO
     public void insert( Category category, Plugin plugin )
     {
         int nParam = 0;
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT, plugin );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_INSERT, plugin ) )
+        {
 
-        daoUtil.setInt( ++nParam, getNewPrimaryKey( plugin ) );
-        daoUtil.setString( ++nParam, category.getName(  ) );
-        daoUtil.setString( ++nParam, category.getDescription(  ) );
-        daoUtil.setBytes( ++nParam, category.getIconContent(  ) );
-        daoUtil.setString( ++nParam, category.getIconMimeType(  ) );
-        daoUtil.setString( ++nParam, category.getWorkgroup(  ) );
+            category.setId( getNewPrimaryKey( plugin ) );
+            daoUtil.setInt( ++nParam, category.getId(  ) );
+            daoUtil.setString( ++nParam, category.getName(  ) );
+            daoUtil.setString( ++nParam, category.getDescription(  ) );
+            daoUtil.setBytes( ++nParam, category.getIconContent(  ) );
+            daoUtil.setString( ++nParam, category.getIconMimeType(  ) );
+            daoUtil.setString( ++nParam, category.getWorkgroup(  ) );
 
-        daoUtil.executeUpdate(  );
-        daoUtil.free(  );
+            daoUtil.executeUpdate(  );
+        }
     }
 
     /**
@@ -129,15 +134,16 @@ public final class CategoryDAO implements ICategoryDAO
     private int getNewPrimaryKey( Plugin plugin )
     {
         int nNewPrimaryKey = -1;
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_MAX_PK, plugin );
-        daoUtil.executeQuery(  );
-
-        if ( daoUtil.next(  ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_MAX_PK, plugin ) )
         {
-            nNewPrimaryKey = daoUtil.getInt( 1 );
-        }
+            daoUtil.executeQuery(  );
 
-        daoUtil.free(  );
+            if ( daoUtil.next(  ) )
+            {
+                nNewPrimaryKey = daoUtil.getInt( 1 );
+            }
+
+        }
 
         return ++nNewPrimaryKey;
     }
@@ -152,24 +158,25 @@ public final class CategoryDAO implements ICategoryDAO
     {
         int nParam;
         Category category = null;
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT, plugin );
-        daoUtil.setInt( 1, nIdCategory );
-
-        daoUtil.executeQuery(  );
-
-        if ( daoUtil.next(  ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT, plugin ) )
         {
-            nParam = 0;
-            category = new Category(  );
-            category.setId( nIdCategory );
-            category.setName( daoUtil.getString( ++nParam ) );
-            category.setDescription( daoUtil.getString( ++nParam ) );
-            category.setIconContent( daoUtil.getBytes( ++nParam ) );
-            category.setIconMimeType( daoUtil.getString( ++nParam ) );
-            category.setWorkgroup( daoUtil.getString( ++nParam ) );
-        }
+            daoUtil.setInt( 1, nIdCategory );
 
-        daoUtil.free(  );
+            daoUtil.executeQuery(  );
+
+            if ( daoUtil.next(  ) )
+            {
+                nParam = 0;
+                category = new Category(  );
+                category.setId( nIdCategory );
+                category.setName( daoUtil.getString( ++nParam ) );
+                category.setDescription( daoUtil.getString( ++nParam ) );
+                category.setIconContent( daoUtil.getBytes( ++nParam ) );
+                category.setIconMimeType( daoUtil.getString( ++nParam ) );
+                category.setWorkgroup( daoUtil.getString( ++nParam ) );
+            }
+
+        }
 
         return category;
     }
@@ -184,26 +191,27 @@ public final class CategoryDAO implements ICategoryDAO
     {
         int nParam;
         Collection<Category> listCategory = new ArrayList<Category>(  );
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_EVENT_CATEGORIES, plugin );
-        daoUtil.setInt( 1, nIdEvent );
-        daoUtil.executeQuery(  );
-
-        while ( daoUtil.next(  ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_EVENT_CATEGORIES, plugin ) )
         {
-            nParam = 0;
+            daoUtil.setInt( 1, nIdEvent );
+            daoUtil.executeQuery(  );
 
-            Category category = new Category(  );
-            category.setId( daoUtil.getInt( ++nParam ) );
-            category.setName( daoUtil.getString( ++nParam ) );
-            category.setDescription( daoUtil.getString( ++nParam ) );
-            category.setIconContent( daoUtil.getBytes( ++nParam ) );
-            category.setIconMimeType( daoUtil.getString( ++nParam ) );
-            category.setWorkgroup( daoUtil.getString( ++nParam ) );
+            while ( daoUtil.next(  ) )
+            {
+                nParam = 0;
 
-            listCategory.add( category );
+                Category category = new Category(  );
+                category.setId( daoUtil.getInt( ++nParam ) );
+                category.setName( daoUtil.getString( ++nParam ) );
+                category.setDescription( daoUtil.getString( ++nParam ) );
+                category.setIconContent( daoUtil.getBytes( ++nParam ) );
+                category.setIconMimeType( daoUtil.getString( ++nParam ) );
+                category.setWorkgroup( daoUtil.getString( ++nParam ) );
+
+                listCategory.add( category );
+            }
+
         }
-
-        daoUtil.free(  );
 
         return listCategory;
     }
@@ -216,10 +224,11 @@ public final class CategoryDAO implements ICategoryDAO
     public void delete( int nIdCategory, Plugin plugin )
     {
         int nParam = 0;
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE, plugin );
-        daoUtil.setInt( ++nParam, nIdCategory );
-        daoUtil.executeUpdate(  );
-        daoUtil.free(  );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE, plugin ) )
+        {
+            daoUtil.setInt( ++nParam, nIdCategory );
+            daoUtil.executeUpdate(  );
+        }
     }
 
     /**
@@ -230,16 +239,17 @@ public final class CategoryDAO implements ICategoryDAO
     public void store( Category category, Plugin plugin )
     {
         int nParam = 0;
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE, plugin );
-        daoUtil.setString( ++nParam, category.getName(  ) );
-        daoUtil.setString( ++nParam, category.getDescription(  ) );
-        daoUtil.setBytes( ++nParam, category.getIconContent(  ) );
-        daoUtil.setString( ++nParam, category.getIconMimeType(  ) );
-        daoUtil.setString( ++nParam, category.getWorkgroup(  ) );
-        daoUtil.setInt( ++nParam, category.getId(  ) );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE, plugin ) )
+        {
+            daoUtil.setString( ++nParam, category.getName(  ) );
+            daoUtil.setString( ++nParam, category.getDescription(  ) );
+            daoUtil.setBytes( ++nParam, category.getIconContent(  ) );
+            daoUtil.setString( ++nParam, category.getIconMimeType(  ) );
+            daoUtil.setString( ++nParam, category.getWorkgroup(  ) );
+            daoUtil.setInt( ++nParam, category.getId(  ) );
 
-        daoUtil.executeUpdate(  );
-        daoUtil.free(  );
+            daoUtil.executeUpdate(  );
+        }
     }
 
     /**
@@ -252,26 +262,27 @@ public final class CategoryDAO implements ICategoryDAO
     {
         int nParam;
         Collection<Category> listCategory = new ArrayList<Category>(  );
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_BY_NAME, plugin );
-        daoUtil.setString( 1, strCategoryName );
-        daoUtil.executeQuery(  );
-
-        while ( daoUtil.next(  ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_BY_NAME, plugin ) )
         {
-            nParam = 0;
+            daoUtil.setString( 1, strCategoryName );
+            daoUtil.executeQuery(  );
 
-            Category category = new Category(  );
-            category.setId( daoUtil.getInt( ++nParam ) );
-            category.setName( strCategoryName );
-            category.setDescription( daoUtil.getString( ++nParam ) );
-            category.setIconContent( daoUtil.getBytes( ++nParam ) );
-            category.setIconMimeType( daoUtil.getString( ++nParam ) );
-            category.setWorkgroup( daoUtil.getString( ++nParam ) );
+            while ( daoUtil.next(  ) )
+            {
+                nParam = 0;
 
-            listCategory.add( category );
+                Category category = new Category(  );
+                category.setId( daoUtil.getInt( ++nParam ) );
+                category.setName( strCategoryName );
+                category.setDescription( daoUtil.getString( ++nParam ) );
+                category.setIconContent( daoUtil.getBytes( ++nParam ) );
+                category.setIconMimeType( daoUtil.getString( ++nParam ) );
+                category.setWorkgroup( daoUtil.getString( ++nParam ) );
+
+                listCategory.add( category );
+            }
+
         }
-
-        daoUtil.free(  );
 
         return listCategory;
     }
@@ -285,11 +296,12 @@ public final class CategoryDAO implements ICategoryDAO
     public void deleteLinkCategoryEvent( int nIdCategory, int nIdEvent, Plugin plugin )
     {
         int nParam = 0;
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_LINK_CATEGORY_CALENDAR, plugin );
-        daoUtil.setInt( ++nParam, nIdEvent );
-        daoUtil.setInt( ++nParam, nIdCategory );
-        daoUtil.executeUpdate(  );
-        daoUtil.free(  );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_LINK_CATEGORY_CALENDAR, plugin ) )
+        {
+            daoUtil.setInt( ++nParam, nIdEvent );
+            daoUtil.setInt( ++nParam, nIdCategory );
+            daoUtil.executeUpdate(  );
+        }
     }
 
     /**
@@ -298,19 +310,21 @@ public final class CategoryDAO implements ICategoryDAO
      * @param plugin Plugin
      * @return The array of Id Event
      */
+    @Override
     public int[] selectAllIdEvent( int nIdCategory, Plugin plugin )
     {
         Collection<Integer> listIdEvent = new ArrayList<Integer>(  );
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECTALL_ID_EVENT, plugin );
-        daoUtil.setInt( 1, nIdCategory );
-        daoUtil.executeQuery(  );
-
-        while ( daoUtil.next(  ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECTALL_ID_EVENT, plugin ) )
         {
-            listIdEvent.add( daoUtil.getInt( 1 ) );
-        }
+            daoUtil.setInt( 1, nIdCategory );
+            daoUtil.executeQuery(  );
 
-        daoUtil.free(  );
+            while ( daoUtil.next(  ) )
+            {
+                listIdEvent.add( daoUtil.getInt( 1 ) );
+            }
+
+        }
 
         // Convert ArrayList to Int[]
         int[] arrayIdEvent = new int[listIdEvent.size(  )];
@@ -332,10 +346,11 @@ public final class CategoryDAO implements ICategoryDAO
     public void deleteLinksCategory( int nIdCategory, Plugin plugin )
     {
         int nParam = 0;
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_LINKS_CATEGORY, plugin );
-        daoUtil.setInt( ++nParam, nIdCategory );
-        daoUtil.executeUpdate(  );
-        daoUtil.free(  );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_DELETE_LINKS_CATEGORY, plugin ) )
+        {
+            daoUtil.setInt( ++nParam, nIdCategory );
+            daoUtil.executeUpdate(  );
+        }
     }
 
     /**
@@ -347,16 +362,17 @@ public final class CategoryDAO implements ICategoryDAO
     public int selectCountIdEvents( int nIdCategory, Plugin plugin )
     {
         int nCountEventsId = -1;
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_COUNT_OF_EVENT_ID, plugin );
-        daoUtil.setInt( 1, nIdCategory );
-        daoUtil.executeQuery(  );
-
-        while ( daoUtil.next(  ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_COUNT_OF_EVENT_ID, plugin ) )
         {
-            nCountEventsId = daoUtil.getInt( 1 );
-        }
+            daoUtil.setInt( 1, nIdCategory );
+            daoUtil.executeQuery(  );
 
-        daoUtil.free(  );
+            while ( daoUtil.next(  ) )
+            {
+                nCountEventsId = daoUtil.getInt( 1 );
+            }
+
+        }
 
         return nCountEventsId;
     }
@@ -369,21 +385,21 @@ public final class CategoryDAO implements ICategoryDAO
      */
     public ImageResource loadImageResource( int nCategoryId, Plugin plugin )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_RESOURCE_IMAGE, plugin );
-        daoUtil.setInt( 1, nCategoryId );
-        daoUtil.executeQuery(  );
-
-        ImageResource image = null;
-
-        if ( daoUtil.next(  ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_RESOURCE_IMAGE, plugin ) )
         {
-            image = new ImageResource(  );
-            image.setImage( daoUtil.getBytes( 1 ) );
-            image.setMimeType( daoUtil.getString( 2 ) );
+            daoUtil.setInt( 1, nCategoryId );
+            daoUtil.executeQuery(  );
+
+            ImageResource image = null;
+
+            if ( daoUtil.next(  ) )
+            {
+                image = new ImageResource(  );
+                image.setImage( daoUtil.getBytes( 1 ) );
+                image.setMimeType( daoUtil.getString( 2 ) );
+            }
+
+            return image;
         }
-
-        daoUtil.free(  );
-
-        return image;
     }
 }

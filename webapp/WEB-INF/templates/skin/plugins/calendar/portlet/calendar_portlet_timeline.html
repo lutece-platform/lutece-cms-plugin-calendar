@@ -1,0 +1,35 @@
+<#include "/skin/plugins/calendar/portlet/calendar_portlet_macros.html" />
+<#-- Timeline: the events on a vertical line, a marker at each month -->
+<@pfFrame style='timeline'>
+	<ol class="calendar-pf-timeline-list">
+	<#assign previousMonth = '' />
+	<#list events as event>
+		<#if event.monthYear != previousMonth>
+			<li><span class="calendar-pf-timeline-month">${event.monthYear}</span></li>
+			<#assign previousMonth = event.monthYear />
+		</#if>
+		<li class="calendar-pf-timeline-item" style="--calendar-dot-color:${event.color!}">
+			<span class="calendar-pf-timeline-date">${event.fullDate}</span>
+			<article class="calendar-pf-card shadow-sm">
+				<div class="calendar-pf-timeline-row">
+					<div class="calendar-pf-body">
+						<@pfTitle event=event />
+						<@pfStatus event=event />
+						<#if event.excerpt?has_content><p class="mb-1">${event.excerpt}</p></#if>
+						<div class="d-flex flex-wrap gap-2">
+							<span class="calendar-pf-chip"><i class="ti ti-clock" aria-hidden="true"></i><@pfTime event /></span>
+							<#if event.location?has_content><span class="calendar-pf-chip"><i class="ti ti-map-pin" aria-hidden="true"></i>${event.location}</span></#if>
+						</div>
+					</div>
+					<@pfMedia event=event />
+				</div>
+				<#if event.registrationUrl?has_content>
+					<a class="calendar-pf-register" href="${event.registrationUrl}">#i18n{calendar.portlet.registerForEvent} <i class="ti ti-chevron-right" aria-hidden="true"></i><span class="visually-hidden"> : ${event.title}</span></a>
+				<#else>
+					<a class="calendar-pf-register" href="${event.url}">#i18n{calendar.portlet.details} <i class="ti ti-chevron-right" aria-hidden="true"></i><span class="visually-hidden"> : ${event.title}</span></a>
+				</#if>
+			</article>
+		</li>
+	</#list>
+	</ol>
+</@pfFrame>

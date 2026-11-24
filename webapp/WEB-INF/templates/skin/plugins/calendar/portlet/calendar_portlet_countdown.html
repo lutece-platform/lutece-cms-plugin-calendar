@@ -1,0 +1,29 @@
+<#include "/skin/plugins/calendar/portlet/calendar_portlet_macros.html" />
+<#-- Countdown: the next event of the portlet, the time left before it starts -->
+<#assign upcoming = events?filter( e -> e.start?datetime( "yyyy-MM-dd'T'HH:mm" ) gte .now ) />
+<@pfFrame style='countdown'>
+	<#if upcoming?has_content>
+	<#assign event = upcoming?first />
+	<article class="calendar-pf-card calendar-pf-slide calendar-pf-accent-start" style="--calendar-dot-color:${event.color!}">
+		<div class="calendar-pf-body p-4">
+			<div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+				<h3 class="calendar-pf-title fs-3">#i18n{calendar.portlet.nextEvent}</h3>
+				<div class="calendar-pf-datebox"><span class="calendar-pf-day">${event.day}</span>${event.monthYear}<br>${event.weekday}</div>
+			</div>
+			<@pfTitle event=event level=4 class='fw-normal mt-2' />
+			<@pfStatus event=event />
+			<ul class="calendar-pf-timer" data-calendar-pf-countdown data-start="${event.start}" aria-label="#i18n{calendar.portlet.timeLeft}">
+				<li><strong data-unit="days">-</strong><span>#i18n{calendar.portlet.days}</span></li>
+				<li><strong data-unit="hours">-</strong><span>#i18n{calendar.portlet.hours}</span></li>
+				<li><strong data-unit="minutes">-</strong><span>#i18n{calendar.portlet.minutes}</span></li>
+				<li><strong data-unit="seconds">-</strong><span>#i18n{calendar.portlet.seconds}</span></li>
+			</ul>
+			<@pfMeta event=event />
+			<@pfActions event=event />
+		</div>
+		<@pfMedia event=event />
+	</article>
+	<#else>
+	<p class="calendar-pf-empty">#i18n{calendar.dashboard.noUpcomingEvent}</p>
+	</#if>
+</@pfFrame>

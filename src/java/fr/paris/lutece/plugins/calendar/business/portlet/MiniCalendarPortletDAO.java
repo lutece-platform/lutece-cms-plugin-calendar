@@ -33,6 +33,7 @@
  */
 package fr.paris.lutece.plugins.calendar.business.portlet;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import fr.paris.lutece.portal.business.portlet.Portlet;
 import fr.paris.lutece.util.sql.DAOUtil;
 
@@ -40,6 +41,7 @@ import fr.paris.lutece.util.sql.DAOUtil;
 /**
  * This class provides Data Access methods for CalendarPortlet objects
  */
+@ApplicationScoped
 public final class MiniCalendarPortletDAO implements IMiniCalendarPortletDAO
 {
     // Constants
@@ -81,18 +83,19 @@ public final class MiniCalendarPortletDAO implements IMiniCalendarPortletDAO
     {
         MiniCalendarPortlet portlet = new MiniCalendarPortlet( );
 
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT );
-
-        daoUtil.setInt( 1, nPortletId );
-
-        daoUtil.executeQuery( );
-
-        if ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT ) )
         {
-            portlet.setId( nPortletId );
-        }
 
-        daoUtil.free( );
+            daoUtil.setInt( 1, nPortletId );
+
+            daoUtil.executeQuery( );
+
+            if ( daoUtil.next( ) )
+            {
+                portlet.setId( nPortletId );
+            }
+
+        }
 
         return portlet;
     }
@@ -114,19 +117,19 @@ public final class MiniCalendarPortletDAO implements IMiniCalendarPortletDAO
      */
     public boolean showTopEvent( )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_TOP_EVENT );
-        daoUtil.executeQuery( );
-
-        boolean bTopEvent = false;
-
-        while ( daoUtil.next( ) )
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_SELECT_TOP_EVENT ) )
         {
-            bTopEvent = daoUtil.getBoolean( 1 );
+            daoUtil.executeQuery( );
+
+            boolean bTopEvent = false;
+
+            while ( daoUtil.next( ) )
+            {
+                bTopEvent = daoUtil.getBoolean( 1 );
+            }
+
+            return bTopEvent;
         }
-
-        daoUtil.free( );
-
-        return bTopEvent;
     }
 
     /**
@@ -135,8 +138,10 @@ public final class MiniCalendarPortletDAO implements IMiniCalendarPortletDAO
      */
     public void updateTopEvent( boolean top_event )
     {
-        DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE_TOP_EVENT );
-        daoUtil.setBoolean( 1, top_event );
-        daoUtil.executeUpdate( );
+        try ( DAOUtil daoUtil = new DAOUtil( SQL_QUERY_UPDATE_TOP_EVENT ) )
+        {
+            daoUtil.setBoolean( 1, top_event );
+            daoUtil.executeUpdate( );
+        }
     }
 }

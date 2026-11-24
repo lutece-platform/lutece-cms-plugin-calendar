@@ -113,16 +113,20 @@ public class AgendaLoaderDatabase implements ResourceLoader
     }
 
     /**
-     * Return the agenda
+     * Return the agenda, without the events proposed from the site that wait for confirmation
      * @param agenda The agenda
      */
     public void loadAgenda( AgendaResource agenda )
     {
         SimpleAgenda a = new SimpleAgenda( );
+        java.util.Set<Integer> setProposals = EventProposals.getProposedEventIds( Integer.parseInt( agenda.getId( ) ), _plugin );
 
         for ( SimpleEvent event : CalendarHome.findEventsList( Integer.parseInt( agenda.getId( ) ), 1, _plugin ) )
         {
-            a.addEvent( event );
+            if ( !setProposals.contains( event.getId( ) ) )
+            {
+                a.addEvent( event );
+            }
         }
 
         a.setName( agenda.getName( ) );

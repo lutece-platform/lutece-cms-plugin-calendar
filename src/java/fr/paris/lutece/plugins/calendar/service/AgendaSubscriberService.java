@@ -63,17 +63,19 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.UUID;
 
-import javax.servlet.ServletConfig;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 
 /**
  * The class responsible for the subscription and unsubscription process
  */
-public final class AgendaSubscriberService
+@ApplicationScoped
+public class AgendaSubscriberService
 {
     public static final String JSP_URL_DO_UNSUBSCRIBE = "/jsp/site/plugins/calendar/DoUnsubscribeCalendar.jsp";
 
@@ -104,7 +106,7 @@ public final class AgendaSubscriberService
     private static final String MARK_EMAIL_CONTENT = "email_content";
     private static final String MARK_UNSUBSCRIBE_LINK = "unsubscribe_link";
     private static final String MARK_EVENT = "event";
-    private static final String MARK_LINK = "link";
+    private static final String MARK_LINK = "subscription_link";
     private static final String MARK_MESSAGE = "message";
 
     //properties
@@ -128,36 +130,6 @@ public final class AgendaSubscriberService
     private static final String URL_JSP_SUBSCRIPTION_NOTIFICATION = "jsp/site/plugins/calendar/DoSubscriptionCalendar.jsp";
     private static final String URL_JSP_SUBSCRIPTION_REDIRECTION = "plugins/calendar/DoSubscriptionCalendar.jsp";
     private static final String URL_JSP_PAGE_PORTAL = "jsp/site/Portal.jsp";
-
-    /**
-     * The registration service
-     */
-    private static AgendaSubscriberService _singleton;
-
-    /**
-     * Constructor
-     */
-    private AgendaSubscriberService( )
-    {
-        if ( _singleton == null )
-        {
-            _singleton = this;
-        }
-    }
-
-    /**
-     * Fetches the singleton instance
-     * @return The singleton instance
-     */
-    public static AgendaSubscriberService getInstance( )
-    {
-        if ( _singleton == null )
-        {
-            _singleton = new AgendaSubscriberService( );
-        }
-
-        return _singleton;
-    }
 
     /**
      * Performs the subscription process

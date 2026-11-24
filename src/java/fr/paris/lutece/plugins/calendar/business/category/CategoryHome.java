@@ -33,9 +33,9 @@
  */
 package fr.paris.lutece.plugins.calendar.business.category;
 
+import jakarta.enterprise.inject.spi.CDI;
 import fr.paris.lutece.portal.service.image.ImageResource;
 import fr.paris.lutece.portal.service.plugin.Plugin;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
 
 import java.util.Collection;
 
@@ -47,7 +47,7 @@ import java.util.Collection;
 public final class CategoryHome
 {
     // Static variable pointed at the DAO instance
-    private static ICategoryDAO _dao = (ICategoryDAO) SpringContextService.getBean( "calendar.categoryDAO" );
+    private static ICategoryDAO _dao = CDI.current( ).select( ICategoryDAO.class ).get( );
 
     /**
      * Private constructor - this class need not be instantiated
@@ -129,6 +129,17 @@ public final class CategoryHome
     public static int findCountIdEvents( int nIdCategory, Plugin plugin )
     {
         return _dao.selectCountIdEvents( nIdCategory, plugin );
+    }
+
+    /**
+     * Find the identifiers of the events linked to a category, in one query
+     * @param nIdCategory The category id
+     * @param plugin Plugin
+     * @return the identifiers of the events
+     */
+    public static int[] findEventIds( int nIdCategory, Plugin plugin )
+    {
+        return _dao.selectAllIdEvent( nIdCategory, plugin );
     }
 
     /**

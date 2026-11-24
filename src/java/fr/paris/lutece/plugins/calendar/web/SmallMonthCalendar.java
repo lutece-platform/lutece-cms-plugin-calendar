@@ -33,15 +33,16 @@
  */
 package fr.paris.lutece.plugins.calendar.web;
 
+import jakarta.enterprise.inject.spi.CDI;
 import fr.paris.lutece.plugins.calendar.business.Agenda;
 import fr.paris.lutece.plugins.calendar.business.CalendarHome;
 import fr.paris.lutece.plugins.calendar.business.Event;
 import fr.paris.lutece.plugins.calendar.business.MultiAgenda;
-import fr.paris.lutece.plugins.calendar.service.CalendarPlugin;
 import fr.paris.lutece.plugins.calendar.service.Utils;
 import fr.paris.lutece.plugins.calendar.service.search.CalendarSearchService;
 import fr.paris.lutece.portal.service.plugin.Plugin;
 import fr.paris.lutece.portal.service.plugin.PluginService;
+import fr.paris.lutece.portal.service.template.HtmlMarkup;
 import fr.paris.lutece.portal.service.template.AppTemplateService;
 import fr.paris.lutece.portal.service.util.AppPathService;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
@@ -57,7 +58,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 
 /**
@@ -155,7 +156,7 @@ public final class SmallMonthCalendar
                 }
             }
 
-            weekModel.put( Constants.MARK_DAYS, sbDays.toString( ) );
+            weekModel.put( Constants.MARK_DAYS, HtmlMarkup.of( sbDays.toString( ) ) );
             sbWeeks.append( AppTemplateService.getTemplate( TEMPLATE_WEEK, options.getLocale( ), weekModel ).getHtml( ) );
         }
 
@@ -166,7 +167,7 @@ public final class SmallMonthCalendar
         model.put( Constants.MARK_DATE_START, dFirstDayOfMonth );
         model.put( Constants.MARK_DATE_END, dLastDayOfMonth );
 
-        model.put( Constants.MARK_WEEKS, sbWeeks.toString( ) );
+        model.put( Constants.MARK_WEEKS, HtmlMarkup.of( sbWeeks.toString( ) ) );
         model.put( Constants.MARK_JSP_URL, AppPropertiesService.getProperty( Constants.PROPERTY_RUNAPP_JSP_URL ) );
 
         HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_VIEW_MONTH, options.getLocale( ), model );
@@ -189,7 +190,7 @@ public final class SmallMonthCalendar
         String strDate = Utils.getDate( calendar );
         Date date = Utils.getDate( strDate );
         String strLinkClass = AppPropertiesService.getProperty( Constants.PROPERTY_SMALLCALENDAR_LINKCLASS_NO_EVENT );
-        Plugin plugin = PluginService.getPlugin( CalendarPlugin.PLUGIN_NAME );
+        Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
         String[] strAgendaIds = null;
         if ( agenda instanceof fr.paris.lutece.plugins.calendar.business.MultiAgenda )
         {
@@ -203,7 +204,7 @@ public final class SmallMonthCalendar
 
         if ( agenda.hasEvents( strDate ) )
         {
-            listEvent = CalendarSearchService.getInstance( ).getSearchResults( strAgendaIds, null, StringUtils.EMPTY,
+            listEvent = CDI.current( ).select( CalendarSearchService.class ).get( ).getSearchResults( strAgendaIds, null, StringUtils.EMPTY,
                     date, date, plugin );
         }
         else

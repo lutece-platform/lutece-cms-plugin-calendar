@@ -36,33 +36,53 @@ package fr.paris.lutece.plugins.calendar.web.portlet;
 import fr.paris.lutece.plugins.calendar.business.portlet.MiniCalendarPortlet;
 import fr.paris.lutece.plugins.calendar.business.portlet.MiniCalendarPortletHome;
 import fr.paris.lutece.plugins.calendar.web.Constants;
+import fr.paris.lutece.portal.business.portlet.Portlet;
 import fr.paris.lutece.portal.business.portlet.PortletHome;
+import fr.paris.lutece.portal.service.security.SecurityTokenService;
+import fr.paris.lutece.portal.service.template.AppTemplateService;
 import fr.paris.lutece.portal.service.i18n.I18nService;
 import fr.paris.lutece.portal.service.message.AdminMessage;
 import fr.paris.lutece.portal.service.message.AdminMessageService;
 import fr.paris.lutece.portal.service.util.AppPathService;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import fr.paris.lutece.portal.web.constants.Messages;
-import fr.paris.lutece.portal.web.constants.Parameters;
 import fr.paris.lutece.portal.web.portlet.PortletJspBean;
 import fr.paris.lutece.util.ReferenceList;
 import fr.paris.lutece.util.html.HtmlTemplate;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.StringTokenizer;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang3.StringUtils;
 
 
 /**
  * This class provides the user interface to manage calendar interval portlets.
  */
+@RequestScoped
+@Named
 public class MiniCalendarPortletJspBean extends PortletJspBean
 {
+    @Inject
+    private MiniCalendarPortletHome _portletHome;
+
     // Prefix of the properties related to this checkbox
     public static final String PROPERTY_TIME_INTERVAL_LIST = "calendar.interval.time";
 
     private static final long serialVersionUID = 8594742404929705042L;
+
+    // Security tokens
+    private static final String ACTION_CREATE_PORTLET = "calendar.createMiniCalendarPortlet";
+    private static final String ACTION_MODIFY_PORTLET = "calendar.modifyMiniCalendarPortlet";
+    private static final String MESSAGE_INVALID_TOKEN = "calendar.message.invalidToken";
+    private static final String MESSAGE_PORTLET_NOT_FOUND = "calendar.message.portletNotFound";
+    private static final String TEMPLATE_PORTLET_NOT_FOUND = "admin/plugins/calendar/portlet_not_found.html";
 
     // Bookmarks
     private static final String BOOKMARK_PAGE_ID = "@page_id@";
@@ -77,6 +97,7 @@ public class MiniCalendarPortletJspBean extends PortletJspBean
     // Templates
     private static final String MARK_TOP_EVENT = "top_event";
     private static final String MARK_BASE_URL = "base_url";
+    private static final String MARK_MESSAGE = "message";
 
     /**
      * Returns the creation form for the portlet
@@ -89,7 +110,10 @@ public class MiniCalendarPortletJspBean extends PortletJspBean
         String strPageId = request.getParameter( PARAMETER_PAGE_ID );
         String strPortletTypeId = request.getParameter( PARAMETER_PORTLET_TYPE_ID );
 
-        HtmlTemplate template = getCreateTemplate( strPageId, strPortletTypeId );
+        Map<String, Object> model = new HashMap<>( );
+        model.put( SecurityTokenService.MARK_TOKEN, getSecurityTokenService( ).getToken( request, ACTION_CREATE_PORTLET ) );
+
+        HtmlTemplate template = getCreateTemplate( strPageId, strPortletTypeId, model );
 
         return template.getHtml( );
     }
@@ -102,20 +126,24 @@ public class MiniCalendarPortletJspBean extends PortletJspBean
      */
     public String doCreate( HttpServletRequest request )
     {
+        if ( !getSecurityTokenService( ).validate( request, ACTION_CREATE_PORTLET ) )
+        {
+            return AdminMessageService.getMessageUrl( request, MESSAGE_INVALID_TOKEN, AdminMessage.TYPE_STOP );
+        }
+
         MiniCalendarPortlet portlet = new MiniCalendarPortlet( );
 
         // Standard controls on the creation form
         String strIdPage = request.getParameter( PARAMETER_PAGE_ID );
         int nIdPage = Integer.parseInt( strIdPage );
 
-        String strStyleId = request.getParameter( Parameters.STYLE );
 
-        if ( ( strStyleId == null ) || strStyleId.trim( ).equals( "" ) )
+        String strError = setPortletCommonData( request, portlet );
+
+        if ( strError != null )
         {
-            return AdminMessageService.getMessageUrl( request, Messages.MANDATORY_FIELDS, AdminMessage.TYPE_STOP );
+            return strError;
         }
-
-        setPortletCommonData( request, portlet );
 
         // mandatory field
         String strName = portlet.getName( );
@@ -128,7 +156,7 @@ public class MiniCalendarPortletJspBean extends PortletJspBean
         portlet.setPageId( nIdPage );
 
         // Creating portlet
-        MiniCalendarPortletHome.getInstance( ).create( portlet );
+        _portletHome.create( portlet );
 
         // Returns page with new created portlet
         return getPageUrl( portlet.getPageId( ) );
@@ -143,8 +171,17 @@ public class MiniCalendarPortletJspBean extends PortletJspBean
     public String getModify( HttpServletRequest request )
     {
         String strPortletId = request.getParameter( PARAMETER_PORTLET_ID );
-        int nPortletId = Integer.parseInt( strPortletId );
-        MiniCalendarPortlet portlet = (MiniCalendarPortlet) PortletHome.findByPrimaryKey( nPortletId );
+        MiniCalendarPortlet portlet = findPortlet( strPortletId );
+
+        if ( portlet == null )
+        {
+            Map<String, Object> modelError = new HashMap<>( );
+            modelError.put( MARK_MESSAGE, I18nService.getLocalizedString( MESSAGE_PORTLET_NOT_FOUND, getLocale( ) ) );
+
+            return AppTemplateService.getTemplate( TEMPLATE_PORTLET_NOT_FOUND, getLocale( ), modelError ).getHtml( );
+        }
+
+        int nPortletId = portlet.getId( );
 
         String strIdPage = request.getParameter( PARAMETER_PAGE_ID );
         String strBaseUrl = AppPathService.getBaseUrl( request );
@@ -152,6 +189,7 @@ public class MiniCalendarPortletJspBean extends PortletJspBean
         HashMap<String, Object> model = new HashMap<String, Object>( );
         model.put( BOOKMARK_PORTLET_ID, strPortletId );
         model.put( BOOKMARK_PAGE_ID, strIdPage );
+        model.put( SecurityTokenService.MARK_TOKEN, getSecurityTokenService( ).getToken( request, ACTION_MODIFY_PORTLET ) );
 
         boolean top_event = MiniCalendarPortletHome.showTopEvent( );
 
@@ -173,20 +211,30 @@ public class MiniCalendarPortletJspBean extends PortletJspBean
      */
     public String doModify( HttpServletRequest request )
     {
-        // Use the id in the request to load the portlet
-        String strPortletId = request.getParameter( PARAMETER_PORTLET_ID );
-        int nPortletId = Integer.parseInt( strPortletId );
-        MiniCalendarPortlet portlet = (MiniCalendarPortlet) PortletHome.findByPrimaryKey( nPortletId );
-
-        // Standard controls on the creation form
-        String strStyleId = request.getParameter( Parameters.STYLE );
-
-        if ( ( strStyleId == null ) || strStyleId.trim( ).equals( "" ) )
+        if ( !getSecurityTokenService( ).validate( request, ACTION_MODIFY_PORTLET ) )
         {
-            return AdminMessageService.getMessageUrl( request, Messages.MANDATORY_FIELDS, AdminMessage.TYPE_STOP );
+            return AdminMessageService.getMessageUrl( request, MESSAGE_INVALID_TOKEN, AdminMessage.TYPE_STOP );
         }
 
-        setPortletCommonData( request, portlet );
+        // Use the id in the request to load the portlet
+        String strPortletId = request.getParameter( PARAMETER_PORTLET_ID );
+        MiniCalendarPortlet portlet = findPortlet( strPortletId );
+
+        if ( portlet == null )
+        {
+            return AdminMessageService.getMessageUrl( request, MESSAGE_PORTLET_NOT_FOUND, AdminMessage.TYPE_STOP );
+        }
+
+        int nPortletId = portlet.getId( );
+
+        // Standard controls on the creation form
+
+        String strError = setPortletCommonData( request, portlet );
+
+        if ( strError != null )
+        {
+            return strError;
+        }
 
         // mandatory field
         String strName = portlet.getName( );
@@ -231,5 +279,29 @@ public class MiniCalendarPortletJspBean extends PortletJspBean
         }
 
         return timeIntervalList;
+    }
+
+    /**
+     * Loads the portlet named by the request, after checking it exists: the core dereferences the row it loads
+     * @param strPortletId the portlet id
+     * @return the portlet, or null when the id is not numeric, unknown, or of another type
+     */
+    private MiniCalendarPortlet findPortlet( String strPortletId )
+    {
+        if ( StringUtils.isEmpty( strPortletId ) || !StringUtils.isNumeric( strPortletId ) )
+        {
+            return null;
+        }
+
+        int nPortletId = Integer.parseInt( strPortletId );
+
+        if ( _portletHome.getDAO( ).load( nPortletId ).getId( ) != nPortletId )
+        {
+            return null;
+        }
+
+        Portlet portlet = PortletHome.findByPrimaryKey( nPortletId );
+
+        return ( portlet instanceof MiniCalendarPortlet ) ? ( MiniCalendarPortlet ) portlet : null;
     }
 }

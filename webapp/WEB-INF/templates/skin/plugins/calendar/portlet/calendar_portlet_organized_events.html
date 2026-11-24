@@ -1,0 +1,20 @@
+<@cTpl>
+<@cSection class='portlet portlet-calendar portlet-calendar-organized ${device_class!}' id='portlet_${portlet_id?c}'>
+<#if portlet_name??>
+	<@cTitle level=2 class='portlet-header'>${portlet_name}</@cTitle>
+</#if>
+	<@cRow class='portlet-content'>
+		<@cCol cols='12' class='col-md-5 calendar-mini'>
+			<#assign shortcut_search = true>
+			<#include "/skin/plugins/calendar/portlet/calendar_month.html" />
+		</@cCol>
+		<@cCol cols='12' class='col-md-7'>
+		<#list events as event>
+			<p class="calendar-organized-event">
+				<@cLink href='jsp/site/Portal.jsp?page=calendar&action=show_result&event_id=${event.eventId?c}&agenda=${event.agendaId}' label=event.title target='_blank' />
+			</p>
+		</#list>
+		</@cCol>
+	</@cRow>
+</@cSection>
+</@cTpl>

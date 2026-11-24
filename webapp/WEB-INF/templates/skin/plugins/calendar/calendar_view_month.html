@@ -1,12 +1,12 @@
-<table class="table-condensed table-bordered table-striped">
+<@cTable themed=false id='' class='table-sm table-bordered table-striped calendar-month'>
      <tr>
-        <th>#i18n{calendar.label.monday}</th>
-        <th>#i18n{calendar.label.tuesday}</th>
-        <th>#i18n{calendar.label.wednesday}</th>
-        <th>#i18n{calendar.label.thursday}</th>
-        <th>#i18n{calendar.label.friday}</th>
-        <th>#i18n{calendar.label.saturday}</th>
-        <th>#i18n{calendar.label.sunday}</th>
+        <th scope="col"><span class="calendar-label-long">#i18n{calendar.label.monday}</span><abbr class="calendar-label-short" title="#i18n{calendar.label.monday}">#i18n{calendar.shortlabel.monday}</abbr></th>
+        <th scope="col"><span class="calendar-label-long">#i18n{calendar.label.tuesday}</span><abbr class="calendar-label-short" title="#i18n{calendar.label.tuesday}">#i18n{calendar.shortlabel.tuesday}</abbr></th>
+        <th scope="col"><span class="calendar-label-long">#i18n{calendar.label.wednesday}</span><abbr class="calendar-label-short" title="#i18n{calendar.label.wednesday}">#i18n{calendar.shortlabel.wednesday}</abbr></th>
+        <th scope="col"><span class="calendar-label-long">#i18n{calendar.label.thursday}</span><abbr class="calendar-label-short" title="#i18n{calendar.label.thursday}">#i18n{calendar.shortlabel.thursday}</abbr></th>
+        <th scope="col"><span class="calendar-label-long">#i18n{calendar.label.friday}</span><abbr class="calendar-label-short" title="#i18n{calendar.label.friday}">#i18n{calendar.shortlabel.friday}</abbr></th>
+        <th scope="col"><span class="calendar-label-long">#i18n{calendar.label.saturday}</span><abbr class="calendar-label-short" title="#i18n{calendar.label.saturday}">#i18n{calendar.shortlabel.saturday}</abbr></th>
+        <th scope="col"><span class="calendar-label-long">#i18n{calendar.label.sunday}</span><abbr class="calendar-label-short" title="#i18n{calendar.label.sunday}">#i18n{calendar.shortlabel.sunday}</abbr></th>
     </tr>
 	${weeks}
-</table>
+</@cTable>

@@ -33,15 +33,15 @@
  */
 package fr.paris.lutece.plugins.calendar.web;
 
+import jakarta.enterprise.inject.spi.CDI;
 import fr.paris.lutece.plugins.calendar.business.MultiAgendaEvent;
 import fr.paris.lutece.plugins.calendar.service.AgendaResource;
 import fr.paris.lutece.plugins.calendar.service.CalendarService;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
 
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 
 /**
@@ -103,7 +103,7 @@ public final class HtmlUtils
      */
     public static void fillEventTemplate( Map<String, Object> model, MultiAgendaEvent event, String strDate )
     {
-        CalendarService calendarService = SpringContextService.getBean( Constants.BEAN_CALENDAR_CALENDARSERVICE );
+        CalendarService calendarService = CDI.current( ).select( CalendarService.class ).get( );
         int nShortTitleLength = AppPropertiesService.getPropertyInt( Constants.PROPERTY_EVENT_SHORT_TITLE_LENGTH, 18 );
         StringBuilder sbTitle = new StringBuilder( );
         String strImage = StringUtils.EMPTY;
@@ -113,7 +113,7 @@ public final class HtmlUtils
         {
             sbTitle.append( agenda.getEventPrefix( ) );
             sbTitle.append( Constants.SPACE );
-            strImage = agenda.getEventImage( );
+            strImage = agenda.getEventColorCode( );
         }
 
         if ( StringUtils.isNotBlank( event.getDateTimeStart( ) ) )
@@ -149,7 +149,7 @@ public final class HtmlUtils
         model.put( Constants.MARK_EVENT_DESCRIPTION, strDescription );
         model.put( Constants.MARK_EVENT_LOCATION, strLocation );
         model.put( Constants.MARK_EVENT_URL, strUrl );
-        model.put( Constants.MARK_EVENT_IMAGE, strImage );
+        model.put( Constants.MARK_EVENT_COLOR, strImage );
         model.put( Constants.MARK_DATE, strDate );
     }
 }

@@ -36,10 +36,12 @@ package fr.paris.lutece.plugins.calendar.service;
 import fr.paris.lutece.plugins.calendar.business.CalendarHome;
 import fr.paris.lutece.plugins.calendar.business.OccurrenceEvent;
 import fr.paris.lutece.plugins.calendar.business.SimpleEvent;
+import fr.paris.lutece.plugins.calendar.business.details.EventDetailsHome;
 import fr.paris.lutece.plugins.calendar.service.cache.EventListCacheService;
 import fr.paris.lutece.plugins.calendar.web.CalendarView;
 import fr.paris.lutece.plugins.calendar.web.Constants;
 import fr.paris.lutece.plugins.calendar.web.EventList;
+import fr.paris.lutece.portal.service.cache.DefaultCacheKeyService;
 import fr.paris.lutece.portal.service.cache.ICacheKeyService;
 import fr.paris.lutece.portal.service.plugin.Plugin;
 import fr.paris.lutece.portal.service.plugin.PluginService;
@@ -52,37 +54,27 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+
+import org.apache.commons.lang3.StringUtils;
 
 
 /**
  * This class provides an event list service.
  */
+@ApplicationScoped
 public class EventListService
 {
     // CONSTANTS
     private static final String KEY_CALENDAR = "calendar";
 
     // VARIABLES
-    private ICacheKeyService _cksEventList;
-    private EventListCacheService _cacheEventList = EventListCacheService.getInstance( );
+    private final ICacheKeyService _cksEventList = new DefaultCacheKeyService( List.of( KEY_CALENDAR ), null );
+    @Inject
+    private EventListCacheService _cacheEventList;
+    @Inject
     private CalendarService _calendarService;
-
-    /**
-     * Private constructor
-     */
-    public EventListService( )
-    {
-        init( );
-    }
-
-    /**
-     * Init the service
-     */
-    private void init( )
-    {
-        _cacheEventList.initCache( );
-    }
 
     /**
      * Load an eventlist object from its keyname
@@ -121,17 +113,9 @@ public class EventListService
 
             try
             {
-                eventlist = (EventList) Class.forName( strClass ).newInstance( );
+                eventlist = (EventList) Class.forName( strClass ).getDeclaredConstructor( ).newInstance( );
             }
-            catch ( ClassNotFoundException e )
-            {
-                AppLogService.error( e.getMessage( ), e );
-            }
-            catch ( IllegalAccessException e )
-            {
-                AppLogService.error( e.getMessage( ), e );
-            }
-            catch ( InstantiationException e )
+            catch ( ReflectiveOperationException e )
             {
                 AppLogService.error( e.getMessage( ), e );
             }
@@ -150,12 +134,12 @@ public class EventListService
     public List<SimpleEvent> getSimpleEvents( int nAgendaId, int nSortEvents )
     {
         String strKey = getKey( nAgendaId );
-        List<SimpleEvent> listEvents = (List<SimpleEvent>) _cacheEventList.getFromCache( strKey );
+        List<SimpleEvent> listEvents = (List<SimpleEvent>) _cacheEventList.get( strKey );
         if ( listEvents == null )
         {
-            Plugin plugin = PluginService.getPlugin( CalendarPlugin.PLUGIN_NAME );
+            Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
             listEvents = CalendarHome.findEventsList( nAgendaId, nSortEvents, plugin );
-            _cacheEventList.putInCache( strKey, listEvents );
+            _cacheEventList.put( strKey, listEvents );
         }
 
         return listEvents;
@@ -172,13 +156,13 @@ public class EventListService
     public List<SimpleEvent> getSimpleEventsByUserLogin( int nAgendaId, LuteceUser user )
     {
         String strKey = getKey( nAgendaId, user );
-        List<SimpleEvent> listEvents = (List<SimpleEvent>) _cacheEventList.getFromCache( strKey );
+        List<SimpleEvent> listEvents = (List<SimpleEvent>) _cacheEventList.get( strKey );
         if ( listEvents == null )
         {
-            Plugin plugin = PluginService.getPlugin( CalendarPlugin.PLUGIN_NAME );
+            Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
             listEvents = CalendarHome
                     .findEventsListByUserLogin( nAgendaId, Constants.SORT_ASC, plugin, user.getName( ) );
-            _cacheEventList.putInCache( strKey, listEvents );
+            _cacheEventList.put( strKey, listEvents );
         }
 
         return listEvents;
@@ -232,10 +216,10 @@ public class EventListService
         CalendarHome.createEvent( event, plugin, strUserLogin );
 
         // Reset caches
-        _cacheEventList.removeCache( getKey( event.getIdCalendar( ) ) );
+        _cacheEventList.remove( getKey( event.getIdCalendar( ) ) );
         if ( user != null )
         {
-            _cacheEventList.removeCache( getKey( event.getIdCalendar( ), user ) );
+            _cacheEventList.remove( getKey( event.getIdCalendar( ), user ) );
         }
         _calendarService.removeCache( event.getIdCalendar( ) );
     }
@@ -266,10 +250,10 @@ public class EventListService
         CalendarHome.updateEvent( event, bPeriociteModify, plugin );
 
         // Reset caches
-        _cacheEventList.removeCache( getKey( event.getIdCalendar( ) ) );
+        _cacheEventList.remove( getKey( event.getIdCalendar( ) ) );
         if ( user != null )
         {
-            _cacheEventList.removeCache( getKey( event.getIdCalendar( ), user ) );
+            _cacheEventList.remove( getKey( event.getIdCalendar( ), user ) );
         }
         _calendarService.removeCache( event.getIdCalendar( ) );
     }
@@ -283,34 +267,17 @@ public class EventListService
      */
     public void doRemoveEvent( int nAgendaId, int nEventId, LuteceUser user, Plugin plugin )
     {
+        EventDetailsHome.remove( nEventId, plugin );
         CalendarHome.removeEvent( nAgendaId, nEventId, plugin );
         // Reset caches
-        _cacheEventList.removeCache( getKey( nAgendaId ) );
+        _cacheEventList.remove( getKey( nAgendaId ) );
         if ( user != null )
         {
-            _cacheEventList.removeCache( getKey( nAgendaId, user ) );
+            _cacheEventList.remove( getKey( nAgendaId, user ) );
         }
     }
 
     // SETTERS
-
-    /**
-     * Set the agenda cache key service
-     * @param cacheKeyService the cache key service
-     */
-    public void setEventListCacheKeyService( ICacheKeyService cacheKeyService )
-    {
-        _cksEventList = cacheKeyService;
-    }
-
-    /**
-     * Set the calendar service
-     * @param calendarService The calendar service
-     */
-    public void setCalendarService( CalendarService calendarService )
-    {
-        _calendarService = calendarService;
-    }
 
     // CACHE KEYS
 
@@ -339,5 +306,72 @@ public class EventListService
         mapParams.put( KEY_CALENDAR, Integer.toString( nAgendaId ) );
 
         return _cksEventList.getKey( mapParams, PortalJspBean.MODE_HTML, user );
+    }
+    /**
+     * Moves an occurrence to another day and other times, then sets the first and last days of its event from its
+     * occurrences, and resets the caches
+     * @param occurrence the occurrence
+     * @param event the event of the occurrence
+     * @param date the new day
+     * @param strTimeStart the new start time ( HH:mm ), or null for the whole day
+     * @param strTimeEnd the new end time ( HH:mm ), or null
+     * @param plugin {@link Plugin}
+     */
+    public void doMoveOccurrence( OccurrenceEvent occurrence, SimpleEvent event, java.util.Date date, String strTimeStart,
+            String strTimeEnd, Plugin plugin )
+    {
+        occurrence.setIdCalendar( event.getIdCalendar( ) );
+        occurrence.setDate( date );
+        occurrence.setDateTimeStart( strTimeStart );
+        occurrence.setDateTimeEnd( strTimeEnd );
+        doModifyOccurrenceEvent( occurrence, plugin );
+
+        List<OccurrenceEvent> listOccurrences = CalendarHome.findOccurrencesList( event.getIdCalendar( ), event.getId( ), 1, plugin );
+
+        if ( !listOccurrences.isEmpty( ) )
+        {
+            event.setDate( listOccurrences.get( 0 ).getDate( ) );
+            event.setDateEnd( listOccurrences.get( listOccurrences.size( ) - 1 ).getDate( ) );
+        }
+
+        doModifySimpleEvent( event, false, null, plugin );
+    }
+
+    /**
+     * Moves every occurrence of an event by the same number of days and gives them the same times, then moves the
+     * event itself, and resets the caches
+     * @param event the event
+     * @param lDays the number of days to move, negative to move back
+     * @param strTimeStart the new start time ( HH:mm ), or null for the whole day
+     * @param strTimeEnd the new end time ( HH:mm ), or null
+     * @param plugin {@link Plugin}
+     * @return the identifiers of the occurrences moved
+     */
+    public List<Integer> doMoveSeries( SimpleEvent event, long lDays, String strTimeStart, String strTimeEnd, Plugin plugin )
+    {
+        List<Integer> listIds = new java.util.ArrayList<>( );
+
+        for ( OccurrenceEvent occurrence : CalendarHome.findOccurrencesList( event.getIdCalendar( ), event.getId( ), 1, plugin ) )
+        {
+            occurrence.setIdCalendar( event.getIdCalendar( ) );
+            occurrence.setDate( Utils.addDays( occurrence.getDate( ), lDays ) );
+            occurrence.setDateTimeStart( strTimeStart );
+            occurrence.setDateTimeEnd( strTimeEnd );
+            CalendarHome.updateOccurrence( occurrence, plugin );
+            listIds.add( occurrence.getId( ) );
+        }
+
+        event.setDate( Utils.addDays( event.getDate( ), lDays ) );
+
+        if ( event.getDateEnd( ) != null )
+        {
+            event.setDateEnd( Utils.addDays( event.getDateEnd( ), lDays ) );
+        }
+
+        event.setDateTimeStart( strTimeStart );
+        event.setDateTimeEnd( strTimeEnd );
+        doModifySimpleEvent( event, false, null, plugin );
+
+        return listIds;
     }
 }

@@ -4,7 +4,6 @@ import fr.paris.lutece.plugins.calendar.business.CalendarFilter;
 import fr.paris.lutece.plugins.calendar.business.CalendarHome;
 import fr.paris.lutece.plugins.calendar.business.Event;
 import fr.paris.lutece.plugins.calendar.service.AgendaResource;
-import fr.paris.lutece.plugins.calendar.service.CalendarPlugin;
 import fr.paris.lutece.plugins.calendar.web.Constants;
 import fr.paris.lutece.portal.business.rss.FeedResource;
 import fr.paris.lutece.portal.business.rss.FeedResourceItem;
@@ -23,7 +22,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 
 /**
@@ -42,7 +41,7 @@ public class CalendarResourceRss extends ResourceRss
      */
     public boolean checkResource( )
     {
-        Plugin pluginCalendar = PluginService.getPlugin( CalendarPlugin.PLUGIN_NAME );
+        Plugin pluginCalendar = PluginService.getPlugin( Constants.PLUGIN_NAME );
         AgendaResource agenda = CalendarHome.findAgendaResource( this.getId( ), pluginCalendar );
 
         return ( agenda != null );
@@ -54,7 +53,7 @@ public class CalendarResourceRss extends ResourceRss
      */
     public boolean contentResourceRss( )
     {
-        Plugin pluginCalendar = PluginService.getPlugin( CalendarPlugin.PLUGIN_NAME );
+        Plugin pluginCalendar = PluginService.getPlugin( Constants.PLUGIN_NAME );
 
         return !CalendarHome.findAgendaResourcesList( pluginCalendar ).isEmpty( );
     }
@@ -119,7 +118,7 @@ public class CalendarResourceRss extends ResourceRss
      */
     public IFeedResource getFeed( )
     {
-        Plugin pluginCalendar = PluginService.getPlugin( CalendarPlugin.PLUGIN_NAME );
+        Plugin pluginCalendar = PluginService.getPlugin( Constants.PLUGIN_NAME );
 
         //Agenda Rss
         IFeedResource resource = new FeedResource( );
@@ -144,7 +143,7 @@ public class CalendarResourceRss extends ResourceRss
             item.setDate( dateCreation );
 
             UrlItem urlEvent = new UrlItem( AppPathService.getPortalUrl( ) );
-            urlEvent.addParameter( XPageAppService.PARAM_XPAGE_APP, CalendarPlugin.PLUGIN_NAME );
+            urlEvent.addParameter( XPageAppService.PARAM_XPAGE_APP, Constants.PLUGIN_NAME );
             urlEvent.addParameter( Constants.PARAMETER_ACTION, Constants.ACTION_SHOW_RESULT );
             urlEvent.addParameter( Constants.PARAMETER_EVENT_ID, simpleEvent.getId( ) );
             urlEvent.addParameter( Constants.PARAM_AGENDA, simpleEvent.getIdCalendar( ) );

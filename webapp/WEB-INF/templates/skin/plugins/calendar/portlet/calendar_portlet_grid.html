@@ -1,0 +1,21 @@
+<#include "/skin/plugins/calendar/portlet/calendar_portlet_macros.html" />
+<#-- Grid: a card per event, three per row on a large screen -->
+<@pfFrame style='grid'>
+	<div class="calendar-pf-grid-list">
+	<#list events as event>
+		<div>
+			<article class="calendar-pf-card calendar-pf-accent-top" style="--calendar-dot-color:${event.color!}">
+				<@pfMedia event=event class='m-3 mb-0 rounded'>
+					<div class="calendar-pf-date-bar"><i class="ti ti-calendar" aria-hidden="true"></i> ${event.fullDate}</div>
+				</@pfMedia>
+				<div class="calendar-pf-body">
+					<@pfTitle event=event class='text-uppercase' />
+					<@pfStatus event=event />
+					<@pfMeta event=event />
+					<@pfActions event=event />
+				</div>
+			</article>
+		</div>
+	</#list>
+	</div>
+</@pfFrame>

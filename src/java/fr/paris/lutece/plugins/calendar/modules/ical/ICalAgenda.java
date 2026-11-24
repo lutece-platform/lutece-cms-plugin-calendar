@@ -176,7 +176,7 @@ public class ICalAgenda implements Agenda
         {
             if ( bTrace )
             {
-                AppLogService.info( "Component [" + component.getName( ) + "]" );
+                AppLogService.info( "Component [{}]", component.getName( ) );
             }
 
             if ( component.getName( ).equals( Component.VEVENT ) )
@@ -229,7 +229,7 @@ public class ICalAgenda implements Agenda
 
                     if ( bTrace )
                     {
-                        AppLogService.info( "Property [" + property.getName( ) + ", " + property.getValue( ) + "]" );
+                        AppLogService.info( "Property [{}, {}]", property.getName( ), property.getValue( ) );
                     }
                 }
 

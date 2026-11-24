@@ -1,0 +1,284 @@
+/* Plugin calendar - page of an event (skin/plugins/calendar/search/show_result.html).
+   The accent is the colour of the calendar of the event (--calendar-dot-color, set on .calendar-event-page). */
+.calendar-event-page {
+    --calendar-event-accent: var(--calendar-dot-color, #868e96);
+    padding-block: 1rem 2rem;
+}
+
+.calendar-event-back {
+    margin-bottom: 1rem;
+}
+
+.calendar-event-hero {
+    margin-bottom: 1.5rem;
+    border-radius: .75rem;
+    overflow: hidden;
+    aspect-ratio: 16 / 7;
+    max-height: 26rem;
+    width: 100%;
+    background: color-mix(in srgb, var(--calendar-event-accent) 18%, transparent);
+}
+
+.calendar-event-hero-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.calendar-event-header {
+    margin-bottom: 1.5rem;
+    padding-left: 1rem;
+    border-left: 4px solid var(--calendar-event-accent);
+}
+
+.calendar-event-when {
+    margin-bottom: .25rem;
+    color: var(--calendar-event-accent);
+    font-weight: 600;
+}
+
+.calendar-event-when-date {
+    display: inline-block;
+}
+
+.calendar-event-when-date::first-letter,
+.calendar-event-date-day::first-letter {
+    text-transform: uppercase;
+}
+
+.calendar-event-page-title {
+    margin: 0 0 .75rem;
+    font-size: clamp(1.75rem, 1.25rem + 2vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.calendar-event-heading {
+    margin: 0 0 .75rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.calendar-event-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.calendar-event-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    padding: .125rem .625rem;
+    border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+    border-radius: 999px;
+    font-size: .875rem;
+}
+
+.calendar-event-tag-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.calendar-event-tag-link:hover,
+.calendar-event-tag-link:focus-visible {
+    border-color: currentColor;
+    text-decoration: underline;
+}
+
+.calendar-event-tag-link svg {
+    width: 1em;
+    height: 1em;
+}
+
+.calendar-search-tag-filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+}
+
+.calendar-event-tag-agenda {
+    border-color: var(--calendar-event-accent);
+    color: inherit;
+}
+
+.calendar-event-tag-cancelled { color: #d63939; }
+.calendar-event-tag-postponed,
+.calendar-event-tag-tentative { color: #b35c00; }
+.calendar-event-tag-movedOnline { color: #1d60b0; }
+
+.calendar-event-description {
+    margin-bottom: 1.5rem;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+}
+
+.calendar-event-description img {
+    max-width: 100%;
+    height: auto;
+}
+
+.calendar-event-section {
+    margin-bottom: 1.5rem;
+}
+
+.calendar-event-dates {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.calendar-event-dates li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem 1rem;
+    padding: .5rem 0;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.calendar-event-date-day {
+    flex: 1 1 14rem;
+    font-weight: 600;
+}
+
+.calendar-event-date-time {
+    color: color-mix(in srgb, currentColor 70%, transparent);
+}
+
+.calendar-event-date-cancelled .calendar-event-date-day {
+    text-decoration: line-through;
+}
+
+.calendar-event-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+}
+
+.calendar-event-aside {
+    margin-bottom: 1.5rem;
+    padding: 1.25rem;
+    border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    border-top: 4px solid var(--calendar-event-accent);
+    border-radius: .75rem;
+}
+
+.calendar-event-infos {
+    margin: 0 0 1rem;
+    padding: 0;
+    list-style: none;
+}
+
+.calendar-event-info {
+    display: flex;
+    gap: .75rem;
+    padding: .625rem 0;
+    overflow-wrap: anywhere;
+}
+
+.calendar-event-info > div {
+    flex: 1;
+    min-width: 0;
+}
+
+.calendar-event-info + .calendar-event-info {
+    border-top: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.calendar-event-info-icon {
+    flex: none;
+    color: var(--calendar-event-accent);
+    font-size: 1.25rem;
+    line-height: 1.4;
+}
+
+.calendar-event-info-label {
+    display: block;
+    font-size: .8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+    color: color-mix(in srgb, currentColor 65%, transparent);
+}
+
+/* The map preview of the place, above the label of the link to the map */
+.calendar-event-map {
+    display: block;
+    margin-top: .5rem;
+    border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+    border-radius: .5rem;
+    overflow: hidden;
+    color: inherit;
+    text-decoration: none;
+}
+
+.calendar-event-map-preview {
+    position: relative;
+    display: block;
+    height: 140px;
+    overflow: hidden;
+    background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.calendar-event-map-preview img {
+    position: absolute;
+    width: 256px;
+    height: 256px;
+    max-width: none;
+    margin-left: calc(50% - 160px);
+}
+
+.calendar-event-map-pin {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 2rem;
+    height: 2rem;
+    color: var(--calendar-event-accent);
+    transform: translate(-50%, -92%);
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .4));
+}
+
+.calendar-event-map-label {
+    display: flex;
+    align-items: center;
+    gap: .375rem;
+    padding: .5rem .75rem;
+    font-weight: 600;
+}
+
+.calendar-event-map:hover .calendar-event-map-label,
+.calendar-event-map:focus-visible .calendar-event-map-label {
+    color: var(--calendar-event-accent);
+}
+
+.calendar-event-map-credit {
+    display: block;
+    margin-top: .25rem;
+    font-size: .75rem;
+    color: color-mix(in srgb, currentColor 60%, transparent);
+}
+
+@media (max-width: 767.98px) {
+    .calendar-event-hero {
+        aspect-ratio: 16 / 9;
+    }
+}
+
+@media print {
+    .calendar-event-actions,
+    .calendar-event-minical,
+    .calendar-event-back {
+        display: none;
+    }
+}

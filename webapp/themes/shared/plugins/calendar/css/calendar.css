@@ -1,0 +1,108 @@
+/* Plugin calendar - front office views */
+
+/* Month and week grids: equal fluid columns, never wider than their container */
+.calendar-month,
+.calendar-week,
+.calendar-smallmonth {
+    table-layout: fixed;
+    width: 100%;
+}
+.calendar-month td,
+.calendar-week td {
+    vertical-align: top;
+    overflow-wrap: anywhere;
+}
+.calendar-month td {
+    height: 5rem;
+}
+.calendar-month td ul,
+.calendar-week td ul {
+    margin: .25rem 0 0;
+    padding: 0;
+    font-size: .875em;
+}
+.calendar-smallmonth th,
+.calendar-smallmonth td {
+    padding-left: 0;
+    padding-right: 0;
+    text-align: center;
+}
+.calendar-label-short {
+    display: none;
+    text-decoration: none;
+    cursor: help;
+}
+
+/* Day states, set by the server (calendar.style.* properties); translucent so they suit light and dark themes */
+td.day-off,
+td.small-day-off {
+    background-color: rgba(128, 128, 128, .22);
+}
+td.day-old,
+td.small-day-old {
+    background-color: rgba(128, 128, 128, .08);
+}
+td.day-today,
+td.small-day-today {
+    box-shadow: inset 0 0 0 2px #206bc4;
+}
+td.small-day-event a {
+    font-weight: 700;
+}
+td.selected-day {
+    box-shadow: inset 0 0 0 2px currentColor;
+    font-weight: 700;
+}
+
+/* Small screens */
+@media (max-width: 767.98px) {
+    .calendar-label-long {
+        display: none;
+    }
+    .calendar-label-short {
+        display: inline;
+    }
+
+    /* Month: day number and event dots; the titles stay for screen readers, the day view gives them in full */
+    .calendar-month th,
+    .calendar-month td {
+        padding: .25rem .125rem;
+        text-align: center;
+    }
+    .calendar-month td {
+        height: 3.5rem;
+    }
+    .calendar-month td li {
+        display: inline-block;
+    }
+    .calendar-month .calendar-event-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.5rem;
+        min-height: 1.5rem;
+    }
+    .calendar-month .calendar-event-link .calendar-dot {
+        margin: 0 !important;
+    }
+    .calendar-month .calendar-event-title {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+
+    /* Week: the days are stacked */
+    .calendar-week,
+    .calendar-week tbody,
+    .calendar-week tr,
+    .calendar-week td {
+        display: block;
+        width: 100%;
+    }
+    .calendar-week td {
+        border-bottom: 1px solid rgba(128, 128, 128, .3);
+    }
+}

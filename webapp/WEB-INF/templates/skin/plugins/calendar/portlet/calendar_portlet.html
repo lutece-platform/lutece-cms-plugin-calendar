@@ -1,0 +1,19 @@
+<@cTpl>
+<@cSection class='portlet portlet-calendar ${device_class!}' id='portlet_${portlet_id?c}'>
+<#if portlet_name??>
+	<@cTitle level=2 class='portlet-header'>${portlet_name}</@cTitle>
+</#if>
+	<@cBlock class='portlet-content'>
+	<#if events?has_content>
+		<ul class="list-unstyled mb-0">
+		<#list events as event>
+			<li class="mb-1">
+				<span class="text-muted">[ ${event.dateLocal} ]</span>
+				<@cLink href='${site_path}?page=calendar&agenda=${event.agendaId}&date=${event.date?url("UTF-8")}' label=event.title title='${event.agendaName}: ${event.title}' target='_top' />
+			</li>
+		</#list>
+		</ul>
+	</#if>
+	</@cBlock>
+</@cSection>
+</@cTpl>

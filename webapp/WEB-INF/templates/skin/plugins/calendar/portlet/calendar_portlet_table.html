@@ -1,0 +1,24 @@
+<#include "/skin/plugins/calendar/portlet/calendar_portlet_macros.html" />
+<#-- Table: striped rows of date and time, title, and the place with its address, phone and map -->
+<@pfFrame style='table'>
+	<ul class="calendar-pf-table">
+	<#list events as event>
+		<li style="--calendar-dot-color:${event.color!}">
+			<div>
+				<strong>${event.fullDate}</strong><br>
+				<span class="text-secondary"><@pfTime event /></span>
+			</div>
+			<div>
+				<a href="${event.url}">${event.title}</a>
+				<@pfStatus event=event />
+			</div>
+			<address class="mb-0">
+				<#if event.placeName?has_content><strong>${event.placeName}</strong><br></#if>
+				<#if event.address?has_content>${event.address}<br></#if>
+				<#if event.phone?has_content><a href="tel:${event.phone?replace(' ', '')}">${event.phone}</a><br></#if>
+				<#if event.mapUrl?has_content><a href="${event.mapUrl}" target="_blank" rel="noopener"><i class="ti ti-map-pin" aria-hidden="true"></i> #i18n{calendar.portlet.viewOnMap}<span class="visually-hidden"> : ${event.title}</span></a></#if>
+			</address>
+		</li>
+	</#list>
+	</ul>
+</@pfFrame>

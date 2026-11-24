@@ -33,19 +33,19 @@
  */
 package fr.paris.lutece.plugins.calendar.web;
 
+import fr.paris.lutece.api.user.User;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import fr.paris.lutece.plugins.calendar.business.CalendarHome;
 import fr.paris.lutece.plugins.calendar.business.CalendarSubscriberHome;
 import fr.paris.lutece.plugins.calendar.business.SimpleEvent;
 import fr.paris.lutece.plugins.calendar.business.parameter.CalendarParameterHome;
 import fr.paris.lutece.plugins.calendar.service.AgendaResource;
-import fr.paris.lutece.plugins.calendar.service.CalendarPlugin;
 import fr.paris.lutece.portal.business.right.Right;
 import fr.paris.lutece.portal.business.right.RightHome;
 import fr.paris.lutece.portal.business.user.AdminUser;
@@ -88,7 +88,7 @@ public class CalendarDashboardComponent extends DashboardComponent
 			return EMPTY_STRING;
 		}
         UrlItem url = new UrlItem( right.getUrl(  ) );
-        url.addParameter( CalendarPlugin.PLUGIN_NAME, right.getPluginName(  ) );
+        url.addParameter( Constants.PLUGIN_NAME, right.getPluginName(  ) );
 
         Map<String, Object> model = new HashMap<String, Object>(  );
         List<AgendaResource> calendarsList = getCalendarsList( user, plugin );
@@ -116,7 +116,7 @@ public class CalendarDashboardComponent extends DashboardComponent
     private List<AgendaResource> getCalendarsList( AdminUser user, Plugin plugin )
     {
     	List<AgendaResource> calendarsList = CalendarHome.findAgendaResourcesList( plugin );
-        return (List<AgendaResource>) AdminWorkgroupService.getAuthorizedCollection( calendarsList, user );
+        return (List<AgendaResource>) AdminWorkgroupService.getAuthorizedCollection( calendarsList, (User) user );
     }
     
     /**

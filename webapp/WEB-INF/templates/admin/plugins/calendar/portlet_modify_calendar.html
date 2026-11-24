@@ -1,39 +1,26 @@
-<#escape x as x?html>
-<fieldset>
-	<legend>#i18n{calendar.portlet_modify_calendar.labelPeriodicityInterval}</legend>
-	<label class="radio inline">
-		<input class="radio" name="periodicity" value="1" <#if time_span="FALSE">checked="checked"</#if>type="radio">
-		<label class="inline">#i18n{calendar.portlet_modify_calendar.labelFrom}</label>
-		<input type="text" class="form-control" id="date_begin" name="date_begin" value="<#if date_begin?exists && date_begin?trim != "">${date_begin[6..7]}/${date_begin[4..5]}/${date_begin[0..3]}</#if>" class="input-sm" maxlength="10" />
-		<label class="inline">#i18n{calendar.portlet_modify_calendar.labelTo}</label>
-		<input type="text" class="form-control" id="date_end" name="date_end" value="<#if date_end?exists && date_end?trim != "">${date_end[6..7]}/${date_end[4..5]}/${date_end[0..3]}</#if>" class="input-sm" maxlength="10" />
-	</label>
-	<label class="radio">
-		<input class="radio" name="periodicity" type="radio" value="0" <#if time_span="TRUE">checked="checked"</#if> >
-		#i18n{calendar.portlet_modify_calendar.labelOr}
-	</label>
-	#i18n{calendar.portlet_modify_calendar.labelPeriodicity}</b>
-	<@comboWithParams name="number_days" default_value="${number_days}" additionalParameters=" class=\"form-control input-sm\"" items=interval_list />
-	#i18n{calendar.portlet_modify_calendar.labelStartingNow}
-</fieldset>
-<fieldset>
-	<legend>#i18n{calendar.portlet_modify_calendar.labelChoiceAgenda}</legend>
-	<p>#i18n{calendar.portlet_modify_calendar.labelDatabaseAgenda}</p>
-	<ul>
-		<#list authorized_agenda_list as agenda>
-		<li>
-			<label class="checkbox">
-				<input type="checkbox" name="cbx_agenda_${agenda.id}" class="checkbox" ${selected_agenda_id_list?seq_contains(agenda.id)?string("checked=\"checked\"", "")} />
-				${agenda.id} - ${agenda.name}
-			</label>
-		</li>
-		</#list>
-	</ul>
-	<label>#i18n{calendar.portlet_modify_calendar.labelTextFileAgenda}</label>
-	<input type="text" class="form-control" id="text_agendas" name="text_agendas" value="<#if text_agendas?exists>${text_agendas}</#if>" size="40" maxlength="255" />
-	<span class="help-block">#i18n{calendar.portlet_modify_calendar.labelSummaryFile}</span>
-</fieldset>
-</#escape>
-<script src="../../js/jquery/plugins/ui/jquery-ui-1.9.2.custom.min.js"></script>
-<script src="../../js/jquery/plugins/ui/ui.datepicker-fr.js"></script>
-<@getDatePickerRange idFieldFrom="date_begin" idFieldTo="date_end" language=locale />
+<@input type='hidden' name='token' value='${token}' />
+<#assign dateBegin><#if date_begin?has_content && date_begin?trim != "">${date_begin[6..7]}/${date_begin[4..5]}/${date_begin[0..3]}</#if></#assign><#assign dateBegin = dateBegin?markup_string />
+<#assign dateEnd><#if date_end?has_content && date_end?trim != "">${date_end[6..7]}/${date_end[4..5]}/${date_end[0..3]}</#if></#assign><#assign dateEnd = dateEnd?markup_string />
+<@formGroup labelKey='#i18n{calendar.portlet_modify_calendar.labelPeriodicityInterval}'>
+	<@radioButton name='periodicity' id='periodicity_interval' value='1' labelKey='#i18n{calendar.portlet_modify_calendar.labelFrom} / #i18n{calendar.portlet_modify_calendar.labelTo}' checked=(time_span == 'FALSE') />
+</@formGroup>
+<@formGroup labelFor='date_begin' labelKey='#i18n{calendar.portlet_modify_calendar.labelFrom}'>
+	<@input type='text' name='date_begin' id='date_begin' value=dateBegin placeHolder='dd/mm/yyyy' maxlength=10 />
+</@formGroup>
+<@formGroup labelFor='date_end' labelKey='#i18n{calendar.portlet_modify_calendar.labelTo}'>
+	<@input type='text' name='date_end' id='date_end' value=dateEnd placeHolder='dd/mm/yyyy' maxlength=10 />
+</@formGroup>
+<@formGroup labelKey=' '>
+	<@radioButton name='periodicity' id='periodicity_days' value='0' labelKey='#i18n{calendar.portlet_modify_calendar.labelOr} #i18n{calendar.portlet_modify_calendar.labelPeriodicity}' checked=(time_span == 'TRUE') />
+</@formGroup>
+<@formGroup labelFor='number_days' labelKey='#i18n{calendar.portlet_modify_calendar.labelPeriodicity}' helpKey='#i18n{calendar.portlet_modify_calendar.labelStartingNow}'>
+	<@select name='number_days' id='number_days' items=interval_list default_value='${number_days}' />
+</@formGroup>
+<@formGroup labelKey='#i18n{calendar.portlet_modify_calendar.labelChoiceAgenda}' helpKey='#i18n{calendar.portlet_modify_calendar.labelDatabaseAgenda}'>
+	<#list authorized_agenda_list as agenda>
+		<@checkBox name='cbx_agenda_${agenda.id}' id='cbx_agenda_${agenda.id}' value='true' orientation='switch' labelKey='${agenda.id} - ${agenda.name!}' checked=selected_agenda_id_list?seq_contains( agenda.id ) />
+	</#list>
+</@formGroup>
+<@formGroup labelFor='text_agendas' labelKey='#i18n{calendar.portlet_modify_calendar.labelTextFileAgenda}' helpKey='#i18n{calendar.portlet_modify_calendar.labelSummaryFile}'>
+	<@input type='text' name='text_agendas' id='text_agendas' value=text_agendas!'' maxlength=255 />
+</@formGroup>

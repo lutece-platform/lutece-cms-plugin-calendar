@@ -1,46 +1,45 @@
-<table class="table table-hover table-condensed">
-	<thead>
-		<tr>
-			<th>#i18n{calendar.dashboard.columnTitleLabel}</th>
-			<th>#i18n{calendar.dashboard.columnTitleActions}</th>
-		</tr>
-		<#list calendar_list as calendar>
-			<tr>
-				<td>
-					<strong><img src="${calendar.eventImage}" alt="${calendar.eventImage}" title="${calendar.eventImage}" /> ${calendar.name}</strong>
-					<p><small><i class="fa fa-user"></i> #i18n{calendar.dashboard.nbSubscribers}&nbsp;:&nbsp;${nb_subscribers_list[calendar.id]}</small></p>
-					<ul class="list-unstyled">
-						<#assign nb_event = 0>
-						<#list event_list as event>
-							<#if event.idCalendar == calendar.id?number>
-								<#if ( nb_event <= nb_events_max )>
-									<li>
-										<a href="jsp/admin/plugins/calendar/ModifyEvent.jsp?plugin_name=calendar&amp;calendar_id=${calendar.id}&event_id=${event.id}">
-											<i class="fa fa-calendar"></i> ${event.title} (${event.date?date})
-										</a>
-									</li>
-									<#assign nb_event = nb_event + 1>
-								<#else>
-									<li>
-										<a class="btn btn-default btn-xs btn-flat" href="jsp/admin/plugins/calendar/EventList.jsp?calendar_id=${calendar.id}&amp;plugin_name=calendar">
-											<i class="fa fa-chevron-right"></i>  #i18n{calendar.dashboard.etc}
-										</a>
-									</li>
-									<#break>
-								</#if>
-							</#if>
-						</#list>
-					</ul>
-				</td>
-				<td>
-					<a href="jsp/admin/plugins/calendar/ModifyCalendar.jsp?calendar_id=${calendar.id}&amp;plugin_name=calendar" class="btn btn-primary btn-xs btn-flat" title="#i18n{calendar.dashboard.modifyCalendar}" >
-						<i class="fa fa-pencil"></i>
-					</a>
-					<a href="jsp/admin/plugins/calendar/CreateEvent.jsp?calendar_id=${calendar.id}&amp;plugin_name=calendar" class="btn btn-primary btn-xs btn-flat" title="#i18n{calendar.dashboard.addEvent}" >
-						<i class="fa fa-plus"></i>
-					</a>
-
-				</td>
-			</tr>
-		</#list>
-	</table>
+<#include "/admin/plugins/calendar/macros_calendar_admin.html" />
+<#-- Body of the calendar dashboard widget: one row per calendar, its subscribers and its next events, with its actions -->
+<#assign manageUrl = 'jsp/admin/plugins/calendar/ManageCalendars.jsp' />
+<#if calendar_list?has_content>
+<@listGroup class='list-group-flush'>
+	<#list calendar_list as calendar>
+	<#assign calendarEvents = event_list?filter( event -> event.idCalendar == calendar.id?number ) />
+	<@listGroupItem>
+		<@row class='align-items-start g-2'>
+			<@columns class='col-auto'>
+				<#-- Raw span: @span params refuse the style attribute that carries the colour of the calendar -->
+				<span class="avatar avatar-sm calendar-avatar" style="--calendar-dot-color:${calendar.eventColorCode!}" aria-hidden="true"><@icon style='calendar-event' /></span>
+			</@columns>
+			<@columns class='col text-truncate'>
+				<@link href='${manageUrl}?view=eventList&calendar_id=${calendar.id}' class='text-reset fw-semibold' title='#i18n{calendar.dashboard.eventsList} ${calendar.name!}'>${calendar.name!}</@link>
+				<@div class='text-secondary small'>${nb_subscribers_list[calendar.id]!0} #i18n{calendar.dashboard.subscribers}</@div>
+				<#if calendarEvents?has_content>
+				<@ul class='list-unstyled small mb-0 mt-1'>
+					<#list calendarEvents as event>
+					<#if event?index lt nb_events_max>
+					<@li class='text-truncate'><@span class='text-secondary me-1'>${event.date?date?string.short}<#if event.dateTimeStart?has_content> ${event.dateTimeStart}</#if></@span><@link href='${manageUrl}?view=modifyEvent&calendar_id=${calendar.id}&event_id=${event.id}'>${event.title!}</@link></@li>
+					<#else>
+					<@li><@link href='${manageUrl}?view=eventList&calendar_id=${calendar.id}' class='text-secondary'>#i18n{calendar.dashboard.moreEvents}</@link></@li>
+					<#break>
+					</#if>
+					</#list>
+				</@ul>
+				<#else>
+				<@div class='text-secondary small fst-italic mt-1'>#i18n{calendar.dashboard.noUpcomingEvent}</@div>
+				</#if>
+			</@columns>
+			<@columns class='col-auto'>
+				<@div class='btn-actions'>
+					<@calendarAction href='${manageUrl}?view=calendarView&calendar_id=${calendar.id}' iconName='calendar-month' label='#i18n{calendar.view.pageTitle}' />
+					<@calendarAction href='${manageUrl}?view=createEvent&calendar_id=${calendar.id}' iconName='calendar-plus' label='#i18n{calendar.dashboard.addEvent}' />
+					<@calendarAction href='${manageUrl}?view=modifyCalendar&calendar_id=${calendar.id}' iconName='settings' label='#i18n{calendar.modify_calendar.pageTitle}' />
+				</@div>
+			</@columns>
+		</@row>
+	</@listGroupItem>
+	</#list>
+</@listGroup>
+<#else>
+<@empty title='#i18n{calendar.selector.calendar.noCalendar}' subtitle=' ' iconName='calendar-off' actionTitle='#i18n{calendar.dashboard.addCalendar}' actionUrl='${manageUrl}?view=createCalendar' />
+</#if>

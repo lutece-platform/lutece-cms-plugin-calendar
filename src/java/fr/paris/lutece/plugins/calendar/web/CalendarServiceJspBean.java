@@ -33,19 +33,12 @@
  */
 package fr.paris.lutece.plugins.calendar.web;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-
-import org.apache.commons.lang.StringEscapeUtils;
-
+import fr.paris.lutece.api.user.User;
 import fr.paris.lutece.plugins.calendar.business.Agenda;
+import fr.paris.lutece.portal.service.admin.AccessDeniedException;
 import fr.paris.lutece.plugins.calendar.business.CalendarHome;
 import fr.paris.lutece.plugins.calendar.business.SimpleEvent;
 import fr.paris.lutece.plugins.calendar.service.AgendaResource;
-import fr.paris.lutece.plugins.calendar.service.CalendarPlugin;
 import fr.paris.lutece.plugins.calendar.service.Utils;
 import fr.paris.lutece.portal.business.user.AdminUser;
 import fr.paris.lutece.portal.service.admin.AdminUserService;
@@ -56,24 +49,49 @@ import fr.paris.lutece.portal.service.plugin.PluginService;
 import fr.paris.lutece.portal.service.template.AppTemplateService;
 import fr.paris.lutece.portal.service.util.AppPathService;
 import fr.paris.lutece.portal.service.workgroup.AdminWorkgroupService;
+import fr.paris.lutece.portal.util.mvc.admin.MVCAdminJspBean;
+import fr.paris.lutece.portal.util.mvc.admin.annotations.Controller;
+import fr.paris.lutece.portal.util.mvc.commons.annotations.View;
 import fr.paris.lutece.portal.web.constants.Messages;
-import fr.paris.lutece.portal.web.insert.InsertServiceJspBean;
 import fr.paris.lutece.portal.web.insert.InsertServiceSelectionBean;
+import fr.paris.lutece.portal.web.insert.InsertServiceSelectorJspBean;
+import fr.paris.lutece.util.ReferenceList;
 import fr.paris.lutece.util.html.HtmlTemplate;
 import fr.paris.lutece.util.url.UrlItem;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Named;
+import jakarta.servlet.http.HttpServletRequest;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
+
 
 /**
- * This class provides the user interface to insert a link to a document
- *
+ * The insert service of the editors: inserts a link toward a calendar event
  */
-public class CalendarServiceJspBean extends InsertServiceJspBean implements InsertServiceSelectionBean
+@RequestScoped
+@Named
+@Controller( controllerJsp = CalendarServiceJspBean.CONTROLLER_JSP, controllerPath = CalendarServiceJspBean.CONTROLLER_PATH, right = CalendarServiceJspBean.RIGHT_MANAGE_CALENDAR, securityTokenEnabled = true )
+public class CalendarServiceJspBean extends MVCAdminJspBean implements InsertServiceSelectionBean
 {
+    public static final String CONTROLLER_JSP = "SelectCalendar.jsp";
+    public static final String CONTROLLER_PATH = "jsp/admin/plugins/calendar/";
+    public static final String RIGHT_MANAGE_CALENDAR = "CALENDAR_MANAGEMENT";
     private static final long serialVersionUID = 2694692453596836769L;
 
-    ////////////////////////////////////////////////////////////////////////////
     // Constants
+    private static final String MESSAGE_ACCESS_DENIED = "Access denied";
     private static final String REGEX_ID = "^[\\d]+$";
+
+    // Views
+    private static final String VIEW_SELECT_CALENDAR = "selectCalendar";
+    private static final String VIEW_SELECT_EVENTS = "selectEvents";
+    private static final String VIEW_INSERT_EVENT_LINK = "insertEventLink";
 
     // Templates
     private static final String TEMPLATE_SELECTOR_CALENDAR = "admin/plugins/calendar/calendar_selector.html";
@@ -81,194 +99,225 @@ public class CalendarServiceJspBean extends InsertServiceJspBean implements Inse
     private static final String TEMPLATE_LINK = "admin/plugins/calendar/calendar_link.html";
 
     // JSP
-    private static final String JSP_SELECT_EVENT = "SelectEvent.jsp";
+    private static final String JSP_DO_INSERT = "jsp/admin/insert/DoInsertIntoElement.jsp";
 
     // Parameters
     private static final String PARAMETER_ALT = "alt";
     private static final String PARAMETER_TARGET = "target";
     private static final String PARAMETER_NAME = "name";
     private static final String PARAMETER_INPUT = "input";
+    private static final String PARAMETER_MODE = "mode";
 
-    //markers
+    // Markers
     private static final String MARK_ALT = "alt";
     private static final String MARK_NAME = "name";
     private static final String MARK_URL = "url";
     private static final String MARK_TARGET = "target";
-    private static final String MARK_INPUT = "input";
-
-    // private
-    private AdminUser _user;
-    private String _input;
-    private Plugin _plugin = PluginService.getPlugin( CalendarPlugin.PLUGIN_NAME );
+    private static final String MARK_INPUT = "input_name";
 
     /**
-     * Initialize data
-     *
-     * @param request The HTTP request
+     * {@inheritDoc}
+     * The core instantiates the bean by reflection to show the first screen
      */
-    public void init( HttpServletRequest request )
-    {
-        _user = AdminUserService.getAdminUser( request );
-        _input = request.getParameter( PARAMETER_INPUT );
-    }
-
-    /**
-    * Entry point of the insert service
-    *
-    * @param request The Http Request
-    * @return The html form.
-     */
+    @Override
     public String getInsertServiceSelectorUI( HttpServletRequest request )
     {
-        return getSelectCalendar( request );
+        return renderCalendarSelector( request );
     }
 
     /**
-     * Return the html form for calendar selection.
-     *
-     * @param request The HTTP request
-     * @return The html form of the page selection page
+     * The insert services list of the core reads the sub categories of each service
+     * @return an empty list: the service has none
      */
+    public ReferenceList getSubCategories( )
+    {
+        return new ReferenceList( );
+    }
+
+    /**
+     * Initializes the bean for a request, then checks that the calendar the request names (its calendar_id, or the calendar
+     * of its event_id) belongs to the workgroups of the user: the selector only lists those calendars, and this check
+     * refuses the others when their identifier is typed in an address
+     * 
+     * @param request
+     *            the request
+     * @param strRight
+     *            the right of the feature
+     * @throws AccessDeniedException
+     *             if the user may not use the feature or the calendar the request names
+     */
+    @Override
+    public void init( HttpServletRequest request, String strRight ) throws AccessDeniedException
+    {
+        super.init( request, strRight );
+
+        Plugin pluginCalendar = PluginService.getPlugin( Constants.PLUGIN_NAME );
+        String strCalendarId = request.getParameter( Constants.PARAMETER_CALENDAR_ID );
+        String strEventId = request.getParameter( Constants.PARAMETER_EVENT_ID );
+        java.util.List<Integer> listCalendarIds = new java.util.ArrayList<>( );
+
+        if ( ( strCalendarId != null ) && strCalendarId.matches( REGEX_ID ) )
+        {
+            listCalendarIds.add( Integer.parseInt( strCalendarId ) );
+        }
+
+        if ( ( strEventId != null ) && strEventId.matches( REGEX_ID ) )
+        {
+            SimpleEvent event = CalendarHome.findEvent( Integer.parseInt( strEventId ), pluginCalendar );
+
+            if ( event != null )
+            {
+                listCalendarIds.add( event.getIdCalendar( ) );
+            }
+        }
+
+        for ( int nCalendarId : listCalendarIds )
+        {
+            AgendaResource agenda = CalendarHome.findAgendaResource( nCalendarId, pluginCalendar );
+
+            if ( ( agenda != null ) && !AdminWorkgroupService.isAuthorized( agenda, (User) AdminUserService.getAdminUser( request ) ) )
+            {
+                throw new AccessDeniedException( MESSAGE_ACCESS_DENIED );
+            }
+        }
+    }
+
+    /**
+     * Returns the calendar selection screen
+     * @param request The Http request
+     * @return The html code of the screen
+     */
+    @View( value = VIEW_SELECT_CALENDAR, defaultView = true )
     public String getSelectCalendar( HttpServletRequest request )
     {
-        init( request );
-
-        AdminUser user = AdminUserService.getAdminUser( request );
-
-        Collection<AgendaResource> aResource = CalendarHome.findAgendaResourcesList( _plugin );
-
-        aResource = AdminWorkgroupService.getAuthorizedCollection( aResource, user );
-
-        Map<String, Object> model = getDefaultModel(  );
-
-        model.put( Constants.MARK_CALENDARS_LIST, aResource );
-
-        HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_SELECTOR_CALENDAR, _user.getLocale(  ), model );
-
-        return template.getHtml(  );
+        return renderCalendarSelector( request );
     }
 
     /**
-     * Select and validate the specified calendar
-     *
-     * @param request The http request
-     * @return The url of the portlet selection page
+     * Returns the event selection screen of a calendar
+     * @param request The Http request
+     * @return The html code of the screen
      */
-    public String doSelectCalendar( HttpServletRequest request )
+    @View( VIEW_SELECT_EVENTS )
+    public String getSelectEvents( HttpServletRequest request )
     {
-        init( request );
-
         String strCalendarId = request.getParameter( Constants.PARAMETER_CALENDAR_ID );
 
         if ( ( strCalendarId == null ) || !strCalendarId.matches( REGEX_ID ) )
         {
-            return AdminMessageService.getMessageUrl( request, Messages.MANDATORY_FIELDS, AdminMessage.TYPE_STOP );
+            return redirect( request, AdminMessageService.getMessageUrl( request, Messages.MANDATORY_FIELDS, AdminMessage.TYPE_STOP ) );
         }
 
         Agenda agenda = Utils.getAgendaWithOccurrences( strCalendarId, request );
 
         if ( agenda == null )
         {
-            return AdminMessageService.getMessageUrl( request, Messages.MANDATORY_FIELDS, AdminMessage.TYPE_STOP );
+            return redirect( request, AdminMessageService.getMessageUrl( request, Messages.MANDATORY_FIELDS, AdminMessage.TYPE_STOP ) );
         }
 
-        return getSelectCalendarUrl( strCalendarId );
-    }
-
-    /**
-     * Get the url of the event selection page with the specified calendar id
-     *
-     * @param strCalendarId Id of the calendar
-     * @return The url of the event selection page
-     */
-    private String getSelectCalendarUrl( String strCalendarId )
-    {
-        UrlItem url = new UrlItem( JSP_SELECT_EVENT );
-        url.addParameter( Constants.PARAMETER_CALENDAR_ID, strCalendarId );
-        url.addParameter( PARAMETER_INPUT, _input );
-
-        return url.getUrl(  );
-    }
-
-    /**
-     * Return the html form for event selection.
-     *
-     * @param request The HTTP request
-     * @return The html form of the event selection page
-     */
-    public String getSelectEvents( HttpServletRequest request )
-    {
-        init( request );
-
-        String strCalendarId = request.getParameter( Constants.PARAMETER_CALENDAR_ID );
-
-        if ( ( strCalendarId == null ) || !strCalendarId.matches( REGEX_ID ) )
-        {
-            return AdminMessageService.getMessageUrl( request, Messages.MANDATORY_FIELDS, AdminMessage.TYPE_STOP );
-        }
-
-        Agenda agenda = Utils.getAgendaWithOccurrences( strCalendarId, request );
-
-        Map<String, Object> model = getDefaultModel(  );
-
-        model.put( Constants.MARK_OCCURRENCES_LIST, agenda.getEvents(  ) );
+        Map<String, Object> model = getDefaultModel( request );
+        model.put( Constants.MARK_OCCURRENCES_LIST, agenda.getEvents( ) );
         model.put( Constants.MARK_CALENDAR_ID, strCalendarId );
 
-        HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_SELECTOR_EVENT, _user.getLocale(  ), model );
+        HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_SELECTOR_EVENT, getLocale( ), model );
 
-        return template.getHtml(  );
+        return template.getHtml( );
     }
 
     /**
-    * Insert the specified url into HTML content
-    *
-    * @param request The HTTP request
-    * @return The url
-    */
-    public String doInsertUrl( HttpServletRequest request )
+     * Inserts the link toward the selected event in the editor
+     * @param request The Http request
+     * @return The redirection to the insertion of the core
+     */
+    @View( VIEW_INSERT_EVENT_LINK )
+    public String getInsertEventLink( HttpServletRequest request )
     {
-        init( request );
-
         String strEventId = request.getParameter( Constants.PARAMETER_EVENT_ID );
         String strTarget = request.getParameter( PARAMETER_TARGET );
         String strCalendarId = request.getParameter( Constants.PARAMETER_CALENDAR_ID );
         String strAlt = request.getParameter( PARAMETER_ALT );
         String strName = request.getParameter( PARAMETER_NAME );
-        HashMap<String, Object> model = new HashMap<String, Object>(  );
 
         if ( ( strEventId == null ) || !strEventId.matches( REGEX_ID ) )
         {
-            return AdminMessageService.getMessageUrl( request, Messages.MANDATORY_FIELDS, AdminMessage.TYPE_STOP );
+            return redirect( request, AdminMessageService.getMessageUrl( request, Messages.MANDATORY_FIELDS, AdminMessage.TYPE_STOP ) );
         }
 
-        SimpleEvent event = CalendarHome.findEvent( Integer.parseInt( strEventId ), _plugin );
+        Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
+        SimpleEvent event = CalendarHome.findEvent( Integer.parseInt( strEventId ), plugin );
 
-        UrlItem url = new UrlItem( AppPathService.getPortalUrl(  ) );
+        if ( event == null )
+        {
+            return redirect( request, AdminMessageService.getMessageUrl( request, Messages.MANDATORY_FIELDS, AdminMessage.TYPE_STOP ) );
+        }
+
+        UrlItem url = new UrlItem( AppPathService.getPortalUrl( ) );
         url.addParameter( Constants.PARAMETER_PAGE, Constants.PLUGIN_NAME );
         url.addParameter( Constants.PARAMETER_ACTION, Constants.ACTION_SHOW_RESULT );
-        url.addParameter( Constants.PARAMETER_EVENT_ID, event.getId(  ) );
-        url.addParameter( Constants.PARAMETER_DOCUMENT_ID, event.getDocumentId(  ) );
+        url.addParameter( Constants.PARAMETER_EVENT_ID, event.getId( ) );
+        url.addParameter( Constants.PARAMETER_DOCUMENT_ID, event.getDocumentId( ) );
         url.addParameter( Constants.PARAM_AGENDA, strCalendarId );
 
-        model.put( MARK_URL, url.getUrl(  ) );
+        Map<String, Object> model = new HashMap<>( );
+        model.put( MARK_URL, url.getUrl( ) );
         model.put( MARK_TARGET, strTarget );
         model.put( MARK_ALT, strAlt );
-        model.put( MARK_NAME, ( strName.length(  ) == 0 ) ? event.getTitle(  ) : strName );
+        model.put( MARK_NAME, StringUtils.isEmpty( strName ) ? event.getTitle( ) : strName );
 
         HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_LINK, null, model );
 
-        return insertUrl( request, _input, StringEscapeUtils.escapeJavaScript( template.getHtml(  ) ) );
+        return redirect( request, insertUrl( request, request.getParameter( PARAMETER_INPUT ),
+                StringEscapeUtils.escapeEcmaScript( template.getHtml( ) ) ) );
     }
 
     /**
-     * Get the default model for selection templates
-     *
-     * @return The default model
+     * Renders the calendar selection screen
+     * @param request The Http request
+     * @return The html code of the screen
      */
-    private Map<String, Object> getDefaultModel(  )
+    private String renderCalendarSelector( HttpServletRequest request )
     {
-        HashMap<String, Object> model = new HashMap<String, Object>(  );
-        model.put( MARK_INPUT, _input );
+        AdminUser user = AdminUserService.getAdminUser( request );
+        Collection<AgendaResource> listAgendas = CalendarHome.findAgendaResourcesList( PluginService.getPlugin( Constants.PLUGIN_NAME ) );
+        listAgendas = AdminWorkgroupService.getAuthorizedCollection( listAgendas, (User) user );
+
+        Map<String, Object> model = getDefaultModel( request );
+        model.put( Constants.MARK_CALENDARS_LIST, listAgendas );
+
+        HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_SELECTOR_CALENDAR, user.getLocale( ), model );
+
+        return template.getHtml( );
+    }
+
+    /**
+     * Builds the url that inserts the code into the editor, as the core insert services do
+     * @param request The Http request
+     * @param strInput The name of the input
+     * @param strInsert The code to insert
+     * @return The url
+     */
+    private static String insertUrl( HttpServletRequest request, String strInput, String strInsert )
+    {
+        // No CR is allowed in the insert string
+        String strCleanInsert = strInsert.replace( "\n", "" ).replace( "\r", "" );
+
+        UrlItem urlDoInsert = new UrlItem( AppPathService.getBaseUrl( request ) + JSP_DO_INSERT );
+        urlDoInsert.addParameter( PARAMETER_INPUT, strInput );
+        request.getSession( ).setAttribute( InsertServiceSelectorJspBean.SESSION_INSERT, strCleanInsert );
+        urlDoInsert.addParameter( PARAMETER_MODE, 1 );
+
+        return urlDoInsert.getUrl( );
+    }
+
+    /**
+     * Returns the model shared by the screens
+     * @param request The Http request
+     * @return the model
+     */
+    private static Map<String, Object> getDefaultModel( HttpServletRequest request )
+    {
+        Map<String, Object> model = new HashMap<>( );
+        model.put( MARK_INPUT, request.getParameter( PARAMETER_INPUT ) );
 
         return model;
     }

@@ -1,0 +1,20 @@
+<#-- The form of the calendar advanced parameters, shared by the advanced parameters page and the panel of the technical menu.
+     Parameter: fromTechnicalMenu, true to come back to the technical menu once saved. -->
+<#macro calendarParametersForm fromTechnicalMenu=false>
+<@tform name='advanced_parameters' action='jsp/admin/plugins/calendar/ManageCalendars.jsp' boxed=true>
+	<@input type='hidden' name='action' value='modifyCalendarParameterValues' />
+	<#if fromTechnicalMenu><@input type='hidden' name='from_technical_menu' value='true' /></#if>
+	<@formGroup labelFor='calendar_library' labelKey='#i18n{calendar.advanced_parameters.library}' helpKey='#i18n{calendar.advanced_parameters.library.help}'>
+		<@select name='calendar_library' id='calendar_library' items=calendar_library_list default_value=calendar_library!'event-calendar' />
+	</@formGroup>
+	<@formGroup labelFor='dashboard_n_next_days' labelKey='#i18n{calendar.advanced_parameters.dashboard.nNextDays}' helpKey='#i18n{calendar.advanced_parameters.dashboard.nNextDaysComment}'>
+		<@input type='number' name='dashboard_n_next_days' id='dashboard_n_next_days' min=1 max=365 value='${calendar_parameters["dashboard_n_next_days"]!}' />
+	</@formGroup>
+	<@formGroup labelFor='dashboard_nb_events' labelKey='#i18n{calendar.advanced_parameters.dashboard.nbEvents}' helpKey='#i18n{calendar.advanced_parameters.dashboard.nbEventsComment}'>
+		<@input type='number' name='dashboard_nb_events' id='dashboard_nb_events' min=1 max=365 value='${calendar_parameters["dashboard_nb_events"]!}' />
+	</@formGroup>
+	<@formGroup>
+		<@button type='submit' title='#i18n{calendar.advanced_parameters.dashboard.labelButtonModify}' buttonIcon='device-floppy' color='primary' />
+	</@formGroup>
+</@tform>
+</#macro>

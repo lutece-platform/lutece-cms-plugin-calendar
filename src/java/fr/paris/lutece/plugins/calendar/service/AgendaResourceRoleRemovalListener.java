@@ -34,6 +34,7 @@
 package fr.paris.lutece.plugins.calendar.service;
 
 import fr.paris.lutece.plugins.calendar.business.CalendarHome;
+import fr.paris.lutece.plugins.calendar.web.Constants;
 import fr.paris.lutece.portal.service.i18n.I18nService;
 import fr.paris.lutece.portal.service.plugin.PluginService;
 import fr.paris.lutece.portal.service.util.RemovalListener;
@@ -64,7 +65,7 @@ public class AgendaResourceRoleRemovalListener implements Serializable, RemovalL
         }
 
         Collection<AgendaResource> listAgendaResource = CalendarHome.findAgendaResourcesList( PluginService.getPlugin( 
-                    CalendarPlugin.PLUGIN_NAME ) );
+                    Constants.PLUGIN_NAME ) );
 
         for ( AgendaResource agendaResource : listAgendaResource )
         {

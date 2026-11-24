@@ -1,0 +1,288 @@
+/* Plugin calendar - calendar page (skin/plugins/calendar/calendar.html and calendar_legend.html).
+   The accent is the colour of the calendar shown when there is only one (--calendar-dot-color on .calendar-page). */
+.calendar-page {
+    padding-block: 1rem 2rem;
+}
+
+.calendar-page-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.calendar-page-pretitle {
+    display: flex;
+    align-items: center;
+    gap: .375rem;
+    margin: 0 0 .25rem;
+    font-size: .8125rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, currentColor 65%, transparent);
+}
+
+.calendar-page-title {
+    margin: 0;
+    font-size: clamp(1.75rem, 1.3rem + 1.6vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+
+.calendar-page-search-area {
+    display: flex;
+    flex: 0 1 26em;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: .375rem;
+    min-width: min(100%, 18em);
+}
+
+.calendar-page-search-area .calendar-page-search {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+}
+
+.calendar-advanced-search-toggle {
+    font-size: .875em;
+}
+
+/* Sized in em, not rem: some themes set a small root font size (10px for parisfr), and theme margins on
+   .form-control and .btn are reset so that the field and its button stay aligned. */
+.calendar-page-search {
+    display: flex;
+    align-items: stretch;
+    flex: 0 1 26em;
+    min-width: min(100%, 18em);
+    margin: 0;
+}
+
+.calendar-page-search .form-control {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: auto;
+    margin: 0;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.calendar-page-search .calendar-page-search-button {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    height: auto;
+    margin: 0;
+    padding-block: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.calendar-page-search .calendar-page-search-button svg {
+    width: 1.75em;
+    height: 1.75em;
+}
+
+.calendar-page-section-title {
+    margin: 0 0 .75rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+.calendar-page-upcoming {
+    margin-bottom: 1.5rem;
+}
+
+.calendar-page-upcoming-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: .75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.calendar-page-upcoming-item {
+    position: relative;
+    display: flex;
+    gap: .75rem;
+    align-items: flex-start;
+    padding: .75rem;
+    border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    border-top: 3px solid var(--calendar-dot-color, #868e96);
+    border-radius: .75rem;
+    transition: box-shadow .15s;
+}
+
+.calendar-page-upcoming-item:hover,
+.calendar-page-upcoming-item:focus-within {
+    box-shadow: 0 .25rem 1rem color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.calendar-page-upcoming-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .25rem;
+    min-width: 0;
+}
+
+.calendar-page-upcoming-link {
+    font-weight: 700;
+    line-height: 1.3;
+    color: inherit;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.calendar-page-upcoming-link::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+}
+
+.calendar-page-upcoming-meta {
+    font-size: .875rem;
+    color: color-mix(in srgb, currentColor 70%, transparent);
+}
+
+.calendar-page-view {
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    border-radius: .75rem;
+}
+
+.calendar-page-view .ec .calendar-event-title {
+    font-size: inherit;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.calendar-page-view .ec .calendar-event-time {
+    font-size: inherit;
+}
+
+.calendar-page-view .ec-event {
+    font-size: .8125rem;
+}
+
+.calendar-page-view .ec-toolbar {
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.calendar-page-view .ec-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.calendar-side-card {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    border-radius: .75rem;
+}
+
+.calendar-side-card fieldset,
+.calendar-side-card .calendar-legend {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.calendar-side-card legend,
+.calendar-side-card .form-label {
+    margin-bottom: .5rem;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.calendar-legend-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+}
+
+.calendar-side-help {
+    margin-bottom: .5rem;
+    font-size: .875rem;
+    color: color-mix(in srgb, currentColor 70%, transparent);
+}
+
+.calendar-side-exports {
+    display: grid;
+    gap: .75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.calendar-side-export-name {
+    display: flex;
+    align-items: center;
+    gap: .375rem;
+    margin-bottom: .375rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.calendar-side-export-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+}
+
+.calendar-side-export {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    padding: .25rem .625rem;
+    border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    border-radius: .5rem;
+    font-size: .8125rem;
+    color: inherit;
+    text-decoration: none;
+}
+
+.calendar-side-export:hover,
+.calendar-side-export:focus-visible {
+    border-color: var(--calendar-dot-color, currentColor);
+    color: var(--calendar-dot-color, inherit);
+}
+
+.calendar-side-links {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.calendar-side-links li + li {
+    margin-top: .25rem;
+}
+
+.calendar-page-side-link {
+    margin: 0;
+    padding-inline: .25rem;
+}
+
+.calendar-page-side .form-select {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+}
+
+@media print {
+    .calendar-page-search,
+    .calendar-page-side {
+        display: none;
+    }
+}

@@ -33,14 +33,15 @@
  */
 package fr.paris.lutece.plugins.calendar.web;
 
+import jakarta.enterprise.inject.spi.CDI;
 import fr.paris.lutece.plugins.calendar.business.Event;
 import fr.paris.lutece.plugins.calendar.business.MultiAgenda;
 import fr.paris.lutece.plugins.calendar.business.MultiAgendaEvent;
-import fr.paris.lutece.plugins.calendar.service.CalendarPlugin;
 import fr.paris.lutece.plugins.calendar.service.Utils;
 import fr.paris.lutece.plugins.calendar.service.search.CalendarSearchService;
 import fr.paris.lutece.portal.service.plugin.Plugin;
 import fr.paris.lutece.portal.service.plugin.PluginService;
+import fr.paris.lutece.portal.service.template.HtmlMarkup;
 import fr.paris.lutece.portal.service.template.AppTemplateService;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
 import fr.paris.lutece.util.html.HtmlTemplate;
@@ -52,7 +53,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 
 /**
@@ -88,7 +89,7 @@ public class WeekCalendarView implements CalendarView
         }
 
         Map<String, Object> model = new HashMap<String, Object>( );
-        model.put( Constants.MARK_DAYS, sbDays.toString( ) );
+        model.put( Constants.MARK_DAYS, HtmlMarkup.of( sbDays.toString( ) ) );
 
         HtmlTemplate template = AppTemplateService.getTemplate( TEMPLATE_VIEW_WEEK, options.getLocale( ), model );
 
@@ -111,8 +112,8 @@ public class WeekCalendarView implements CalendarView
         if ( agenda.hasEvents( strDate ) )
         {
             Date date = Utils.getDate( Utils.getDate( calendar ) );
-            Plugin plugin = PluginService.getPlugin( CalendarPlugin.PLUGIN_NAME );
-            List<Event> listIndexedEvents = CalendarSearchService.getInstance( ).getSearchResults(
+            Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
+            List<Event> listIndexedEvents = CDI.current( ).select( CalendarSearchService.class ).get( ).getSearchResults(
                     agenda.getAgendaIds( ), null, "", date, date, plugin );
 
             for ( Event event : listIndexedEvents )
@@ -135,7 +136,7 @@ public class WeekCalendarView implements CalendarView
         dayModel.put( Constants.MARK_DAY_CLASS, getDayClass( calendar ) );
         dayModel.put( Constants.MARK_DAY, strDayOfMonth );
         dayModel.put( Constants.MARK_DAY_LINK, strDateLink );
-        dayModel.put( Constants.MARK_EVENTS, sbEvents.toString( ) );
+        dayModel.put( Constants.MARK_EVENTS, HtmlMarkup.of( sbEvents.toString( ) ) );
         dayModel.put( Constants.MARK_JSP_URL, AppPropertiesService.getProperty( Constants.PROPERTY_RUNAPP_JSP_URL ) );
 
         HtmlTemplate tDay = AppTemplateService.getTemplate( TEMPLATE_VIEW_WEEK_DAY, locale, dayModel );

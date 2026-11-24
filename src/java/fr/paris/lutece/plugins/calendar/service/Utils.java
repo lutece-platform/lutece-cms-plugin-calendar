@@ -33,6 +33,7 @@
  */
 package fr.paris.lutece.plugins.calendar.service;
 
+import jakarta.enterprise.inject.spi.CDI;
 import fr.paris.lutece.plugins.calendar.business.Agenda;
 import fr.paris.lutece.plugins.calendar.business.CalendarHome;
 import fr.paris.lutece.plugins.calendar.business.OccurrenceEvent;
@@ -42,10 +43,12 @@ import fr.paris.lutece.plugins.calendar.web.Constants;
 import fr.paris.lutece.portal.service.plugin.Plugin;
 import fr.paris.lutece.portal.service.plugin.PluginService;
 import fr.paris.lutece.portal.service.security.SecurityService;
-import fr.paris.lutece.portal.service.spring.SpringContextService;
 import fr.paris.lutece.portal.service.util.AppLogService;
 import fr.paris.lutece.portal.service.util.AppPropertiesService;
+import fr.paris.lutece.portal.service.util.AppPathService;
+import fr.paris.lutece.util.date.DateUtil;
 
+import java.io.File;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -56,9 +59,9 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Locale;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.htmlparser.Parser;
 import org.htmlparser.lexer.Lexer;
 import org.htmlparser.util.NodeIterator;
@@ -71,6 +74,8 @@ import org.htmlparser.util.ParserException;
  */
 public final class Utils
 {
+    private static final String ISO_DATE_PATTERN = "yyyy-MM-dd";
+
     /**
      * Date pattern yyyyMMdd
      */
@@ -698,8 +703,7 @@ public final class Utils
      */
     public static Agenda getAgendaWithEvents( String strAgenda, HttpServletRequest request )
     {
-        CalendarService calendarService = (CalendarService) SpringContextService
-                .getBean( Constants.BEAN_CALENDAR_CALENDARSERVICE );
+        CalendarService calendarService = CDI.current( ).select( CalendarService.class ).get( );
         Agenda agenda = null;
 
         if ( strAgenda != null )
@@ -849,7 +853,7 @@ public final class Utils
      */
     public static List<AgendaResource> getAgendaResourcesWithOccurrences( HttpServletRequest request )
     {
-        Plugin plugin = PluginService.getPlugin( CalendarPlugin.PLUGIN_NAME );
+        Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
 
         List<AgendaResource> listCalendar = CalendarHome.findAgendaResourcesList( plugin );
         List<AgendaResource> listAuthaurizedAgenda = new ArrayList<AgendaResource>( );
@@ -893,7 +897,7 @@ public final class Utils
      */
     public static List<AgendaResource> getAgendaResourcesWithOccurrences( )
     {
-        Plugin plugin = PluginService.getPlugin( CalendarPlugin.PLUGIN_NAME );
+        Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
 
         List<AgendaResource> listCalendar = CalendarHome.findAgendaResourcesList( plugin );
 
@@ -911,7 +915,7 @@ public final class Utils
      */
     public static List<AgendaResource> getAgendaResourcesWithEvents( )
     {
-        Plugin plugin = PluginService.getPlugin( CalendarPlugin.PLUGIN_NAME );
+        Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
 
         List<AgendaResource> listCalendar = CalendarHome.findAgendaResourcesList( plugin );
 
@@ -929,7 +933,7 @@ public final class Utils
      */
     public static List<AgendaResource> getAgendaResourcesWithOccurrencesIds( )
     {
-        Plugin plugin = PluginService.getPlugin( CalendarPlugin.PLUGIN_NAME );
+        Plugin plugin = PluginService.getPlugin( Constants.PLUGIN_NAME );
 
         List<AgendaResource> listCalendar = CalendarHome.findAgendaResourcesList( plugin );
 
@@ -1034,7 +1038,7 @@ public final class Utils
         }
         catch ( ParserException e )
         {
-            AppLogService.error( "Parsing html to plain text error : " + e.getMessage( ), e );
+            AppLogService.error( "Parsing html to plain text error : {}", e.getMessage( ), e );
         }
 
         return sbText.toString( );
@@ -1048,8 +1052,7 @@ public final class Utils
     public static String[] getCalendarIds( HttpServletRequest request )
     {
         String[] arrayCalendarIds = null;
-        CalendarService calendarService = (CalendarService) SpringContextService
-                .getBean( Constants.BEAN_CALENDAR_CALENDARSERVICE );
+        CalendarService calendarService = CDI.current( ).select( CalendarService.class ).get( );
 
         List<AgendaResource> listCalendar = calendarService.getAgendaResources( request );
         List<String> listCalendarIds = new ArrayList<String>( );
@@ -1136,5 +1139,119 @@ public final class Utils
             }
         }
         return false;
+    }
+    /**
+     * Parses a date posted by a form: ISO yyyy-MM-dd (the value of an HTML date input), or the short date format of the
+     * locale (dd/MM/yyyy...) for the links and bookmarks written before the date inputs
+     *
+     * @param strDate
+     *            the posted date
+     * @param locale
+     *            the locale of the request
+     * @return the date, or null when it cannot be parsed
+     */
+    public static Date parseFormDate( String strDate, Locale locale )
+    {
+        if ( StringUtils.isBlank( strDate ) )
+        {
+            return null;
+        }
+
+        String strValue = strDate.trim( );
+
+        if ( strValue.matches( "\\d{4}-\\d{2}-\\d{2}" ) )
+        {
+            SimpleDateFormat isoFormat = new SimpleDateFormat( ISO_DATE_PATTERN );
+            isoFormat.setLenient( false );
+
+            try
+            {
+                return isoFormat.parse( strValue );
+            }
+            catch( ParseException e )
+            {
+                return null;
+            }
+        }
+
+        return DateUtil.formatDate( strValue, locale );
+    }
+
+    /**
+     * Gives a posted date in the ISO form an HTML date input expects (yyyy-MM-dd)
+     *
+     * @param strDate
+     *            the posted date, ISO or in the short date format of the locale
+     * @param locale
+     *            the locale of the request
+     * @return the ISO date, or an empty string when the date cannot be parsed
+     */
+    public static String getIsoFormDate( String strDate, Locale locale )
+    {
+        Date date = parseFormDate( strDate, locale );
+
+        return ( date == null ) ? StringUtils.EMPTY : new SimpleDateFormat( ISO_DATE_PATTERN ).format( date );
+    }
+    /**
+     * Lists the files of a webapp directory. The directory is resolved by the core resource manager, so it is found in
+     * every deployment: an exploded war, or a loose application where each plugin keeps its own webapp directory
+     *
+     * @param strRelativePath
+     *            the directory, relative to the webapp root
+     * @return the files of the directory, an empty list when it does not exist
+     */
+    public static List<File> getWebappFiles( String strRelativePath )
+    {
+        List<File> listFiles = new ArrayList<>( );
+        String strPath = strRelativePath.startsWith( "/" ) ? strRelativePath : ( "/" + strRelativePath );
+
+        try
+        {
+            File [ ] files = new File( AppPathService.getAbsolutePathFromRelativePath( strPath ) ).listFiles( File::isFile );
+
+            if ( files != null )
+            {
+                listFiles.addAll( List.of( files ) );
+            }
+        }
+        catch( RuntimeException e )
+        {
+            AppLogService.error( "Calendar: directory not found in the webapp: {}", strPath, e );
+        }
+
+        if ( listFiles.isEmpty( ) )
+        {
+            AppLogService.debug( "Calendar: no file in the webapp directory {}", strPath );
+        }
+
+        return listFiles;
+    }
+    /**
+     * Adds days to a date of the plugin (a day at midnight in the time zone of the server)
+     *
+     * @param date
+     *            the date
+     * @param lDays
+     *            the number of days, negative to go back
+     * @return the new date, at midnight
+     */
+    public static Date addDays( Date date, long lDays )
+    {
+        java.time.ZoneId zone = java.time.ZoneId.systemDefault( );
+        java.time.LocalDate day = date.toInstant( ).atZone( zone ).toLocalDate( ).plusDays( lDays );
+
+        return Date.from( day.atStartOfDay( zone ).toInstant( ) );
+    }
+
+    /**
+     * Converts a day into a date of the plugin (the day at midnight in the time zone of the server)
+     *
+     * @param day
+     *            the day
+     * @return the date
+     */
+    public static Date toDate( java.time.LocalDate day )
+    {
+        return Date.from( day.atStartOfDay( java.time.ZoneId.systemDefault( ) ).toInstant( ) );
     }
 }

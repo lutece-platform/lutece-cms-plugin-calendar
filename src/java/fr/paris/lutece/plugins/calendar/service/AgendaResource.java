@@ -34,13 +34,16 @@
 package fr.paris.lutece.plugins.calendar.service;
 
 import java.io.Serializable;
+import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
 
 import fr.paris.lutece.plugins.calendar.business.Agenda;
 import fr.paris.lutece.portal.service.resource.Resource;
-import fr.paris.lutece.portal.service.role.RoleRemovalListenerService;
 import fr.paris.lutece.portal.service.workgroup.AdminWorkgroupResource;
 import fr.paris.lutece.portal.service.workgroup.AdminWorkgroupService;
-import fr.paris.lutece.portal.service.workgroup.WorkgroupRemovalListenerService;
 
 
 /**
@@ -49,8 +52,11 @@ import fr.paris.lutece.portal.service.workgroup.WorkgroupRemovalListenerService;
 public class AgendaResource implements Serializable, Resource, AdminWorkgroupResource
 {
 	private static final long serialVersionUID = 5430301763071821176L;
-	private static AgendaResourceWorkgroupRemovalListener _listenerWorkgroup;
-    private static AgendaResourceRoleRemovalListener _listenerRole;
+    /** The colour of a calendar that has none */
+    public static final String DEFAULT_COLOR_CODE = "#868e96";
+    private static final Pattern PATTERN_COLOR_CODE = Pattern.compile( "^#[0-9a-f]{6}$" );
+    private static final Map<String, String> MAP_LEGACY_COLORS = Map.of( "blue", "#206bc4", "green", "#2fb344", "orange", "#f76707", "purple",
+            "#ae3ec9", "red", "#d63939" );
 
     // Variables declarations
     private String _strId;
@@ -66,25 +72,8 @@ public class AgendaResource implements Serializable, Resource, AdminWorkgroupRes
     private String _strResourceType;
     private boolean _bNotify;
     private int _nPeriodValidity;
-
-    /**
-     * Initialize the Agenda
-     */
-    public static void init(  )
-    {
-        // Create removal listeners and register them
-        if ( _listenerWorkgroup == null )
-        {
-            _listenerWorkgroup = new AgendaResourceWorkgroupRemovalListener(  );
-            WorkgroupRemovalListenerService.getService(  ).registerListener( _listenerWorkgroup );
-        }
-
-        if ( _listenerRole == null )
-        {
-            _listenerRole = new AgendaResourceRoleRemovalListener(  );
-            RoleRemovalListenerService.getService(  ).registerListener( _listenerRole );
-        }
-    }
+    private boolean _bFrontProposals;
+    private String _strDefaultView;
 
     /**
      * Returns the Id
@@ -154,6 +143,77 @@ public class AgendaResource implements Serializable, Resource, AdminWorkgroupRes
     public String getEventImage(  )
     {
         return _strEventImage;
+    }
+
+    /**
+     * Returns the colour of the calendar as a CSS hexadecimal colour (#rrggbb), set as the custom property --calendar-dot-color
+     * of its dots and events. A colour name or a legacy image path stored before the colour picker gives the colour it
+     * stood for; anything else gives the default grey
+     *
+     * @return The colour, #rrggbb in lower case
+     */
+    public String getEventColorCode( )
+    {
+        String strColor = getValidColorCode( _strEventImage );
+
+        return ( strColor != null ) ? strColor : MAP_LEGACY_COLORS.getOrDefault( getEventColor( ), DEFAULT_COLOR_CODE );
+    }
+
+    /**
+     * Returns the hexadecimal colour of a colour name of the former dots (blue, green, orange, purple, red) or of a hexadecimal colour
+     *
+     * @param strColor
+     *            the colour name or the hexadecimal colour
+     * @return the colour as #rrggbb in lower case, or null when it is neither
+     */
+    public static String getColorCode( String strColor )
+    {
+        String strCode = getValidColorCode( strColor );
+
+        return ( strCode != null || strColor == null ) ? strCode : MAP_LEGACY_COLORS.get( strColor.trim( ).toLowerCase( Locale.ROOT ) );
+    }
+
+    /**
+     * Checks a colour posted by the colour picker
+     *
+     * @param strColor
+     *            the colour
+     * @return the colour as #rrggbb in lower case, or null when it is not a hexadecimal colour
+     */
+    public static String getValidColorCode( String strColor )
+    {
+        if ( strColor == null )
+        {
+            return null;
+        }
+
+        String strCode = strColor.trim( ).toLowerCase( Locale.ROOT );
+
+        return PATTERN_COLOR_CODE.matcher( strCode ).matches( ) ? strCode : null;
+    }
+
+    /**
+     * Returns the colour of the calendar dot, used as the suffix of the CSS class calendar-dot-&lt;colour&gt;. The colour is
+     * stored in the event image field; a legacy image path (images/.../dots/blue.png) gives its file name (blue)
+     *
+     * @return The colour, made of lower case letters, digits and dashes only
+     */
+    public String getEventColor( )
+    {
+        if ( _strEventImage == null )
+        {
+            return "";
+        }
+
+        String strColor = _strEventImage.substring( _strEventImage.lastIndexOf( '/' ) + 1 );
+        int nDot = strColor.indexOf( '.' );
+
+        if ( nDot >= 0 )
+        {
+            strColor = strColor.substring( 0, nDot );
+        }
+
+        return strColor.toLowerCase( java.util.Locale.ROOT ).replaceAll( "[^a-z0-9-]", "" );
     }
 
     /**
@@ -336,5 +396,42 @@ public class AgendaResource implements Serializable, Resource, AdminWorkgroupRes
     public void setPeriodValidity( int nPeriodValidity )
     {
     	_nPeriodValidity = nPeriodValidity;
+    }
+
+    /**
+     * Tells whether the calendar accepts events proposed from the site by logged-in users: they get the status proposed and
+     * stay hidden from the public views until an administrator confirms them
+     * @return true when the calendar accepts proposals
+     */
+    public boolean isFrontProposals( )
+    {
+        return _bFrontProposals;
+    }
+
+    /**
+     * Sets whether the calendar accepts events proposed from the site by logged-in users
+     * @param bFrontProposals true to accept proposals
+     */
+    public void setFrontProposals( boolean bFrontProposals )
+    {
+        _bFrontProposals = bFrontProposals;
+    }
+
+    /**
+     * Returns the view the calendar page opens on when it shows this calendar alone
+     * @return month, week, day or list, or an empty string for the choice by the size of the screen
+     */
+    public String getDefaultView( )
+    {
+        return StringUtils.defaultString( _strDefaultView );
+    }
+
+    /**
+     * Sets the view the calendar page opens on when it shows this calendar alone
+     * @param strDefaultView month, week, day or list, or an empty string for the choice by the size of the screen
+     */
+    public void setDefaultView( String strDefaultView )
+    {
+        _strDefaultView = strDefaultView;
     }
 }
